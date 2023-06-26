@@ -1,0 +1,61 @@
+# This file exists so you can easily regenerate your project.
+#
+# `cookiepatcher` is a convenient shim around `cookiecutter`
+# for regenerating projects (it will generate a .cookiecutterrc
+# automatically for any template). To use it:
+#
+#    pip install cookiepatcher
+#    cookiepatcher gh:ionelmc/cookiecutter-pylibrary python-xbrl-us
+#
+# See:
+#    https://pypi.org/project/cookiepatcher
+#
+# Alternatively, you can run:
+#
+#    cookiecutter --overwrite-if-exists --config-file=python-xbrl-us/.cookiecutterrc gh:ionelmc/cookiecutter-pylibrary
+
+default_context:
+    allow_tests_inside_package: "no"
+    c_extension_function: "longest"
+    c_extension_module: "_xbrl_us"
+    c_extension_optional: "no"
+    c_extension_support: "no"
+    codacy: "no"
+    codacy_projectid: "[Get ID from https://app.codacy.com/gh/hamid-vakilzadeh/python-xbrl-us/settings]"
+    codeclimate: "no"
+    codecov: "no"
+    command_line_interface: "plain"
+    command_line_interface_bin_name: "xbrl-us"
+    coveralls: "no"
+    distribution_name: "xbrl-us"
+    email: "vakilzas@uww.edu"
+    formatter_quote_style: "double"
+    full_name: "hamid-vakilzadeh"
+    github_actions: "yes"
+    github_actions_osx: "yes"
+    github_actions_windows: "yes"
+    license: "MIT license"
+    package_name: "xbrl_us"
+    pre_commit: "yes"
+    project_name: "xbrl-us"
+    project_short_description: "APython wrapper for xbrl-us API"
+    pypi_badge: "yes"
+    pypi_disable_upload: "no"
+    release_date: "today"
+    repo_hosting: "github.com"
+    repo_hosting_domain: "github.com"
+    repo_main_branch: "main"
+    repo_name: "python-xbrl-us"
+    repo_username: "hamid-vakilzadeh"
+    scrutinizer: "no"
+    setup_py_uses_setuptools_scm: "no"
+    sphinx_docs: "yes"
+    sphinx_docs_hosting: "https://python-xbrl-us.readthedocs.io/"
+    sphinx_doctest: "no"
+    sphinx_theme: "furo"
+    test_matrix_separate_coverage: "no"
+    version: "0.0.0"
+    version_manager: "bump2version"
+    website: "https://hamidvakilzadeh.com"
+    year_from: "2023"
+    year_to: "2023"
