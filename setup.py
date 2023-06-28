@@ -30,7 +30,7 @@ setup(
     zip_safe=False,
     classifiers=[
         # complete classifier list: http://pypi.python.org/pypi?%3Aaction=list_classifiers
-        "Development Status :: 5 - Production/Stable",
+        "Development Status :: 1 - Planning",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Operating System :: Unix",
@@ -58,11 +58,12 @@ setup(
         "Issue Tracker": "https://github.com/hamid-vakilzadeh/python-xbrl-us/issues",
     },
     keywords=[
-        # eg: "keyword1", "keyword2", "keyword3",
+        # eg: "xbrl-us", "xbrl", "sec",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.11",
     install_requires=[
-        # eg: "aspectlib==1.1.1", "six>=1.7",
+        "requests~=2.31.0",
+        # "six>=1.7",
     ],
     extras_require={
         # eg:
