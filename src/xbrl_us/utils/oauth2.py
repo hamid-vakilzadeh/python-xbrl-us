@@ -2,8 +2,6 @@ import time
 
 import requests
 
-from .shared import token_url
-
 
 class AuthorizationGrant:
     def __init__(self, client_id, client_secret, username, password):
@@ -16,7 +14,7 @@ class AuthorizationGrant:
             username (str): The username.
             password (str): The password.
         """
-        self.token_url = token_url
+        self._url = "https://api.xbrl.us/oauth2/token"
         self.client_id = client_id
         self.client_secret = client_secret
         self.username = username
@@ -46,7 +44,7 @@ class AuthorizationGrant:
         elif grant_type == "refresh_token":
             payload.update({"refresh_token": refresh_token})
 
-        response = requests.post(self.token_url, data=payload, timeout=5)
+        response = requests.post(self._url, data=payload, timeout=5)
 
         if response.status_code == 200:
             token_info = response.json()

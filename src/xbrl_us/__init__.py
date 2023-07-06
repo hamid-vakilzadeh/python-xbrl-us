@@ -1,7 +1,6 @@
 __version__ = "0.0.0"
 
-from .fact import FactSearch
-from .oauth2 import AuthorizationGrant
+from .fact_search import FactSearch
 
 """
 
@@ -12,4 +11,6 @@ Read more at XBRL US API documentation: https://xbrlus.github.io/xbrl-api/#/
 """
 
 
-__all__ = ["AuthorizationGrant", "FactSearch"]
+__all__ = [
+    "FactSearch",
+]
