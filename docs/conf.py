@@ -1,5 +1,3 @@
-import furo
-
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
@@ -26,7 +24,6 @@ extlinks = {
     "pr": ("https://github.com/hamid-vakilzadeh/python-xbrl-us/pull/%s", "PR #"),
 }
 html_theme = "furo"
-html_theme_path = [furo.get_html_theme_path()]
 html_theme_options = {
     "githuburl": "https://github.com/hamid-vakilzadeh/python-xbrl-us/",
 }
