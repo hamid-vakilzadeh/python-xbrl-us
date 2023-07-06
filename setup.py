@@ -61,10 +61,7 @@ setup(
         # eg: "xbrl-us", "xbrl", "sec",
     ],
     python_requires=">=3.11",
-    install_requires=[
-        "requests~=2.31.0",
-        # "six>=1.7",
-    ],
+    install_requires=["requests~=2.31.0", "furo"],
     extras_require={
         # eg:
         #   "rst": ["docutils>=0.11"],
