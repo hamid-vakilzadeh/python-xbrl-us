@@ -60,7 +60,7 @@ setup(
     keywords=[
         # eg: "xbrl-us", "xbrl", "sec",
     ],
-    python_requires=">=3.11",
+    python_requires=">=3.7",
     install_requires=["requests~=2.31.0", "furo"],
     extras_require={
         # eg:
