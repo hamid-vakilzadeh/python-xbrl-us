@@ -25,14 +25,14 @@ extlinks = {
 }
 html_theme = "furo"
 html_theme_options = {
-    "githuburl": "https://github.com/hamid-vakilzadeh/python-xbrl-us/",
+    "source_repository": "https://github.com/hamid-vakilzadeh/python-xbrl-us/",
 }
 
 html_use_smartypants = True
 html_last_updated_fmt = "%b %d, %Y"
 html_split_index = False
 html_sidebars = {
-    "**": ["searchbox.html", "globaltoc.html", "sourcelink.html"],
+    "**": ["sidebar/search.html", "sidebar/navigation.html", "sidebar/ethical-ads.html"],
 }
 html_short_title = f"{project}-{version}"
 
