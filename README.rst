@@ -67,7 +67,7 @@ Documentation
 =============
 
 
-https://python-xbrl-us.readthedocs.io/
+https://python-xbrl-us.readthedocs.io/en/latest/
 
 
 Development
