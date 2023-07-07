@@ -1,3 +1,5 @@
+from collections.abc import Callable
+from functools import wraps
 from typing import ClassVar
 from typing import Optional
 from typing import Union
@@ -220,7 +222,21 @@ class XBRL(BaseClient):
         },
     }
 
+    @staticmethod
+    def convert_params_to_dict_decorator(func: Callable):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            parameters = kwargs.get("parameters")
+            if isinstance(parameters, Parameters):
+                kwargs["parameters"] = parameters.get_parameters_dict()
+            elif parameters and not isinstance(parameters, dict):
+                raise ValueError(f"Parameters must be a dict or Parameters object. " f"Got {type(parameters)} instead.")
+            return func(self, *args, **kwargs)
+
+        return wrapper
+
     @BaseClient._validate_parameters
+    @convert_params_to_dict_decorator
     def search_fact(
         self,
         fields: Optional[list] = None,
@@ -260,6 +276,7 @@ class XBRL(BaseClient):
             return response.json()["data"]
 
     @BaseClient._validate_parameters
+    @convert_params_to_dict_decorator
     def get_fact_by_id(
         self,
         fields: Optional[list] = None,
