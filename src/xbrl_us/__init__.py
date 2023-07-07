@@ -1,12 +1,10 @@
 __version__ = "0.0.0"
 
-from .fact_search import FactSearch
+from .xbrl_us import XBRL
 
 """
 A Python wrapper for XBRL US API
 """
 
 
-__all__ = [
-    "FactSearch",
-]
+__all__ = ["XBRL"]

@@ -5,7 +5,6 @@ from typing import Union
 
 import requests
 
-from .shared import fact_search_url
 from .utils import AuthorizationGrant
 from .utils import Parameters
 
@@ -33,7 +32,7 @@ class FactSearch:
 
     """
 
-    _base_url = fact_search_url
+    _base_url = "https://api.xbrl.us/api/v1/fact/search"
     _ALLOWED_PARAMETERS: ClassVar[dict] = {
         "fact_search": {
             "parameters": [
