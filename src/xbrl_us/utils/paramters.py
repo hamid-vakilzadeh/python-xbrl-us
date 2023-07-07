@@ -617,7 +617,3 @@ class Parameters:
     def unit(self, value):
         self._unit = value
         self._attribute_dict[self._format_attribute_name("unit")] = value
-
-
-params = Parameters(concept_id=1)
-params.get_parameters_dict()
