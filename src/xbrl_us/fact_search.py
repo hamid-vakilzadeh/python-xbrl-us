@@ -15,16 +15,23 @@ class FactSearch:
     A class for performing fact search and retrieving XBRL data.
 
     Args:
-        authorization (AuthorizationGrant): An instance of the authentication class for accessing the XBRL API.
-        fields (list): A list of fields to be returned in the response.
-        parameters (Optional[Union[Parameters, dict]]): A dictionary containing the parameters for fact search.
-        limit (dict): A limit restricts the number of results returned by the query. The limit attribute can only be
-        added to an object type and not a property. For example, to limit the number of reports in a query,
-        the limit property is added to the fields to return as follows: default to {"fact": 100}.
-        sort (dict): A dictionary containing the fields to sort by and the sort order. Any returned value can be
-        sorted in ascending or descending order, by adding an attribute ('ASC' or 'DESC') to a field value
-         (i.e. {'report.document-type': 'DESC'}). Multiple sort criteria can be defined and the sort sequence
-          is determined by the order defined in the `fields` parameter. defaults to {'fact.id': 'asc'}
+        * authorization (AuthorizationGrant): An instance of the authentication class for accessing the XBRL API.
+        * fields (list): A list of fields to be returned in the response.
+        * parameters (Optional[Union[Parameters, dict]]): A dictionary containing the parameters for fact search.
+        * limit (dict): A limit restricts the number of results returned by the query.
+            The limit attribute can only be added to an object type and not a property.
+            For example, to limit the number of reports in a query,
+            the limit property is added to the fields to return as follows: default to {"fact": 100}.
+        * sort (dict): A dictionary containing the fields to sort by and the sort order.
+            Any returned value can be sorted in ascending or descending order,
+            by adding an attribute ("ASC" or "DESC") to a field value (i.e. {"report.document-type": "DESC"}).
+            Multiple sort criteria can be defined and the sort sequence is determined by the order defined
+            in the "fields" parameter. defaults to {"fact.id": "asc"}
+        * offset (int): The offset attribute enables targeting a return to a specific starting point
+            in a query return sequence (i.e. {"report": 120}).
+            To work reliably, at least one sorted property should be included in the returned fields.
+
+
 
     """
 
@@ -166,9 +173,9 @@ class FactSearch:
         authorization: AuthorizationGrant,
         fields: list,
         parameters: Optional[Union[Parameters, dict]] = None,
-        limit: Optional[dict] = None,
-        sort: Optional[dict] = None,
-        offset: Optional[dict] = None,
+        limit: Optional[dict[str, int]] = None,
+        sort: Optional[dict[str, str]] = None,
+        offset: Optional[dict[str, int]] = None,
     ):
         self.authorization: AuthorizationGrant = authorization
         self.fields: list = fields
