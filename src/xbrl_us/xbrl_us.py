@@ -235,8 +235,8 @@ class XBRL(BaseClient):
 
         return wrapper
 
-    @BaseClient._validate_parameters
     @convert_params_to_dict_decorator
+    @BaseClient._validate_parameters
     def search_fact(
         self,
         fields: Optional[list] = None,
