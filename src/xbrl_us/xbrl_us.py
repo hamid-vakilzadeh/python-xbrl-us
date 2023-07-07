@@ -2,6 +2,8 @@ from typing import ClassVar
 from typing import Optional
 from typing import Union
 
+from pandas import DataFrame
+
 from .utils import BaseClient
 from .utils import Parameters
 
@@ -133,10 +135,89 @@ class XBRL(BaseClient):
                 "unit.qname",
                 "fact.*",
             ],
+        },
+        "get_fact_by_id": {
+            "parameters": ["fact.id", "fact.text-search"],
+            "fields": [
+                "concept.balance-type",
+                "concept.datatype",
+                "concept.id",
+                "concept.is-base",
+                "concept.is-monetary",
+                "concept.local-name",
+                "concept.namespace",
+                "concept.period-type",
+                "dimension.is-base",
+                "dimension.local-name",
+                "dimension.namespace",
+                "dimensions",
+                "dimensions.count",
+                "dimensions.id",
+                "dts.entry-point",
+                "dts.id",
+                "dts.target-namespace",
+                "entity.cik",
+                "entity.id",
+                "entity.name",
+                "entity.scheme",
+                "fact.decimals",
+                "fact.example",
+                "fact.has-dimensions",
+                "fact.hash",
+                "fact.highlighted-value",
+                "fact.id",
+                "fact.inline-display-value",
+                "fact.inline-is-hidden",
+                "fact.inline-negated",
+                "fact.inline-scale",
+                "fact.is-extended",
+                "fact.numerical-value",
+                "fact.ultimus",
+                "fact.ultimus-index",
+                "fact.value",
+                "fact.value-link",
+                "fact.xml-id",
+                "member.is-base",
+                "member.local-name",
+                "member.typed-value",
+                "member.member-value",
+                "member.namespace",
+                "period.calendar-period",
+                "period.end",
+                "period.fiscal-id",
+                "period.fiscal-period",
+                "period.fiscal-year",
+                "period.id",
+                "period.instant",
+                "period.start",
+                "period.year",
+                "report.accession",
+                "report.creation-software",
+                "report.document-type",
+                "report.document-index",
+                "report.entry-url",
+                "report.filing-date",
+                "report.id",
+                "report.period-end",
+                "report.restated",
+                "report.restated-index",
+                "report.sec-url",
+                "report.sic-code",
+                "report.source-id",
+                "report.source-name",
+                "report.type",
+                "unit",
+                "unit.denominator",
+                "unit.numerator",
+                "unit.qname",
+                "fact.*",
+            ],
+        },
+        "global": {
             "limit_fields": ["fact"],
             "sort_fields": ["fact"],
             "offset_fields": ["fact"],
-        }
+        },
     }
 
     @BaseClient._validate_parameters
@@ -148,7 +229,20 @@ class XBRL(BaseClient):
         sort: Optional[dict] = None,
         offset: Optional[dict] = None,
         as_dataframe: bool = False,
-    ):
+    ) -> Union[dict, DataFrame]:
+        """
+
+        Args:
+            fields:
+            parameters:
+            limit:
+            sort:
+            offset:
+            as_dataframe:
+
+        Returns:
+
+        """
         response = self._make_request(
             method="get",
             url=self._URLS.get("fact_search_url"),
@@ -166,7 +260,28 @@ class XBRL(BaseClient):
             return response.json()["data"]
 
     @BaseClient._validate_parameters
-    def get_fact_by_id(self, fact_id, as_dataframe=False):
+    def get_fact_by_id(
+        self,
+        fields: Optional[list] = None,
+        parameters: Optional[Union[Parameters, dict]] = None,
+        limit: Optional[dict] = None,
+        sort: Optional[dict] = None,
+        offset: Optional[dict] = None,
+        as_dataframe: bool = False,
+    ) -> Union[dict, DataFrame]:
+        """
+
+        Args:
+            fields:
+            parameters:
+            limit:
+            sort:
+            offset:
+            as_dataframe:
+
+        Returns:
+
+        """
         response = self._make_request(method="get", url="")
         if as_dataframe:
             return self._convert_to_dataframe(response.json()["data"])
