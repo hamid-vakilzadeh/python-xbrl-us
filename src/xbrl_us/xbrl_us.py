@@ -1,13 +1,16 @@
 import time
+import warnings
 from collections.abc import Callable
 from collections.abc import Iterable
 from functools import wraps
+from pathlib import Path
 from typing import ClassVar
 from typing import Optional
 from typing import Union
 
 import requests
 from pandas import DataFrame
+from yaml import safe_load
 
 from .utils import Parameters
 
@@ -29,216 +32,6 @@ class XBRL:
 
     """
 
-    _ALLOWED_PARAMETERS: ClassVar[dict] = {
-        "search_fact": {
-            "parameters": [
-                "concept.id",
-                "concept.is-base",
-                "concept.is-monetary",
-                "concept.local-name",
-                "concept.namespace",
-                "dimension.is-base",
-                "dimension.local-name",
-                "dimension.namespace",
-                "dimensions.count",
-                "dimensions.id",
-                "dts.entry-point",
-                "dts.id",
-                "dts.target-namespace",
-                "entity.cik",
-                "entity.id",
-                "fact.has-dimensions",
-                "fact.hash",
-                "fact.id",
-                "fact.is-extended",
-                "fact.text-search",
-                "fact.ultimus",
-                "fact.ultimus-index",
-                "fact.value",
-                "fact.value-link",
-                "member.is-base",
-                "member.local-name",
-                "member.typed-value",
-                "member.member-value",
-                "member.namespace",
-                "period.calendar-period",
-                "period.fiscal-id",
-                "period.fiscal-period",
-                "period.fiscal-year",
-                "period.id",
-                "period.year",
-                "report.accession",
-                "report.creation-software",
-                "report.document-type",
-                "report.document-index",
-                "report.entry-url",
-                "report.id",
-                "report.restated",
-                "report.restated-index",
-                "report.sec-url",
-                "report.sic-code",
-                "report.source-id",
-                "report.source-name",
-                "unit",
-            ],
-            "fields": [
-                "concept.balance-type",
-                "concept.datatype",
-                "concept.id",
-                "concept.is-base",
-                "concept.is-monetary",
-                "concept.local-name",
-                "concept.namespace",
-                "concept.period-type",
-                "dimension.is-base",
-                "dimension.local-name",
-                "dimension.namespace",
-                "dimensions",
-                "dimensions.count",
-                "dimensions.id",
-                "dts.entry-point",
-                "dts.id",
-                "dts.target-namespace",
-                "entity.cik",
-                "entity.id",
-                "entity.name",
-                "entity.scheme",
-                "fact.decimals",
-                "fact.example",
-                "fact.has-dimensions",
-                "fact.hash",
-                "fact.highlighted-value",
-                "fact.id",
-                "fact.inline-display-value",
-                "fact.inline-is-hidden",
-                "fact.inline-negated",
-                "fact.inline-scale",
-                "fact.is-extended",
-                "fact.numerical-value",
-                "fact.ultimus",
-                "fact.ultimus-index",
-                "fact.value",
-                "fact.value-link",
-                "fact.xml-id",
-                "member.is-base",
-                "member.local-name",
-                "member.typed-value",
-                "member.member-value",
-                "member.namespace",
-                "period.calendar-period",
-                "period.end",
-                "period.fiscal-id",
-                "period.fiscal-period",
-                "period.fiscal-year",
-                "period.id",
-                "period.instant",
-                "period.start",
-                "period.year",
-                "report.accession",
-                "report.creation-software",
-                "report.document-type",
-                "report.document-index",
-                "report.entry-url",
-                "report.filing-date",
-                "report.id",
-                "report.period-end",
-                "report.restated",
-                "report.restated-index",
-                "report.sec-url",
-                "report.sic-code",
-                "report.source-id",
-                "report.source-name",
-                "report.type",
-                "unit",
-                "unit.denominator",
-                "unit.numerator",
-                "unit.qname",
-                "fact.*",
-            ],
-        },
-        "get_fact_by_id": {
-            "parameters": ["fact.id", "fact.text-search"],
-            "fields": [
-                "concept.balance-type",
-                "concept.datatype",
-                "concept.id",
-                "concept.is-base",
-                "concept.is-monetary",
-                "concept.local-name",
-                "concept.namespace",
-                "concept.period-type",
-                "dimension.is-base",
-                "dimension.local-name",
-                "dimension.namespace",
-                "dimensions",
-                "dimensions.count",
-                "dimensions.id",
-                "dts.entry-point",
-                "dts.id",
-                "dts.target-namespace",
-                "entity.cik",
-                "entity.id",
-                "entity.name",
-                "entity.scheme",
-                "fact.decimals",
-                "fact.example",
-                "fact.has-dimensions",
-                "fact.hash",
-                "fact.highlighted-value",
-                "fact.id",
-                "fact.inline-display-value",
-                "fact.inline-is-hidden",
-                "fact.inline-negated",
-                "fact.inline-scale",
-                "fact.is-extended",
-                "fact.numerical-value",
-                "fact.ultimus",
-                "fact.ultimus-index",
-                "fact.value",
-                "fact.value-link",
-                "fact.xml-id",
-                "member.is-base",
-                "member.local-name",
-                "member.typed-value",
-                "member.member-value",
-                "member.namespace",
-                "period.calendar-period",
-                "period.end",
-                "period.fiscal-id",
-                "period.fiscal-period",
-                "period.fiscal-year",
-                "period.id",
-                "period.instant",
-                "period.start",
-                "period.year",
-                "report.accession",
-                "report.creation-software",
-                "report.document-type",
-                "report.document-index",
-                "report.entry-url",
-                "report.filing-date",
-                "report.id",
-                "report.period-end",
-                "report.restated",
-                "report.restated-index",
-                "report.sec-url",
-                "report.sic-code",
-                "report.source-id",
-                "report.source-name",
-                "report.type",
-                "unit",
-                "unit.denominator",
-                "unit.numerator",
-                "unit.qname",
-                "fact.*",
-            ],
-        },
-        "global": {
-            "limit_fields": ["fact"],
-            "sort_fields": ["fact"],
-            "offset_fields": ["fact"],
-        },
-    }
     _URLS: ClassVar[dict] = {
         "base_url": "https://api.xbrl.us/oauth2/token",
         "auth_url": "https://api.xbrl.us/oauth2/token",
@@ -333,37 +126,52 @@ class XBRL:
     def _validate_parameters(func):
         @wraps(func)
         def wrapper(instance, *args, **kwargs):
-            function_name = func.__name__
-            allowed_parameters = instance._ALLOWED_PARAMETERS.get(function_name, {})
-            allowed_other = instance._ALLOWED_PARAMETERS.get("global", {})
+            method_name = kwargs.get("method")
 
+            # load the yaml file that has allowed parameters for the method
+            _dir = Path(__file__).resolve()
+            file_path = _dir.parent / "query_controls" / f"{method_name}.yml"
+
+            with file_path.open("r") as file:
+                allowed_for_query = safe_load(file)
+
+            # get the parameters, fields, limit, sort, and offset from kwargs that the user passed in
             parameters = kwargs.get("parameters")
             fields = kwargs.get("fields")
             limit = kwargs.get("limit")
             sort = kwargs.get("sort")
             offset = kwargs.get("offset")
 
-            allowed_params = allowed_parameters.get("parameters", set())
-            allowed_fields = allowed_parameters.get("fields", set())
-            allowed_limit_fields = allowed_other.get("limit_fields", set())
-            allowed_sort_fields = allowed_other.get("sort_fields", set())
-            allowed_offset_fields = allowed_other.get("offset_fields", set())
+            allowed_params = allowed_for_query.get("parameters", set())
+            allowed_fields = allowed_for_query.get("fields", set())
+            allowed_limit_fields = allowed_for_query.get("limit", set())
+            allowed_sort_fields = allowed_for_query.get("sort", set())
+            allowed_offset_fields = allowed_for_query.get("offset", set())
 
             # Validate fields
-            if fields:
-                for field in fields:
-                    if not isinstance(field, str):
-                        raise ValueError(f"field must be a string. {field} is {type(field)}")
-                    if field not in allowed_fields:
-                        raise ValueError(f"Field '{field}' is not allowed as a field. " f"Allowed fields are: {allowed_fields}.")
-            else:
+            if not fields:
                 raise ValueError("fields cannot be None.")
+
+            for field in fields:
+                if not isinstance(field, str):
+                    raise ValueError(f"field must be a string. {field} is {type(field)}")
+                if field not in allowed_fields:
+                    raise ValueError(
+                        f"""
+                    Field '{field}' is not allowed as a field for '{method_name}'. Allowed fields are:
+                    {allowed_fields}."""
+                    )
 
             # Validate parameters
             if parameters:
                 for param in parameters:
                     if param not in allowed_params:
-                        raise ValueError(f"Parameter '{param}' is not allowed. " f"Allowed parameters are: {allowed_params}.")
+                        raise ValueError(
+                            f"""
+                        Parameter '{param}' is not allowed for '{method_name}'. Allowed parameters are:
+                        {allowed_params}.
+                        """
+                        )
 
             # Validate limit
             if limit:
@@ -375,7 +183,7 @@ class XBRL:
                     if not isinstance(value, int):
                         raise ValueError(f"Limit value must be an integer. {value} is not an integer")
             else:
-                kwargs["limit"] = {"fact": 100}
+                warnings.warn("You have not set a limit. This will return the first 100 results by default.", UserWarning, stacklevel=2)
 
             # Validate sort
             if sort:
@@ -386,8 +194,15 @@ class XBRL:
                         raise ValueError(f"Sort key '{key}' is not allowed. " f"Allowed sort keys are: {allowed_sort_fields}.")
                     if value.lower() not in ["asc", "desc"]:
                         raise ValueError("Sort value should be 'asc' or 'desc' only.")
-            else:
-                kwargs["sort"] = {"fact.id": "asc"}
+
+            elif offset:
+                warnings.warn(
+                    "You have set an offset but not a sort method. "
+                    "When using offset, it is recommended that you set a sort method "
+                    "to get reliable results.",
+                    UserWarning,
+                    stacklevel=2,
+                )
 
             # Validate offset
             if offset:
@@ -398,8 +213,6 @@ class XBRL:
                         raise ValueError(f"Offset key '{key}' is not allowed. " f"Allowed offset keys are: {allowed_offset_fields}.")
                     if not isinstance(value, int):
                         raise ValueError(f"Offset value must be an integer. {value} is not an integer.")
-            else:
-                kwargs["offset"] = {"fact": 0}
 
             return func(instance, *args, **kwargs)
 
@@ -465,6 +278,8 @@ class XBRL:
                 else:
                     fields.remove(field)
                     fields.append(f"{field}.limit({value})")
+        else:
+            fields.append("fact.limit(100)")
 
         # Handle offset
         if offset:
