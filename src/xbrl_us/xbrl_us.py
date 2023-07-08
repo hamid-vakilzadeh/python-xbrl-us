@@ -1,7 +1,6 @@
 import re
 import time
 import warnings
-from collections.abc import Callable
 from collections.abc import Iterable
 from functools import wraps
 from pathlib import Path
@@ -282,7 +281,7 @@ class XBRL:
         return query_params
 
     @staticmethod
-    def _convert_params_to_dict_decorator(func: Callable):
+    def _convert_params_to_dict_decorator(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             parameters = kwargs.get("parameters")
