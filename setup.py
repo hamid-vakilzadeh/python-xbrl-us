@@ -30,7 +30,7 @@ setup(
     zip_safe=False,
     classifiers=[
         # complete classifier list: http://pypi.python.org/pypi?%3Aaction=list_classifiers
-        "Development Status :: 1 - Planning",
+        "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Operating System :: Unix",
@@ -61,7 +61,7 @@ setup(
         # eg: "xbrl-us", "xbrl", "sec",
     ],
     python_requires=">=3.7",
-    install_requires=["requests~=2.31.0", "furo", "pandas"],
+    install_requires=["requests~=2.31.0", "furo~=2023.5.20", "pandas~=2.0.2", "yaml~=6.0"],
     extras_require={
         # eg:
         #   "rst": ["docutils>=0.11"],
