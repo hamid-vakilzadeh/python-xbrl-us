@@ -14,15 +14,6 @@ from yaml import safe_load
 from .utils import Parameters
 
 
-class callable_staticmethod(staticmethod):
-    """
-    A decorator that allows a static method to be called as a class method or instance method.
-    """
-
-    def __call__(self, *args, **kwargs):
-        return self.__func__(*args, **kwargs)
-
-
 class XBRL:
     """
     XBRL US API client. Initializes an instance of XBRL authorized connection.
@@ -225,8 +216,8 @@ class XBRL:
 
         return wrapper
 
+    @staticmethod
     def _build_query_params(
-        self,
         fields: Optional[list] = None,
         parameters=None,
         limit: Optional[dict] = None,
@@ -292,17 +283,18 @@ class XBRL:
     @staticmethod
     def _convert_params_to_dict_decorator(func):
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(self, *args, **kwargs):
             parameters = kwargs.get("parameters")
             if isinstance(parameters, Parameters):
                 kwargs["parameters"] = parameters.get_parameters_dict()
             elif parameters and not isinstance(parameters, dict):
                 raise ValueError(f"Parameters must be a dict or Parameters object. " f"Got {type(parameters)} instead.")
-            return func(*args, **kwargs)
+            return func(self, *args, **kwargs)
 
         return wrapper
 
-    def _get_method_url(self, method_name: str, parameters) -> str:
+    @staticmethod
+    def _get_method_url(method_name: str, parameters) -> str:
         _dir = Path(__file__).resolve()
         file_path = _dir.parent / "query_controls" / f"{method_name}.yml"
 
