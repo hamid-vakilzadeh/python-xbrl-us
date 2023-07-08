@@ -215,6 +215,10 @@ class XBRL:
 
             return func(instance, *args, **kwargs)
 
+        # set the __name__ and __doc__ attributes
+        wrapper.__name__ = func.__name__
+        wrapper.__doc__ = func.__doc__
+
         return wrapper
 
     def _build_query_params(
@@ -291,6 +295,10 @@ class XBRL:
             elif parameters and not isinstance(parameters, dict):
                 raise ValueError(f"Parameters must be a dict or Parameters object. " f"Got {type(parameters)} instead.")
             return func(self, *args, **kwargs)
+
+        # set the __name__ and __doc__ attributes
+        wrapper.__name__ = func.__name__
+        wrapper.__doc__ = func.__doc__
 
         return wrapper
 
