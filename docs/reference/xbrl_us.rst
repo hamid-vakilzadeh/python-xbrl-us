@@ -1,4 +1,4 @@
-xbrl_us
+XBRL US
 =======
 
 .. testsetup::
