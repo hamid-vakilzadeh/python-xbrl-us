@@ -8,6 +8,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
+    "sphinx_copybutton",
 ]
 source_suffix = ".rst"
 master_doc = "index"
@@ -17,7 +18,8 @@ author = "hamid-vakilzadeh"
 copyright = f"{year}, {author}"
 version = release = "0.0.0"
 
-pygments_style = "trac"
+pygments_style = "emacs"
+highlight_language = "python"
 templates_path = ["."]
 extlinks = {
     "issue": ("https://github.com/hamid-vakilzadeh/python-xbrl-us/issues/%s", "#"),
