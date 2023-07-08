@@ -61,7 +61,7 @@ setup(
         # eg: "xbrl-us", "xbrl", "sec",
     ],
     python_requires=">=3.7",
-    install_requires=["requests~=2.31.0", "furo~=2023.5.20", "pandas~=2.0.2", "PyYAML~=6.0"],
+    install_requires=["requests>=2.25.1", "pandas>=1.2.4", "PyYAML>=5.3"],
     extras_require={
         # eg:
         #   "rst": ["docutils>=0.11"],
