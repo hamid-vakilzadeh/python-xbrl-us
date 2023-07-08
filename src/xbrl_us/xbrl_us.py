@@ -28,7 +28,6 @@ class XBRL:
             * client_credentials - Requires a client_id and client_secret only
             * password - Requires a username and password as well as client_id and client_secret
             * default - "password"
-
     """
 
     def __init__(
@@ -93,7 +92,7 @@ class XBRL:
             else:
                 self._get_token()
 
-    def _make_request(self, method, url, **kwargs):
+    def _make_request(self, method, url, **kwargs) -> requests.Response:
         """
         Makes an HTTP request with the provided method, URL, and additional arguments.
 
@@ -118,6 +117,17 @@ class XBRL:
     def _validate_parameters(func):
         @wraps(func)
         def wrapper(instance, *args, **kwargs):
+            """
+            Validate the parameters passed to the query method.
+
+            Args:
+                instance: The instance of the XBRL class.
+                *args: Variable length argument list.
+                **kwargs: Arbitrary keyword arguments.
+
+            Returns:
+                The result of the wrapped function.
+            """
             method_name = kwargs.get("method")
 
             # load the yaml file that has allowed parameters for the method
@@ -134,6 +144,7 @@ class XBRL:
             sort = kwargs.get("sort")
             offset = kwargs.get("offset")
 
+            # get the allowed parameters, fields, limit, sort, and offset from the yaml file
             allowed_params = allowed_for_query.get("parameters", set())
             allowed_fields = allowed_for_query.get("fields", set())
             allowed_limit_fields = allowed_for_query.get("limit", set())
@@ -223,7 +234,20 @@ class XBRL:
         limit: Optional[dict] = None,
         sort: Optional[dict] = None,
         offset: Optional[dict] = None,
-    ):
+    ) -> dict:
+        """
+        Build the query parameters for the API request in the format required by the API.
+
+        Args:
+            fields (list): The list of fields to include in the query.
+            parameters (dict): The parameters for the query.
+            limit (dict): The limit parameters for the query.
+            sort (dict): The sort parameters for the query.
+            offset (dict): The offset parameters for the query.
+
+        Returns:
+            dict: The query parameters.
+        """
         query_params = {}
 
         if parameters:
@@ -284,6 +308,17 @@ class XBRL:
     def _convert_params_to_dict_decorator(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
+            """
+            Convert the Parameters object to a dictionary before building the query.
+
+            Args:
+                self: The instance of the XBRL class.
+                *args: Variable length argument list.
+                **kwargs: Arbitrary keyword arguments.
+
+            Returns:
+                The result of the wrapped function.
+            """
             parameters = kwargs.get("parameters")
             if isinstance(parameters, Parameters):
                 kwargs["parameters"] = parameters.get_parameters_dict()
@@ -295,6 +330,16 @@ class XBRL:
 
     @staticmethod
     def _get_method_url(method_name: str, parameters) -> str:
+        """
+        Get the URL for the specified method from the YAML file.
+
+        Args:
+            method_name (str): The name of the method.
+            parameters: The parameters for the method.
+
+        Returns:
+            str: The URL for the method.
+        """
         _dir = Path(__file__).resolve()
         file_path = _dir.parent / "query_controls" / f"{method_name}.yml"
 
@@ -328,16 +373,23 @@ class XBRL:
         """
 
         Args:
-            method:
-            fields:
-            parameters:
-            limit:
-            sort:
-            offset:
-            as_dataframe:
+            method (str): The name of the method to query.
+            fields (list): The fields query parameter establishes the details of the data to return for the specific query.
+            parameters (dict | Parameters): The parameters for the query.
+            limit (dict): A limit restricts the number of results returned by the query.
+                The limit attribute can only be added to an object type and not a property.
+                For example, to limit the number of facts in a query, {"fact": 10}.
+            sort (dict): Any returned value can be sorted in ascending or descending order,
+                using ``ASC`` or ``DESC`` (i.e. {"report.document-type": "DESC"}.
+                Multiple sort criteria can be defined and the sort sequence is determined by
+                the order of the items in the dictionary.
+            offset: This attribute enables targeting a return to a specific starting point in a
+                query return sequence (i.e. {"report": 100}. To work reliably,
+                at least one sorted property should be included in the returned fields.
+            as_dataframe (bool=False): Whether to return the results as a DataFrame or json.
 
         Returns:
-
+            dict | DataFrame: The results of the query.
         """
         response = self._make_request(
             method="get",
