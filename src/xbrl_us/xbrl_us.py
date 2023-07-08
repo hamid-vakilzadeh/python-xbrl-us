@@ -1,10 +1,10 @@
+import re
 import time
 import warnings
 from collections.abc import Callable
 from collections.abc import Iterable
 from functools import wraps
 from pathlib import Path
-from typing import ClassVar
 from typing import Optional
 from typing import Union
 
@@ -31,13 +31,6 @@ class XBRL:
             * default - "password"
 
     """
-
-    _URLS: ClassVar[dict] = {
-        "base_url": "https://api.xbrl.us/oauth2/token",
-        "auth_url": "https://api.xbrl.us/oauth2/token",
-        "fact_search_url": "https://api.xbrl.us/api/v1/fact/search",
-        "fact_id_url": "https://api.xbrl.us/api/v1/fact/{fact_id}",
-    }
 
     def __init__(
         self,
@@ -108,7 +101,7 @@ class XBRL:
         Args:
             method (str): The HTTP method for the request.
             url (str): The URL to send the request to.
-            **kwargs: Additional keyword arguments to be passed to the requests library.
+            **kwargs: Additional keyword arguments to be passed to the requests' library.
 
         Returns:
             requests.Response: The response object.
@@ -157,9 +150,10 @@ class XBRL:
                     raise ValueError(f"field must be a string. {field} is {type(field)}")
                 if field not in allowed_fields:
                     raise ValueError(
-                        f"""
-                    Field '{field}' is not allowed as a field for '{method_name}'. Allowed fields are:
-                    {allowed_fields}."""
+                        f"""Field
+                        '{field}' is not allowed as a field for '{method_name}'. Allowed fields are:
+                        '{allowed_fields}'.
+                        """
                     )
 
             # Validate parameters
@@ -176,14 +170,19 @@ class XBRL:
             # Validate limit
             if limit:
                 if not isinstance(limit, dict):
-                    raise ValueError(f"limit must be a dictionary not {type(limit)}. " "e.g. limit = {{'fact': 100}}.")
+                    raise ValueError(f"""limit must be a dictionary not {type(limit)}. e.g. limit = {{'fact': 100}}.""")
                 for key, value in limit.items():
                     if key not in allowed_limit_fields:
-                        raise ValueError(f"Limit key '{key}' is not allowed. " f"Allowed limit keys are: {allowed_limit_fields}")
+                        raise ValueError(f"""Limit key '{key}' is not allowed. Allowed limit keys are: {allowed_limit_fields}""")
                     if not isinstance(value, int):
                         raise ValueError(f"Limit value must be an integer. {value} is not an integer")
             else:
-                warnings.warn("You have not set a limit. This will return the first 100 results by default.", UserWarning, stacklevel=2)
+                warnings.warn(
+                    """You have not set a limit. This will return the first 100 results by default.
+                    """,
+                    UserWarning,
+                    stacklevel=2,
+                )
 
             # Validate sort
             if sort:
@@ -191,7 +190,7 @@ class XBRL:
                     raise ValueError("Sort must be a dictionary")
                 for key, value in sort.items():
                     if key not in allowed_sort_fields:
-                        raise ValueError(f"Sort key '{key}' is not allowed. " f"Allowed sort keys are: {allowed_sort_fields}.")
+                        raise ValueError(f"""Sort key '{key}' is not allowed. Allowed sort keys are: {allowed_sort_fields}.""")
                     if value.lower() not in ["asc", "desc"]:
                         raise ValueError("Sort value should be 'asc' or 'desc' only.")
 
@@ -210,26 +209,10 @@ class XBRL:
                     raise ValueError("Offset must be a dictionary")
                 for key, value in offset.items():
                     if key not in allowed_offset_fields:
-                        raise ValueError(f"Offset key '{key}' is not allowed. " f"Allowed offset keys are: {allowed_offset_fields}.")
+                        raise ValueError(f"""Offset key '{key}' is not allowed. Allowed offset keys are: {allowed_offset_fields}.""")
                     if not isinstance(value, int):
                         raise ValueError(f"Offset value must be an integer. {value} is not an integer.")
 
-            return func(instance, *args, **kwargs)
-
-        return wrapper
-
-    @staticmethod
-    def _build_query_params_decorator(func):
-        @wraps(func)
-        def wrapper(instance, *args, **kwargs):
-            query_params = instance._build_query_params(
-                fields=kwargs.get("fields"),
-                parameters=kwargs.get("parameters"),
-                limit=kwargs.get("limit"),
-                sort=kwargs.get("sort"),
-                offset=kwargs.get("offset"),
-            )
-            kwargs["query_params"] = query_params
             return func(instance, *args, **kwargs)
 
         return wrapper
@@ -311,6 +294,27 @@ class XBRL:
 
         return wrapper
 
+    @staticmethod
+    def _get_method_url(method_name: str, parameters) -> str:
+        _dir = Path(__file__).resolve()
+        file_path = _dir.parent / "query_controls" / f"{method_name}.yml"
+
+        # get the url for this method
+        with file_path.open("r") as file:
+            url = safe_load(file)["url"]
+
+        # check if the link requires parameters
+        keys = [key.strip("{}") for key in re.findall(r"{(.*?)}", url)]
+        if len(keys) > 0:
+            values = {key: parameters[key] for key in keys if key in parameters}
+
+            # get the required parameters for this method
+            for key, value in values.items():
+                placeholder = "{" + key + "}"
+                url = url.replace(placeholder, str(value))
+        print(url)
+        return url
+
     @_convert_params_to_dict_decorator
     @_validate_parameters
     def query(
@@ -339,7 +343,7 @@ class XBRL:
         """
         response = self._make_request(
             method="get",
-            url=self._URLS.get("fact_search_url"),
+            url=self._get_method_url(method, parameters),
             params=self._build_query_params(
                 fields=fields,
                 parameters=parameters,
@@ -348,6 +352,7 @@ class XBRL:
                 offset=offset,
             ),
         )
+
         if as_dataframe:
             return DataFrame.from_dict(response.json()["data"])
         else:

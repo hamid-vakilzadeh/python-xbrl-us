@@ -1,6 +1,0 @@
-limit_fields:
-  - fact
-sort_fields:
-  - fact
-offset_fields:
-  - fact

@@ -126,3 +126,4 @@ sort:
   - fact
 offset:
   - fact
+url: https://api.xbrl.us/api/v1/fact/search
