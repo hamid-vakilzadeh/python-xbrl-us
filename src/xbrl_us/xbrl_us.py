@@ -311,7 +311,6 @@ class XBRL:
             for key, value in values.items():
                 placeholder = "{" + key + "}"
                 url = url.replace(placeholder, str(value))
-        print(url)
         return url
 
     @_convert_params_to_dict_decorator
