@@ -406,16 +406,6 @@ class XBRL:
         return wrapper
 
     @staticmethod
-    def _convert_to_dataframe(json_response):
-        from pandas import DataFrame
-
-        return DataFrame.from_dict(json_response)
-
-    @staticmethod
-    def _is_non_string_iterable(obj):
-        return isinstance(obj, Iterable) and not isinstance(obj, str)
-
-    @staticmethod
     def _build_query_params_decorator(func):
         @wraps(func)
         def wrapper(instance, *args, **kwargs):
@@ -443,7 +433,10 @@ class XBRL:
 
         if parameters:
             query_params.update(
-                {f"{k}": ",".join(map(str, v)) if self._is_non_string_iterable(v) else str(v) for k, v in parameters.items()}
+                {
+                    f"{k}": ",".join(map(str, v)) if isinstance(v, Iterable) and not isinstance(v, str) else str(v)
+                    for k, v in parameters.items()
+                }
             )
 
         # Handle sort
@@ -491,7 +484,7 @@ class XBRL:
         return query_params
 
     @staticmethod
-    def convert_params_to_dict_decorator(func: Callable):
+    def _convert_params_to_dict_decorator(func: Callable):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             parameters = kwargs.get("parameters")
@@ -503,10 +496,11 @@ class XBRL:
 
         return wrapper
 
-    @convert_params_to_dict_decorator
+    @_convert_params_to_dict_decorator
     @_validate_parameters
-    def search_fact(
+    def query(
         self,
+        method: str,
         fields: Optional[list] = None,
         parameters: Optional[Union[Parameters, dict]] = None,
         limit: Optional[dict] = None,
@@ -517,6 +511,7 @@ class XBRL:
         """
 
         Args:
+            method:
             fields:
             parameters:
             limit:
@@ -539,54 +534,6 @@ class XBRL:
             ),
         )
         if as_dataframe:
-            return self._convert_to_dataframe(response.json()["data"])
-        else:
-            return response.json()["data"]
-
-    @convert_params_to_dict_decorator
-    @_validate_parameters
-    def get_fact_by_id(
-        self,
-        fields: Optional[list] = None,
-        parameters: Optional[Union[Parameters, dict]] = None,
-        limit: Optional[dict] = None,
-        sort: Optional[dict] = None,
-        offset: Optional[dict] = None,
-        as_dataframe: bool = False,
-    ) -> Union[dict, DataFrame]:
-        """
-
-        Args:
-            fields:
-            parameters:
-            limit:
-            sort:
-            offset:
-            as_dataframe:
-
-        Returns:
-
-        """
-        response = self._make_request(method="get", url="")
-        if as_dataframe:
-            return self._convert_to_dataframe(response.json()["data"])
-        else:
-            return response.json()["data"]
-
-    @convert_params_to_dict_decorator
-    @_validate_parameters
-    def search_report(self, params=None, as_dataframe=False):
-        response = self._make_request(method="get", url="")
-        if as_dataframe:
-            return self._convert_to_dataframe(response.json()["data"])
-        else:
-            return response.json()["data"]
-
-    @convert_params_to_dict_decorator
-    @_validate_parameters
-    def get_report_by_id(self, report_id, as_dataframe=False):
-        response = self._make_request(method="get", url="")
-        if as_dataframe:
-            return self._convert_to_dataframe(response.json()["data"])
+            return DataFrame.from_dict(response.json()["data"])
         else:
             return response.json()["data"]
