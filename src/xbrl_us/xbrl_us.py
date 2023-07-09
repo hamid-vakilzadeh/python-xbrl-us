@@ -158,6 +158,8 @@ class XBRL:
             self.refresh_token = token_info["refresh_token"]
             self._access_token_expires_at = time.time() + token_info["expires_in"]
             self._refresh_token_expires_at = time.time() + token_info["refresh_token_expires_in"]
+        else:
+            raise ValueError(f"Unable to retrieve token: {response.json()}. Please check your credentials.")
 
     def _is_access_token_expired(self):
         return time.time() >= self._access_token_expires_at
