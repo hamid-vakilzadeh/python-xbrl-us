@@ -28,7 +28,7 @@ If you are utilizing the XBRL US Python Wrapper for research purposes, we kindly
 
 
 Tutorial ✏️📖📚
-===========
+================
 
 This tutorial will guide you through using the XBRL-US Python library to interact with the XBRL API. The XBRL-US library provides a convenient way to query and retrieve financial data from the XBRL API using Python.
 
