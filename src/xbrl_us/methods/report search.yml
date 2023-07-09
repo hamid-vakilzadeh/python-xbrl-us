@@ -1,0 +1,11 @@
+parameters:
+  -
+fields:
+  -
+limit:
+  -
+sort:
+  -
+offset:
+  -
+url: /api/v1/report/search

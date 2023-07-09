@@ -99,7 +99,7 @@ Here's an example of using the query method to search
 for specific financial facts::
 
     response = xbrl.query(
-        method='search_fact',
+        method='fact search',
         parameters={
             "concept.local-name": [
                 'OperatingIncomeLoss',
@@ -143,7 +143,7 @@ readable, less prone to errors, and easier to maintain::
     from xbrl_us.utils import Parameters, Fields
 
     response = xbrl.query(
-        method='search_fact',
+        method='fact search',
         parameters=Parameters(
             concept_local_name=[
                 'OperatingIncomeLoss',
@@ -189,7 +189,7 @@ Here's an example of using the query method to
 search for a specific fact by its ID::
 
     response = xbrl.query(
-    method='search_fact_by_id',
+    method='fact id',
     parameters={'fact.id': 123},
     fields=[
         'report.accession',

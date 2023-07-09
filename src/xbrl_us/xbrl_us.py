@@ -63,7 +63,7 @@ class XBRL:
         Returns:
 
         """
-        file_path = _dir.parent / "query_controls" / f"{method_name}.yml"
+        file_path = _dir.parent / "methods" / f"{method_name.lower()}.yml"
 
         with file_path.open("r") as file:
             method_features = safe_load(file)
@@ -86,7 +86,7 @@ class XBRL:
 
         """
         # location of all method files
-        file_path = _dir.parent / "query_controls"
+        file_path = _dir.parent / "methods"
 
         # list all the files in the directory
         method_files = Path(file_path).glob("*.yml")
@@ -175,7 +175,7 @@ class XBRL:
             method_name = kwargs.get("method")
 
             # load the yaml file that has allowed parameters for the method
-            file_path = _dir.parent / "query_controls" / f"{method_name}.yml"
+            file_path = _dir.parent / "methods" / f"{method_name.lower()}.yml"
 
             with file_path.open("r") as file:
                 allowed_for_query = safe_load(file)
@@ -383,7 +383,7 @@ class XBRL:
         Returns:
             str: The URL for the method.
         """
-        file_path = _dir.parent / "query_controls" / f"{method_name}.yml"
+        file_path = _dir.parent / "methods" / f"{method_name.lower()}.yml"
 
         # get the url for this method
         with file_path.open("r") as file:
