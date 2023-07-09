@@ -13,6 +13,8 @@ from yaml import safe_load
 
 from .utils import Parameters
 
+_dir = Path(__file__).resolve()
+
 
 class XBRL:
     """
@@ -48,6 +50,48 @@ class XBRL:
         self.refresh_token = None
         self._access_token_expires_at = 0
         self._refresh_token_expires_at = 0
+
+    @staticmethod
+    def acceptable_params(method_name: str):
+        """
+        Get the names of the attributes that are allowed to be used for
+            the given method.
+
+        Args:
+            method_name (str): The name of the API method to get the acceptable parameters for (e.g. "search_fact").
+
+        Returns:
+
+        """
+        file_path = _dir.parent / "query_controls" / f"{method_name}.yml"
+
+        with file_path.open("r") as file:
+            method_features = safe_load(file)
+
+        _attributes = {"method_name": method_name}
+        for key, _value in method_features.items():
+            _attributes[f"{key}"] = method_features.get(key)
+
+        # Create the dynamic class using type()
+        _class = type(method_name, (), _attributes)
+        return _class()
+
+    @staticmethod
+    def methods():
+        """
+        Get the names of the attributes that are allowed to be used for
+            the given method.
+
+        Returns:
+
+        """
+        # location of all method files
+        file_path = _dir.parent / "query_controls"
+
+        # list all the files in the directory
+        method_files = Path(file_path).glob("*.yml")
+
+        return [file_path.stem for file_path in method_files]
 
     def _get_token(self, grant_type: Optional[str] = None, refresh_token=None):
         """
@@ -131,7 +175,6 @@ class XBRL:
             method_name = kwargs.get("method")
 
             # load the yaml file that has allowed parameters for the method
-            _dir = Path(__file__).resolve()
             file_path = _dir.parent / "query_controls" / f"{method_name}.yml"
 
             with file_path.open("r") as file:
@@ -340,7 +383,6 @@ class XBRL:
         Returns:
             str: The URL for the method.
         """
-        _dir = Path(__file__).resolve()
         file_path = _dir.parent / "query_controls" / f"{method_name}.yml"
 
         # get the url for this method
@@ -356,7 +398,7 @@ class XBRL:
             for key, value in values.items():
                 placeholder = "{" + key + "}"
                 url = url.replace(placeholder, str(value))
-        return url
+        return f"https://api.xbrl.us{url}"
 
     @_convert_params_to_dict_decorator
     @_validate_parameters
