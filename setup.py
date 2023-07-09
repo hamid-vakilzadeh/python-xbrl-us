@@ -13,7 +13,7 @@ def read(*names, **kwargs):
 
 setup(
     name="xbrl-us",
-    version="0.0.0",
+    version="0.0.1",
     license="MIT",
     description="APython wrapper for xbrl-us API",
     long_description="{}\n{}".format(
