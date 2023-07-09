@@ -1,7 +1,41 @@
 parameters:
-  -
+  - dts.id *
+  - concept.id
+  - concept.local-name
+  - concept.namespace
+  - dts.entry-point
+  - dts.hash
+  - dts.target-namespace
 fields:
-  -
+  - concept.balance-type
+  - concept.datatype
+  - concept.id
+  - concept.is-abstract
+  - concept.is-monetary
+  - concept.is-nillable
+  - concept.is-numeric
+  - concept.local-name
+  - concept.namespace
+  - concept.period-type
+  - concept.substitution
+  - dts.id
+  - dts.entry-point
+  - dts.hash
+  - dts.target-namespace
+  - label.id
+  - label.text
+  - label.lang
+  - label.role
+  - label.role-short
+  - reference.role
+  - reference.role-definition
+  - reference.role-short
+  - parts.local-name
+  - parts.namespace
+  - parts.order
+  - parts.part-value
+  - reference.id
+  - parts.
 limit:
   -
 sort:

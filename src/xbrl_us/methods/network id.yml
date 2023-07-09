@@ -1,7 +1,13 @@
 parameters:
-  -
+  - network.id
 fields:
-  -
+  - dts.entry-point
+  - dts.id
+  - network.arcrole-uri
+  - network.id
+  - network.link-name
+  - network.role-description
+  - network.role-uri
 limit:
   -
 sort:

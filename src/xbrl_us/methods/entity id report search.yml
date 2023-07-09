@@ -1,7 +1,51 @@
 parameters:
-  -
+  - entity.id
+  - report.source-id
+  - report.source-name
+  - report.accession
+  - report.id
+  - report.document-type
+  - report.entry-type
+  - report.entry-url
+  - report.filer-category
+  - report.is-most-current
+  - report.period-index
+  - report.restated
+  - report.restated-index
+  - report.sec-url
+  - report.sic-code
 fields:
-  -
+  - entity.cik
+  - entity.id
+  - entity.name
+  - entity.scheme
+  - entity.ticker
+  - dts.id
+  - report.accepted-timestamp
+  - report.accession
+  - report.address
+  - report.base-taxonomy
+  - report.creation-software
+  - report.document-type
+  - report.entity-name
+  - report.entry-type
+  - report.entry-url
+  - report.filer-category
+  - report.filing-date
+  - report.id
+  - report.is-most-current
+  - report.period-end
+  - report.period-index
+  - report.phone
+  - report.properties
+  - report.restated
+  - report.restated-index
+  - report.sec-url
+  - report.sic-code
+  - report.source-id
+  - report.source-name
+  - report.state-of-incorporation
+  - report.
 limit:
   -
 sort:

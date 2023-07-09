@@ -1,7 +1,36 @@
 parameters:
-  -
+  - cube.default-local-name
+  - cube.description
+  - cube.dimension-local-name
+  - cube.drs-role-uri
+  - cube.id
+  - cube.is-domain
+  - cube.is-explicit
+  - cube.member-local-name
+  - cube.member-tree-depth
+  - cube.member-tree-sequence
+  - cube.table-local-name
+  - cube.table-namespace
+  - dts.id
 fields:
-  -
+  - cube.default-local-name
+  - cube.default.namespace
+  - cube.description
+  - cube.drs-role-uri
+  - cube.id
+  - cube.dimension-local-name
+  - cube.dimension.namespace
+  - cube.is-domain
+  - cube.is-explicit
+  - cube.member-local-name
+  - cube.member-namespace
+  - cube.member-tree-depth
+  - cube.member-tree-sequence
+  - cube.table-local-name
+  - cube.table-namespace
+  - cube.typed-domain-element-name
+  - dts.id
+  - dimension.*
 limit:
   -
 sort:

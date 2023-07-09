@@ -1,7 +1,28 @@
 parameters:
-  -
+  - document.text-search
+  - document.top-level
+  - document.uri
+  - dts.id
 fields:
-  -
+  - document.example
+  - document.highlighted-value
+  - document.content
+  - document.documentset
+  - document.id
+  - document.top-level
+  - document.tree-level
+  - document.tree-order
+  - document.type
+  - document.uri
+  - dts.id
+  - entity.cik
+  - entity.code
+  - entity.name
+  - entity.scheme
+  - report.filing-date
+  - report.hash
+  - report.id
+  - document.*
 limit:
   -
 sort:

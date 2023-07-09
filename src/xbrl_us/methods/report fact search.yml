@@ -1,5 +1,57 @@
 parameters:
-  -
+  - concept.id
+  - concept.is-base
+  - concept.is-monetary
+  - concept.local-name
+  - concept.namespace
+  - dimension.is-base
+  - dimension.local-name
+  - dimension.namespace
+  - dimensions.id
+  - dts.entry-point
+  - dts.id
+  - dts.target-namespace
+  - entity.cik
+  - entity.id
+  - entity.ticker
+  - fact.has-dimensions
+  - fact.hash
+  - fact.id
+  - fact.is-extended
+  - fact.text-search
+  - fact.ultimus-index
+  - fact.ultimus
+  - fact.value
+  - fact.value-link
+  - member.is-base
+  - member.local-name
+  - member.typed-value
+  - member.member-value
+  - member.namespace
+  - period.calendar-period
+  - period.fiscal-id
+  - period.fiscal-period
+  - period.fiscal-year
+  - period.id
+  - period.year
+  - report.accession
+  - report.creation-software
+  - report.document-type
+  - report.document-index
+  - report.entity-name
+  - report.entry-type
+  - report.entry-url
+  - report.filer-category
+  - report.id
+  - report.is-most-current
+  - report.period-index
+  - report.restated-index
+  - report.restated
+  - report.sec-url
+  - report.sic-code
+  - report.source-id
+  - report.source-name
+  - unit
 fields:
   -
 limit:

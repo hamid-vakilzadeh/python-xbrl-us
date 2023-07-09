@@ -1,7 +1,15 @@
 parameters:
-  -
+  - entity.cik
+  - entity.id
+  - entity.name
+  - entity.ticker
 fields:
-  -
+  - entity.cik
+  - entity.id
+  - entity.name
+  - entity.scheme
+  - entity.ticker
+  - entity.*
 limit:
   -
 sort:

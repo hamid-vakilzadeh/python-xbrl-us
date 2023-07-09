@@ -1,7 +1,22 @@
 parameters:
-  -
+  - dts.id
+  - label.text
+  - label.role
+  - concept.id
+  - concept.local-name
+  - dts.entry-point
 fields:
-  -
+  - concept.id
+  - concept.local-name
+  - concept.namespace
+  - dts.id
+  - dts.entry-point
+  - label.id
+  - label.text
+  - label.lang
+  - label.role
+  - label.role-short
+  - label.*
 limit:
   -
 sort:

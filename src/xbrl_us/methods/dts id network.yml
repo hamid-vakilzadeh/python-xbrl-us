@@ -1,7 +1,28 @@
 parameters:
-  -
+  - dts.id
 fields:
-  -
+  - dts.entry-point
+  - dts.id
+  - network.arcrole-uri
+  - network.id
+  - network.link-name
+  - network.role-description
+  - network.role-uri
+  - relationship.id
+  - relationship.order
+  - relationship.preferred-label
+  - relationship.source-concept-id
+  - relationship.source-is-abstract
+  - relationship.source-name
+  - relationship.source-namespace
+  - relationship.target-concept-id
+  - relationship.target-datatype
+  - relationship.target-is-abstract
+  - relationship.target-name
+  - relationship.target-namespace
+  - relationship.tree-depth
+  - relationship.tree-sequence
+  - relationship.weight
 limit:
   -
 sort:

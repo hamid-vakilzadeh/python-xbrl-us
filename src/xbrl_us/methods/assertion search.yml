@@ -1,7 +1,39 @@
 parameters:
-  -
+  - assertion.code
+  - assertion.severity
+  - assertion.source
+  - assertion.type
+  - entity.name
+  - report.accession
+  - report.creation-software
+  - report.document-type
+  - report.entry-url
+  - report.filing-year
+  - report.id
+  - report.sec-url
+  - report.sic-code
 fields:
-  -
+  - assertion.code
+  - assertion.detail
+  - assertion.effective_date
+  - assertion.rule_focus
+  - assertion.run-date
+  - assertion.severity
+  - assertion.source
+  - assertion.type
+  - entity.cik
+  - entity.name
+  - report.accepted-timestamp
+  - report.accession
+  - report.base-taxonomy
+  - report.creation-software
+  - report.document-type
+  - report.entry-url
+  - report.filing-date
+  - report.filing-year
+  - report.id
+  - report.sec-url
+  - report.sic-code
 limit:
   -
 sort:

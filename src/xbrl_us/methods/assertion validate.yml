@@ -1,5 +1,10 @@
 parameters:
-  -
+  - file
+  - task
+  - format
+  - efm
+  - status
+  - run_rules
 fields:
   -
 limit:

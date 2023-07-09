@@ -1,5 +1,5 @@
 parameters:
-  -
+  - report.id
 fields:
   -
 limit:

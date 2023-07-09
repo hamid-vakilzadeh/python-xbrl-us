@@ -1,7 +1,48 @@
 parameters:
-  -
+  - cube.description
+  - cube.drs-role-uri
+  - cube.id
+  - cube.primary-local-name
+  - cube.primary-namespace
+  - cube.table-local-name
+  - cube.table-namespace
+  - cube.tree-depth
+  - cube.tree-sequence
+  - dimensions.count
+  - dts.id
+  - fact.id
+  - fact.is-extended
+  - fact.value
+  - period.calendar-period
+  - period.fiscal-period
+  - period.fiscal-year
+  - period.year
+  - report.accession
+  - report.id
+  - unit
 fields:
-  -
+  - cube.description
+  - cube.drs-role-uri
+  - cube.id
+  - cube.primary-local-name
+  - cube.primary-namespace
+  - cube.table-local-name
+  - cube.table-namespace
+  - cube.tree-depth
+  - cube.tree-sequence
+  - dimensions.count
+  - dts.id
+  - fact.id
+  - fact.is-extended
+  - fact.value
+  - period.calendar-period
+  - period.fiscal-period
+  - period.fiscal-year
+  - period.year
+  - report.accession
+  - report.id
+  - unit
+  - cube.*
 limit:
   -
 sort:

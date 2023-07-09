@@ -1,7 +1,23 @@
 parameters:
-  -
+  - dts.entry-point
+  - dts.hash
+  - dts.id
+  - dts.taxonomy
+  - dts.taxonomy-name
+  - dts.version
+  - report.accession
+  - report.id
 fields:
-  -
+  - dts.entity-name
+  - dts.hash
+  - dts.id
+  - dts.entry-point
+  - dts.taxonomy
+  - dts.taxonomy-name
+  - dts.version
+  - report.accession
+  - report.id
+  - dts.*
 limit:
   -
 sort:

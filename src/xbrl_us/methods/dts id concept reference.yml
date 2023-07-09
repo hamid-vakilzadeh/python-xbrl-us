@@ -1,7 +1,22 @@
 parameters:
-  -
+  - dts.id
+  - concept.local-name
 fields:
-  -
+  - concept.id
+  - concept.local-name
+  - concept.namespace
+  - dts.id
+  - dts.entry-point
+  - reference.id
+  - reference.role
+  - reference.role-definition
+  - reference.role-short
+  - reference.*
+  - parts.local-name
+  - parts.namespace
+  - parts.order
+  - parts.part-value
+  - parts.
 limit:
   -
 sort:
