@@ -16,6 +16,7 @@ setup(
     version="0.0.1",
     license="MIT",
     description="Python wrapper for xbrl.us API",
+    long_description_content_type="text/x-rst",
     long_description="{}\n{}".format(
         re.compile("^.. start-badges.*^.. end-badges", re.M | re.S).sub("", read("README.rst")),
         re.sub(":[a-z]+:`~?(.*?)`", r"``\1``", read("CHANGELOG.rst")),

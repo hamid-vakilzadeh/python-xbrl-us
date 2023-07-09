@@ -34,6 +34,7 @@ This tutorial will guide you through using the XBRL-US Python library to interac
 
 Prerequisites
 ~~~~~~~~~~~~~
+
 Before you begin, ensure you have the following:
 
 * **Python installed on your system**.
@@ -46,11 +47,13 @@ Before you begin, ensure you have the following:
 * **XBRL-US OAuth2 Access**.
   You can obtain your client ID and client secret by registering for a
   free XBRL-US account at https://xbrl.us/home/use/xbrl-api/access-token/.
+
 You can install it using pip:
 
 .. code-block:: bash
 
     pip install xbrl-us
+
 
 **Documentation**
 
@@ -207,7 +210,7 @@ search for a specific fact by its ID::
         'report.sic-code',
     ],
     as_dataframe=False
-)
+    )
 
 Congratulations! You have learned how to use the XBRL-US Python library to interact with the XBRL API.
 
