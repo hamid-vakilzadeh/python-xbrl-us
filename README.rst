@@ -17,6 +17,10 @@ These policies govern the access, usage, and restrictions imposed on the API dat
 Users of the XBRL US Python Wrapper should review and comply with the XBRL US policies to ensure appropriate
 usage of the API and adherence to any applicable licensing terms.
 
+Any and all use of the XBRL APIs to return
+data from the XBRL US Database of Public Filings is in explicit consent and
+agreement with the `XBRL API Terms of Agreement <https://xbrl.us/home/about/legal/xbrl-api-clientid/>`_.
+
 If you are utilizing the XBRL US Python Wrapper for research purposes, we kindly request that you cite the following paper:
 
 [FILL: Insert Paper Title]
