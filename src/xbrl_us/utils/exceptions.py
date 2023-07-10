@@ -31,5 +31,5 @@ class XBRLRequiredValueError(ValueError):
     """Raised when no method name is provided."""
 
     def __init__(self, key, method):
-        message = f"Missing required parameters. " f"'{key}' is a required parameter for '{method}' method."
+        message = f"Missing required parameters: required parameter(s) for '{method}' method: '{key}'."
         super().__init__(message)
