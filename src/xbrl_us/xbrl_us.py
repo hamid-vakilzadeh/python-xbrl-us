@@ -517,4 +517,4 @@ class XBRL:
         elif as_dataframe:
             return DataFrame.from_dict(response.json()["data"])
         else:
-            return response.json(), response.json()["data"]
+            return response.json()["data"]
