@@ -121,19 +121,7 @@ fields:
   - unit.qname
   - fact.*
 limit:
-  - assertion
-  - concept
-  - cube
-  - dimension
-  - document
-  - dts
-  - entity
   - fact
-  - label
-  - network
-  - reference
-  - relationship
-  - report
 sort:
   - concept.balance-type
   - concept.datatype
@@ -206,7 +194,6 @@ sort:
   - unit.denominator
   - unit.numerator
   - unit.qname
-  - fact.*
 offset:
   - fact
 url: /api/v1/fact/search
