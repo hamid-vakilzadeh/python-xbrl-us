@@ -137,21 +137,9 @@ fields:
   - unit.qname
   - fact.*
 limit:
-  - assertion
-  - concept
-  - cube
-  - dimension
-  - document
-  - dts
-  - entity
   - fact
-  - label
-  - network
-  - reference
-  - relationship
   - report
-sort:
-  -
 offset:
-  -
+  - fact
+  - report
 url: /api/v1/report/fact/search
