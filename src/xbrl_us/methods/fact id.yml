@@ -75,7 +75,19 @@ fields:
   - unit.qname
   - fact.*
 limit:
+  - assertion
+  - concept
+  - cube
+  - dimension
+  - document
+  - dts
+  - entity
   - fact
+  - label
+  - network
+  - reference
+  - relationship
+  - report
 sort:
   - fact
 offset:

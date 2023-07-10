@@ -32,7 +32,19 @@ fields:
   - report.state-of-incorporation
   - report.*
 limit:
-  -
+  - assertion
+  - concept
+  - cube
+  - dimension
+  - document
+  - dts
+  - entity
+  - fact
+  - label
+  - network
+  - reference
+  - relationship
+  - report
 sort:
   -
 offset:
