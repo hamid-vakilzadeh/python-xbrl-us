@@ -123,28 +123,14 @@ fields:
   - report.source-id
   - report.source-name
   - report.state-of-incorporation
-  - report.
+  - report.*
   - unit
   - unit.denominator
   - unit.numerator
   - unit.qname
-  - fact.
+  - fact.*
 limit:
-  - assertion
-  - concept
-  - cube
-  - dimension
-  - document
-  - dts
-  - entity
   - fact
-  - label
-  - network
-  - reference
-  - relationship
-  - report
-sort:
-  -
 offset:
-  -
+  - fact
 url: /api/v1/report/{report.id}/fact/search
