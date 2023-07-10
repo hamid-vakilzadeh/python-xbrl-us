@@ -1,23 +1,7 @@
 parameters:
   - report.id
 fields:
-  -
 limit:
-  - assertion
-  - concept
-  - cube
-  - dimension
-  - document
-  - dts
-  - entity
-  - fact
-  - label
-  - network
-  - reference
-  - relationship
   - report
-sort:
-  -
 offset:
-  -
 url: /api/v1/report/{report.id}/delete

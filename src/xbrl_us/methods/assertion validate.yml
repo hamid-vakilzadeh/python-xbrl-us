@@ -6,7 +6,6 @@ parameters:
   - status
   - run_rules
 fields:
-  -
 limit:
   - assertion
   - concept

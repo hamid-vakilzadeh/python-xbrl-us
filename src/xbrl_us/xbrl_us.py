@@ -1,3 +1,4 @@
+import logging
 import re
 import time
 import warnings
@@ -9,9 +10,13 @@ from typing import Union
 
 import requests
 from pandas import DataFrame
+from retry import retry
 from yaml import safe_load
 
 from .utils import Parameters
+from .utils import exceptions
+
+logging.basicConfig()
 
 _dir = Path(__file__).resolve()
 
@@ -31,6 +36,8 @@ class XBRL:
             * password - Requires a username and password as well as client_id and client_secret
             * default - "password"
     """
+
+    _query_exceptions = (requests.exceptions.ConnectionError, requests.exceptions.Timeout, requests.exceptions.ReadTimeout)
 
     def __init__(
         self,
@@ -71,6 +78,8 @@ class XBRL:
         _attributes = {"method_name": method_name}
         for key, _value in method_features.items():
             _attributes[f"{key}"] = method_features.get(key)
+
+        _attributes["sort"] = [value for value in _attributes["fields"] if "*" not in value]
 
         # Create the dynamic class using type()
         _class = type(method_name, (), _attributes)
@@ -174,6 +183,7 @@ class XBRL:
             else:
                 self._get_token()
 
+    @retry(exceptions=_query_exceptions, tries=5, delay=2, backoff=2)
     def _make_request(self, method, url, **kwargs) -> requests.Response:
         """
         Makes an HTTP request with the provided method, URL, and additional arguments.
@@ -192,7 +202,7 @@ class XBRL:
         headers.update({"Authorization": f"Bearer {self.access_token}"})
         kwargs["headers"] = headers
 
-        response = requests.request(method, url, timeout=30, **kwargs)
+        response = requests.request(method, url, timeout=60, **kwargs)
         return response
 
     @staticmethod
@@ -212,6 +222,14 @@ class XBRL:
             """
             method_name = kwargs.get("method")
 
+            if not method_name:
+                raise exceptions.XBRLMissingValueError(param="method", expected_value=instance.methods())
+            elif method_name not in instance.methods():
+                raise exceptions.XBRLInvalidValueError(key=method_name, param="method", expected_value=instance.methods())
+
+            elif not isinstance(method_name, str):
+                raise exceptions.XBRLInvalidTypeError(key=method_name, received_type=type(method_name), expected_type=str)
+
             # load the yaml file that has allowed parameters for the method
             file_path = _dir.parent / "methods" / f"{method_name.lower()}.yml"
 
@@ -224,38 +242,31 @@ class XBRL:
             limit = kwargs.get("limit")
             sort = kwargs.get("sort")
             offset = kwargs.get("offset")
+            kwargs.get("print_query")
 
             # get the allowed parameters, fields, limit, sort, and offset from the yaml file
             allowed_params = allowed_for_query.get("parameters", set())
             allowed_fields = allowed_for_query.get("fields", set())
             allowed_limit_fields = allowed_for_query.get("limit", set())
-            allowed_sort_fields = allowed_for_query.get("sort", set())
+            allowed_sort_fields = [field for field in allowed_fields if "*" not in field]
             allowed_offset_fields = allowed_for_query.get("offset", set())
 
             # Validate fields
             if not fields:
-                raise ValueError("fields cannot be None.")
+                raise exceptions.XBRLMissingValueError(param="fields", expected_value=allowed_fields)
 
             for field in fields:
                 if not isinstance(field, str):
-                    raise ValueError(f"field must be a string. {field} is {type(field)}")
+                    raise exceptions.XBRLInvalidTypeError(key=field, expected_type=str, received_type=type(field))
                 if field not in allowed_fields:
-                    raise ValueError(
-                        f"""Field
-                        '{field}' is not allowed as a field for '{method_name}'. Allowed fields are:
-                        '{allowed_fields}'.
-                        """
-                    )
+                    raise exceptions.XBRLInvalidValueError(key=field, param="fields", expected_value=allowed_fields, method=method_name)
 
             # Validate parameters
             if parameters:
                 for param in parameters:
                     if param not in allowed_params:
-                        raise ValueError(
-                            f"""
-                        Parameter '{param}' is not allowed for '{method_name}'. Allowed parameters are:
-                        {allowed_params}.
-                        """
+                        raise exceptions.XBRLInvalidValueError(
+                            key=param, param="parameters", expected_value=allowed_params, method=method_name
                         )
 
             # Validate limit
@@ -264,13 +275,12 @@ class XBRL:
                     raise ValueError(f"""limit must be a dictionary not {type(limit)}. e.g. limit = {{'fact': 100}}.""")
                 for key, value in limit.items():
                     if key not in allowed_limit_fields:
-                        raise ValueError(f"""Limit key '{key}' is not allowed. Allowed limit keys are: {allowed_limit_fields}""")
+                        raise ValueError(f"Limit key '{key}' is not allowed. Allowed limit keys are: {allowed_limit_fields}")
                     if not isinstance(value, int):
                         raise ValueError(f"Limit value must be an integer. {value} is not an integer")
             else:
                 warnings.warn(
-                    """You have not set a limit. This will return the first 100 results by default.
-                    """,
+                    "You have not set a limit. This will return the first 100 results by default.",
                     UserWarning,
                     stacklevel=2,
                 )
@@ -281,7 +291,7 @@ class XBRL:
                     raise ValueError("Sort must be a dictionary")
                 for key, value in sort.items():
                     if key not in allowed_sort_fields:
-                        raise ValueError(f"""Sort key '{key}' is not allowed. Allowed sort keys are: {allowed_sort_fields}.""")
+                        raise ValueError(f"Sort key '{key}' is not allowed. Allowed sort keys are: {allowed_sort_fields}.")
                     if value.lower() not in ["asc", "desc"]:
                         raise ValueError("Sort value should be 'asc' or 'desc' only.")
 
@@ -300,7 +310,7 @@ class XBRL:
                     raise ValueError("Offset must be a dictionary")
                 for key, value in offset.items():
                     if key not in allowed_offset_fields:
-                        raise ValueError(f"""Offset key '{key}' is not allowed. Allowed offset keys are: {allowed_offset_fields}.""")
+                        raise ValueError(f"Offset key '{key}' is not allowed. Allowed offset keys are: {allowed_offset_fields}.")
                     if not isinstance(value, int):
                         raise ValueError(f"Offset value must be an integer. {value} is not an integer.")
 
@@ -371,15 +381,15 @@ class XBRL:
         # Handle offset
         if offset:
             # check if the offset field is in the fields list
-            for field in offset.items():
+            for field, value in offset.items():
                 # if the field is not in the fields list add the field name followed by .offset(value)
                 if field not in fields:
-                    fields.append(f"{field}.offset({offset})")
+                    fields.append(f"{field}.offset({value})")
                 # if the field is in the fields list, remove the field
                 # name and add the field name followed by .offset(value)
                 else:
                     fields.remove(field)
-                    fields.append(f"{field}.offset({offset})")
+                    fields.append(f"{field}.offset({value})")
 
         query_params["fields"] = ",".join(fields)
 
@@ -430,7 +440,16 @@ class XBRL:
         # check if the link requires parameters
         keys = [key.strip("{}") for key in re.findall(r"{(.*?)}", url)]
         if len(keys) > 0:
+            if not parameters:
+                raise exceptions.XBRLRequiredValueError(key=keys, method=method_name)
+
             values = {key: parameters[key] for key in keys if key in parameters}
+
+            # check if all required parameters are present
+            if len(values) != len(keys):
+                missing_keys = [key for key in keys if key not in values]
+                for key in missing_keys:
+                    raise exceptions.XBRLRequiredValueError(key=key, method=method_name)
 
             # get the required parameters for this method
             for key, value in values.items():
@@ -449,6 +468,7 @@ class XBRL:
         sort: Optional[dict] = None,
         offset: Optional[dict] = None,
         as_dataframe: bool = False,
+        print_query: bool = False,
     ) -> Union[dict, DataFrame]:
         """
 
@@ -467,23 +487,34 @@ class XBRL:
                 query return sequence (i.e. {"report": 100}. To work reliably,
                 at least one sorted property should be included in the returned fields.
             as_dataframe (bool=False): Whether to return the results as a DataFrame or json.
+            print_query (bool=False): Whether to print the query.
 
         Returns:
             dict | DataFrame: The results of the query.
         """
+        query_params = self._build_query_params(
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            offset=offset,
+        )
+
+        if print_query:
+            print(query_params)
+
         response = self._make_request(
             method="get",
             url=self._get_method_url(method, parameters),
-            params=self._build_query_params(
-                fields=fields,
-                parameters=parameters,
-                limit=limit,
-                sort=sort,
-                offset=offset,
-            ),
+            params=query_params,
         )
 
-        if as_dataframe:
+        if response.status_code != 200:
+            raise response.json()["message"]
+
+        if "data" not in response.json():
+            return response.json()
+        elif as_dataframe:
             return DataFrame.from_dict(response.json()["data"])
         else:
-            return response.json()["data"]
+            return response.json(), response.json()["data"]

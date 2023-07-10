@@ -75,9 +75,5 @@ fields:
   - unit.qname
   - fact.*
 limit:
-  - fact
-sort:
-  - fact
 offset:
-  - fact
 url: /api/v1/fact/{fact.id}
