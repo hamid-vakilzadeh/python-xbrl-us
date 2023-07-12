@@ -38,11 +38,15 @@ def show_login():
         help="Your client secret for the [XBRL.US](https://www.xbrl.us) API.",
     )
 
+    disable_login_btn = False
+    if username == "" or password == "" or client_id == "" or client_secret == "":
+        disable_login_btn = True
+
     verify_api = st.button(
         label="Create a New Session",
-        help="Connect to the [XBRL.US](https://www.xbrl.us) API.",
         type="primary",
         use_container_width=True,
+        disabled=disable_login_btn,
     )
     if verify_api:
         # try the credentials before creating an instance
@@ -55,12 +59,104 @@ def update_number_input(slider_key: str, number_input_key_min: str, number_input
     st.session_state[number_input_key_max] = st.session_state[slider_key][1]
 
 
+def input_number_for_integers(key):
+    st.number_input(
+        label=f"Input **{key}**:",
+        value=0,
+        key=f"{key}",
+    )
+
+
+def text_input_for_strings(key):
+    st.text_input(
+        label=f"Input **{key}**:",
+        value="",
+        key=f"{key}",
+    )
+
+
+def boolean_input_for_booleans(key):
+    st.radio(
+        label=f"Input **{key}**:",
+        options=("true", "false"),
+        horizontal=True,
+        key=f"{key}",
+    )
+
+
+def range_and_slider_for_array_integers(key):
+    st.radio(
+        label=f"Input **{key}** as a range or list:",
+        options=("Range", "List"),
+        horizontal=True,
+        key=f"{key}_input_method",
+    )
+
+    if st.session_state[f"{key}_input_method"] == "Range":
+        # update_slider_range("period.fiscal-year_input")
+        col1, col2 = st.columns(2)
+
+        col1.number_input(
+            label="Between",
+            min_value=1952,
+            max_value=9999,
+            value=1952,
+            key=f"{key}_min_value",
+        )
+
+        col2.number_input(
+            label="And",
+            min_value=1952,
+            max_value=9999,
+            value=2021,
+            key=f"{key}_max_value",
+        )
+
+        st.slider(
+            label=f"**{key}**",
+            min_value=1952,
+            max_value=2023,
+            value=[st.session_state[f"{key}_min_value"], st.session_state[f"{key}_max_value"]],
+            key=f"{key}",
+            on_change=update_number_input,
+            args=(
+                f"{key}",
+                f"{key}",
+                f"{key}_max_value",
+            ),
+        )
+
+        if st.session_state[f"{key}"][0] == st.session_state[f"{key}"][1]:
+            st.error(f"switch to list mode and select {st.session_state[f'{key}'][0]}")
+    else:
+        st.multiselect(
+            label=f"{key}",
+            options=list(range(1952, 2024)),
+            key=f"{key}",
+        )
+
+
+def text_box_for_array_strings_no_ops(key):
+    st.text_area(
+        label=f"**{key}**",
+        key=f"{key}",
+    )
+
+
 if __name__ == "__main__":
-    st.title("XBRL US")
+    st.set_page_config(
+        page_title="XBRL.US API Explorer",
+        page_icon="📄",
+        layout="centered",
+        initial_sidebar_state="expanded",
+    )
+
+    st.title("Explore [XBRL.us](https://xbrl.us/)")
 
     sidebar = st.sidebar
     if "instance" not in st.session_state:
         st.error("Please enter your credentials to begin.")
+
         with sidebar:
             show_login()
         st.stop()
@@ -68,10 +164,9 @@ if __name__ == "__main__":
         with sidebar:
             st.button(
                 label="Reset Credentials",
-                help="Disconnect from the [XBRL.US](https://www.xbrl.us) API.",
                 type="secondary",
                 use_container_width=True,
-                on_click=lambda: st.session_state.pop("instance"),
+                on_click=lambda: st.session_state.clear(),
                 key="logout",
             )
 
@@ -82,16 +177,18 @@ if __name__ == "__main__":
             options=sorted(methods),
             index=19,
             key="method",
+            disabled=True,
+            help="Select the method you would like to use. For more information on the methods, see the [XBRL.US API Documentation](https://xbrlus.github.io/xbrl-api/#/).",
         )
 
         # get the acceptable parameters for the method
         method_params = st.session_state.instance.acceptable_params(method)
-
+        # parameters_options = dict(sorted(method_params.parameters.items(), key=lambda x: x[1]['type']))
         # print the name of the method
         st.header(method)
-
+        st.markdown(method_params.description)
         # print the url of the method
-        st.caption(st.session_state.instance.acceptable_params(method).url)
+        st.caption(f"**API end-point**: {st.session_state.instance.acceptable_params(method).url}")
 
         # show the list of fields in the sidebar
         with st.container():
@@ -131,10 +228,7 @@ if __name__ == "__main__":
                     st.session_state.limit_params[field] = limit
 
             # check box for offset
-            sidebar.checkbox(
-                label="Offset",
-                key="offset_yes",
-            )
+            sidebar.checkbox(label="Offset", key="offset_yes", disabled=True)
 
             if st.session_state.offset_yes:
                 sidebar.number_input(
@@ -144,7 +238,19 @@ if __name__ == "__main__":
                 )
 
         with st.expander(label="**Query Criteria Details**", expanded=True):
-            st.write("Your query criteria will be applied to the following fields")
+            if len(st.session_state.parameters) == 0:
+                st.info("Your query criteria will be applied to the following fields")
+            else:
+                # show a button to reset the parameters
+                st.button(
+                    label="Reset Parameters",
+                    help="Reset the parameters you have selected.",
+                    type="secondary",
+                    use_container_width=True,
+                    on_click=lambda: st.session_state.pop("query_params"),
+                    key="reset_parameters",
+                )
+
             st.session_state.sort_params = {}
             if len(st.session_state.sort) > 0:
                 for field in st.session_state.sort:
@@ -152,77 +258,52 @@ if __name__ == "__main__":
                         label=f"Sort order for {field}:",
                         options=("Ascending", "Descending"),
                         horizontal=True,
+                        key=f"{field}_sort",
                     )
                     st.session_state.sort_params[field] = "asc" if sort_order == "Ascending" else "desc"
 
-            if "concept.local-name" in st.session_state.parameters:
-                st.text_area(
-                    label="Concept Local Name",
-                    key="concept.local-name",
-                )
+            for param in st.session_state.parameters:
+                st.subheader(f"**{param}**:")
+                st.write(method_params.parameters[param]["description"])
 
-            if "period.fiscal-year" in st.session_state.parameters:
-                # radio options for range or list
-                st.radio(
-                    label="Input **period.fiscal-year** as a range or list:",
-                    options=("Range", "List"),
-                    horizontal=True,
-                    key="period.fiscal-year_input_method",
-                )
+                if method_params.parameters[param]["type"] == "boolean":
+                    boolean_input_for_booleans(param)
 
-                if st.session_state["period.fiscal-year_input_method"] == "Range":
-                    # update_slider_range("period.fiscal-year_input")
-                    col1, col2 = st.columns(2)
+                elif method_params.parameters[param]["type"] == "integer":
+                    st.write(f"**{param}** is Integer")
+                    input_number_for_integers(param)
 
-                    col1.number_input(
-                        label="Between",
-                        min_value=1952,
-                        max_value=9999,
-                        value=1952,
-                        key="period.fiscal-year_min_value",
-                    )
+                elif method_params.parameters[param]["type"] == "string":
+                    st.write(f"**{param}** is String")
+                    text_input_for_strings(param)
 
-                    col2.number_input(
-                        label="And",
-                        min_value=1952,
-                        max_value=9999,
-                        value=2021,
-                        key="period.fiscal-year_max_value",
-                    )
+                elif method_params.parameters[param]["type"] == "array[integer]":
+                    range_and_slider_for_array_integers(param)
 
-                    st.slider(
-                        label="**period.fiscal-year**",
-                        min_value=1952,
-                        max_value=2023,
-                        value=[st.session_state["period.fiscal-year_min_value"], st.session_state["period.fiscal-year_max_value"]],
-                        key="period.fiscal-year",
-                        on_change=update_number_input,
-                        args=(
-                            "period.fiscal-year",
-                            "period.fiscal-year_min_value",
-                            "period.fiscal-year_max_value",
-                        ),
-                    )
-
-                    if st.session_state["period.fiscal-year"][0] == st.session_state["period.fiscal-year"][1]:
-                        st.error(f"switch to list mode and select {st.session_state['period.fiscal-year'][0]}")
-                else:
-                    st.multiselect(
-                        label="Period Fiscal Year",
-                        options=list(range(1952, 2024)),
-                        key="period.fiscal-year",
-                    )
+                elif method_params.parameters[param]["type"] == "array[string]":
+                    text_box_for_array_strings_no_ops(param)
 
             st.session_state.query_params = {}
 
             st.session_state.query_params["parameters"] = {item: item for item in st.session_state.parameters}
             for param in st.session_state.parameters:
                 st.session_state.query_params["parameters"][param] = st.session_state[param]
-            st.session_state.query_params["fields"] = st.session_state.fields
-            st.session_state.query_params["sort"] = st.session_state.sort_params
-            st.session_state.query_params["limit"] = st.session_state.limit_params
+            if len(st.session_state.fields) > 0:
+                st.session_state.query_params["fields"] = st.session_state.fields
+            if len(st.session_state.sort_params) > 0:
+                st.session_state.query_params["sort"] = st.session_state.sort_params
+            if len(st.session_state.limit_params) > 0:
+                st.session_state.query_params["limit"] = st.session_state.limit_params
             st.session_state.query_params["method"] = method
-            # st.write(st.session_state.query_params)
+
+    # create a checkbox to show the query parameters
+    st.checkbox(
+        label="Show Query Parameters",
+        key="show_query_params",
+        help="Show the query parameters.",
+    )
+    if st.session_state.show_query_params:
+        st.write(st.session_state.query_params)
 
     # run the query
     query_btn_disabled = True
@@ -231,19 +312,66 @@ if __name__ == "__main__":
 
     st.button(
         label="Run Query",
-        help="Run the query.",
         key="run_query",
+        type="primary",
+        use_container_width=True,
         disabled=query_btn_disabled,
     )
-    if "last_query" not in st.session_state:
-        st.session_state.last_query = None
 
     if st.session_state.run_query:
         with st.spinner("Running query..."):
-            st.session_state.last_query = st.session_state.instance.query(**st.session_state.query_params, as_dataframe=True)
+            df = st.session_state.instance.query(**st.session_state.query_params, as_dataframe=True)
+            st.session_state.last_query = df
 
     # show the dataframe
-    if st.session_state.last_query is not None:
-        st.write(st.session_state.last_query)
+    if "last_query" not in st.session_state:
+        st.info("your data will appear here")
 
-    st.write(st.session_state)
+    else:
+        st.subheader("Last Query Results")
+
+        # show a button to show the full data
+        st.checkbox(
+            label="My computer rock! 🚀 Show Full Data",
+            help="Show the full data.",
+            key="show_full_data",
+        )
+
+        if st.session_state.show_full_data:
+            st.dataframe(
+                data=st.session_state.last_query,
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        else:
+            st.success(f"This query has {st.session_state.last_query.shape[0]} rows. " f"but you are only seeing the first 100 rows.")
+
+            st.dataframe(
+                data=st.session_state.last_query.head(100),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        # show a download button to get the data in csv format
+        col1_data, col2_data = st.columns(2)
+        with col1_data:
+            st.download_button(
+                label="Download Data",
+                use_container_width=True,
+                data=st.session_state.last_query.to_csv().encode("utf-8"),
+                file_name="xbrl_data.csv",
+                mime="text/csv",
+                key="download_data",
+            )
+
+        with col2_data:
+            st.button(
+                label="Delete Query",
+                key="delete_query_btn",
+                on_click=lambda: st.session_state.pop("last_query"),
+                type="primary",
+                use_container_width=True,
+            )
+
+    # st.write(st.session_state)
