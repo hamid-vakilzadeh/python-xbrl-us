@@ -245,7 +245,7 @@ class XBRL:
             kwargs.get("print_query")
 
             # get the allowed parameters, fields, limit, sort, and offset from the yaml file
-            allowed_params = allowed_for_query.get("parameters", set())
+            allowed_params = list(allowed_for_query.get("parameters", set()).keys())
             allowed_fields = allowed_for_query.get("fields", set())
             allowed_limit_fields = allowed_for_query.get("limit", set())
             allowed_sort_fields = [field for field in allowed_fields if "*" not in field]
@@ -259,6 +259,7 @@ class XBRL:
                 if not isinstance(field, str):
                     raise exceptions.XBRLInvalidTypeError(key=field, expected_type=str, received_type=type(field))
                 if field not in allowed_fields:
+                    # TODO: add support for fields with sort values
                     raise exceptions.XBRLInvalidValueError(key=field, param="fields", expected_value=allowed_fields, method=method_name)
 
             # Validate parameters
@@ -375,8 +376,6 @@ class XBRL:
                 else:
                     fields.remove(field)
                     fields.append(f"{field}.limit({value})")
-        else:
-            fields.append("fact.limit(100)")
 
         # Handle offset
         if offset:
@@ -455,7 +454,7 @@ class XBRL:
             for key, value in values.items():
                 placeholder = "{" + key + "}"
                 url = url.replace(placeholder, str(value))
-        return f"https://api.xbrl.us{url}"
+        return f"https://api.xbrl.us{url}?"
 
     @_convert_params_to_dict_decorator
     @_validate_parameters
@@ -467,7 +466,7 @@ class XBRL:
         limit: Optional[dict] = None,
         sort: Optional[dict] = None,
         offset: Optional[dict] = None,
-        as_dataframe: bool = False,
+        return_type: Optional[str] = "json",
         print_query: bool = False,
     ) -> Union[dict, DataFrame]:
         """
@@ -486,7 +485,8 @@ class XBRL:
             offset: This attribute enables targeting a return to a specific starting point in a
                 query return sequence (i.e. {"report": 100}. To work reliably,
                 at least one sorted property should be included in the returned fields.
-            as_dataframe (bool=False): Whether to return the results as a DataFrame or json.
+            return_type (str): Whether to return the results as a ``DataFrame`` or ``json``. You can also use the
+                ``response`` to return the raw response from the API.
             print_query (bool=False): Whether to print the query.
 
         Returns:
@@ -509,12 +509,73 @@ class XBRL:
             params=query_params,
         )
 
-        if response.status_code != 200:
-            raise response.json()["message"]
+        response_data = response.json()
 
-        if "data" not in response.json():
-            return response.json()
-        elif as_dataframe:
-            return DataFrame.from_dict(response.json()["data"])
+        if response.status_code != 200:
+            raise response_data["message"]
+        elif "data" not in response_data:
+            logging.warning("No data returned from the query.")
+            return response_data
+
+        data = response_data["data"]
+
+        if limit is None:
+            # Return the items from the first response if no user limit is provided
+            if return_type == "dataframe":
+                return DataFrame.from_dict(data)
+            elif return_type == "response":
+                return response_data
+            else:
+                return data
+
+        if limit == "all":
+            # Set the remaining limit to infinity
+            remaining_limit = float("inf") - len(data)
         else:
-            return response.json()["data"]
+            remaining_limit = limit - len(data)
+
+        # To store all the items from the API response
+        all_data = data
+
+        # TODO: that the methods updates the dictionary value with the new offset and limit
+        offset += len(data)
+
+        while remaining_limit > 0:
+            # Determine the limit for the current request
+            current_limit = min(5000, remaining_limit)
+            query_params = self._build_query_params(
+                fields=fields,
+                parameters=parameters,
+                limit=current_limit,
+                sort=sort,
+                offset=offset,
+            )
+
+            response = self._make_request(
+                method="get",
+                url=self._get_method_url(method, parameters),
+                params=query_params,
+            )
+
+            response_data = response.json()
+            data = response_data["data"]
+
+            # Add the items to the overall collection
+            all_data.extend(data)
+
+            # Decrease the remaining limit by the number of items received
+            remaining_limit -= len(data)
+
+            if len(data) < current_limit:
+                # If the number of items received is less than the current limit,
+                # it means we have reached the end
+                # of available items, so we can break out of the loop.
+                break
+
+            # Update the offset for the next request
+            offset += current_limit
+
+        if return_type == "dataframe":
+            return DataFrame.from_dict(all_data)
+        else:
+            return all_data
