@@ -1,5 +1,5 @@
 """
-Entrypoint module, in case you use `python -mxbrl_us`.
+Entrypoint module, for `python -m xbrl_us`.
 
 
 Why does this file exist, and why __main__? For more info, read:
