@@ -10,9 +10,6 @@ from streamlit.web import cli as stcli
 
 def main():
     """
-    Args:
-        argv (list): List of arguments
-
     Returns:
         an interface to the streamlit app.
 

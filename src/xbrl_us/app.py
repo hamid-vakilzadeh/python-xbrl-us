@@ -178,7 +178,9 @@ if __name__ == "__main__":
             index=19,
             key="method",
             disabled=True,
-            help="Select the method you would like to use. For more information on the methods, see the [XBRL.US API Documentation](https://xbrlus.github.io/xbrl-api/#/).",
+            help="""Select the method you would like to use.
+            For more information on the methods,
+            see the [XBRL.US API Documentation](https://xbrlus.github.io/xbrl-api/#/).""",
         )
 
         # get the acceptable parameters for the method
@@ -283,9 +285,8 @@ if __name__ == "__main__":
                 elif method_params.parameters[param]["type"] == "array[string]":
                     text_box_for_array_strings_no_ops(param)
 
-            st.session_state.query_params = {}
+            st.session_state.query_params = {"parameters": {item: item for item in st.session_state.parameters}}
 
-            st.session_state.query_params["parameters"] = {item: item for item in st.session_state.parameters}
             for param in st.session_state.parameters:
                 st.session_state.query_params["parameters"][param] = st.session_state[param]
             if len(st.session_state.fields) > 0:
