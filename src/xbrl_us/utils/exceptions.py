@@ -11,9 +11,9 @@ class XBRLInvalidValueError(ValueError):
 
     def __init__(self, key, param, expected_value, method=None):
         if method:
-            message = (
-                f"'{key}' is not a valid '{param}' for '{method}'. " f"Valid values for '{param}' under '{method}' are: '{expected_value}'."
-            )
+            message = f"""'{key}' is not a valid '{param}' for '{method}'.
+                Valid values for '{param}' under '{method}' are: '{expected_value}'.
+                """
         else:
             message = f"'{key}' is not a valid '{param}'. " f"Valid values for '{param}' are '{expected_value}'."
         super().__init__(message)
