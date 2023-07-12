@@ -29,6 +29,11 @@ If you are utilizing the XBRL US Python Wrapper for research purposes, we kindly
 
 [FILL: Publication Details]
 
+.. caution::
+
+        The XBRL US Python Wrapper is currently in beta and is subject to change.
+        We welcome your feedback and suggestions for improvement.
+        Please submit any issues or feature requests to the `GitHub repository <
 
 
 Tutorial ✏️📖📚
