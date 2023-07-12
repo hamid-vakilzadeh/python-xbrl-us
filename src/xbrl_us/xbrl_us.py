@@ -11,6 +11,7 @@ from typing import Union
 import requests
 from pandas import DataFrame
 from retry import retry
+from tqdm import tqdm
 from yaml import safe_load
 
 from .utils import Parameters
@@ -55,6 +56,7 @@ class XBRL:
         self.grant_type = grant_type
         self.access_token = None
         self.refresh_token = None
+        self.account_limit = None
         self._access_token_expires_at = 0
         self._refresh_token_expires_at = 0
 
@@ -183,7 +185,7 @@ class XBRL:
             else:
                 self._get_token()
 
-    @retry(exceptions=_query_exceptions, tries=5, delay=2, backoff=2)
+    @retry(exceptions=_query_exceptions, tries=3, delay=2, backoff=2)
     def _make_request(self, method, url, **kwargs) -> requests.Response:
         """
         Makes an HTTP request with the provided method, URL, and additional arguments.
@@ -202,19 +204,55 @@ class XBRL:
         headers.update({"Authorization": f"Bearer {self.access_token}"})
         kwargs["headers"] = headers
 
-        response = requests.request(method, url, timeout=60, **kwargs)
+        response = requests.request(method, url, timeout=30, **kwargs)
         return response
+
+    def _get_account_limit(
+        self,
+        url: str,
+        params: dict,
+    ):
+        # Query the API with a limit of more than 5000.
+        fields = params["fields"]
+        new_fields = ",".join([fields, "fact.limit(5001)"])
+        params["fields"] = new_fields
+
+        response = self._make_request(
+            method="get",
+            url=url,
+            params=params,
+        )
+
+        # Extract the limit from the response message.
+        match = re.search(r"user limit amount is (\d+)", response.text)
+        if match:
+            self.account_limit = int(match.group(1))
+        else:
+            print(f"Error: {response.status_code}")
+            self.account_limit = None
+
+    @staticmethod
+    def _remove_special_fields(fields):
+        # Define the patterns to be removed
+        patterns = [r"(.+)\.(sort\((.+)\))?$", r"(.+)\.(limit\((\d+)\))?$", r"(.+)\.(offset\((\d+)\))?$"]
+
+        # For each field, check if it matches any of the patterns. If it does, remove it.
+        for field in fields[:]:  # iterate over a slice copy of the list to safely modify it during iteration
+            if any(re.match(pattern, field, re.IGNORECASE) for pattern in patterns):
+                fields.remove(field)
+
+        return fields
 
     @staticmethod
     def _validate_parameters(func):
         @wraps(func)
-        def wrapper(instance, *args, **kwargs):
+        def wrapper(instance, **kwargs):
             """
-            Validate the parameters passed to the query method.
+            Validate the parameters passed to the query method including fields, parameters, sort, limit, and offset.
+            This is a decorator for the query _build_query_params method.
 
             Args:
-                instance: The instance of the XBRL class.
-                *args: Variable length argument list.
+                instance (XBRLAPIClient): The instance of the XBRLAPIClient.
                 **kwargs: Arbitrary keyword arguments.
 
             Returns:
@@ -255,17 +293,15 @@ class XBRL:
             if not fields:
                 raise exceptions.XBRLMissingValueError(param="fields", expected_value=allowed_fields)
 
+            # clear the conditions from the previous query
+            # this could happen when the limit is greater than account limit or
+            # when the user passes in a field with a condition
+            fields = instance._remove_special_fields(fields)
             for field in fields:
                 if not isinstance(field, str):
                     raise exceptions.XBRLInvalidTypeError(key=field, expected_type=str, received_type=type(field))
 
-                # handle validation if the user passes in a field with a sort
-                pattern = r"(.+)\.(sort\((asc|desc)\))?$"
-                field_name = (
-                    re.match(pattern, field, flags=re.IGNORECASE).group(1) if re.match(pattern, field, flags=re.IGNORECASE) else field
-                )
-
-                if field_name not in allowed_fields:
+                if field not in allowed_fields:
                     raise exceptions.XBRLInvalidValueError(key=field, param="fields", expected_value=allowed_fields, method=method_name)
 
             # Validate parameters
@@ -278,16 +314,8 @@ class XBRL:
 
             # Validate limit
             if limit:
-                # if limit is all
-                if limit == "all" and not sort:
-                    warnings.warn(
-                        "getting all the data without a sort is not recommended; please pass a sort field",
-                        UserWarning,
-                        stacklevel=2,
-                    )
-                    limit = 999999999
                 # if not dict or an int, raise an error
-                elif not isinstance(limit, int):
+                if not isinstance(limit, int):
                     raise exceptions.XBRLInvalidTypeError(key=limit, expected_type=int, received_type=type(limit))
 
             else:
@@ -308,6 +336,12 @@ class XBRL:
                         )
                     if value.lower() not in ["asc", "desc"]:
                         raise exceptions.XBRLInvalidValueError(key=value, param="sort", expected_value=["asc", "desc"])
+            else:
+                warnings.warn(
+                    "You have not passed a sort value; for reliable results, set a field to sort.",
+                    UserWarning,
+                    stacklevel=2,
+                )
 
             # Validate offset
             if offset:
@@ -330,9 +364,9 @@ class XBRL:
 
         return wrapper
 
-    @staticmethod
     @_validate_parameters
     def _build_query_params(
+        self,
         fields: Optional[list] = None,
         parameters: Optional[dict] = None,
         limit: Optional[int] = None,
@@ -340,7 +374,6 @@ class XBRL:
         offset: Optional[int] = 0,
         limit_field: Optional[str] = None,
         offset_field: Optional[str] = None,
-        **kwargs,
     ) -> dict:
         """
         Build the query parameters for the API request in the format required by the API.
@@ -350,14 +383,18 @@ class XBRL:
             parameters (dict): The parameters for the query.
             limit (dict): The limit parameters for the query.
             sort (dict): The sort parameters for the query.
-            offset (dict): The offset parameters for the query.
+            offset (dict): dynamically set if needed
+            limit_field (str): The limit field accepted for the chosen method.
+            offset_field (str): The offset field accepted for the chosen method (which is usually the same as the
+                ``limit_filed``).
 
         Returns:
-            dict: The query parameters.
+            dict: The query parameters that will be submitted to the API.
         """
         query_params = {}
 
         if parameters:
+            # convert the parameters to a string and add it to the query_params
             query_params.update(
                 {
                     f"{k}": ",".join(map(str, v)) if isinstance(v, Iterable) and not isinstance(v, str) else str(v)
@@ -369,51 +406,29 @@ class XBRL:
         if sort:
             # check if the sort field is in the fields list
             for field, direction in sort.items():
-                # if the field is not in the fields list add the field name followed by .sort(value)
-                sorted_value = f"{field}.sort({direction.upper()})"
-                if sorted_value not in fields:
-                    if field not in fields:
-                        fields.append(sorted_value)
-                        warnings.warn(
-                            f"Sort field '{field}' is not in the fields list. Adding '{field}' to the fields list.",
-                            UserWarning,
-                            stacklevel=2,
-                        )
+                # name the field name followed by .sort(value)
+                sorted_arg = f"{field}.sort({direction.upper()})"
+                if field in fields:
                     # if the field is in the fields list, remove the field
-                    else:
-                        fields.remove(field)
-                        fields.append(sorted_value)
+                    fields.remove(field)
+                fields.append(sorted_arg)
 
         # Handle limit
         if limit:
-            # check if the limit field is in the fields list
-            fields[:] = [s for s in fields if not (s.startswith(f"{limit_field}.limit") and s[len(f"{limit_field}.limit") :].isdigit())]
-
             # name and add the field name followed by .limit(value)
             limit_arg = f"{limit_field}.limit({limit})"
-            if limit_field not in fields:
-                fields.append(limit_arg)
-                logging.info(f"Adding '{limit_field}' to the fields list.", UserWarning, stacklevel=2)
+            if limit_field in fields:
                 # if the field is in the fields list, remove the field
-            else:
                 fields.remove(limit_field)
-                # name and add the field name followed by .limit(value)
-                fields.append(limit_arg)
+            fields.append(limit_arg)
 
         # Handle offset
         if offset:
-            fields[:] = [s for s in fields if not (s.startswith(f"{offset_field}.offset") and s[len(f"{offset_field}.offset") :].isdigit())]
-
             # name and add the field name followed by .offset(value)
             offset_arg = f"{offset_field}.offset({offset})"
-            if offset_field not in fields:
-                fields.append(offset_arg)
-                logging.info(f"Adding '{offset_field}' to the fields list.")
-            # if the field is in the fields list, remove the field
-            else:
+            if offset_field in fields:
                 fields.remove(offset_field)
-                # name and add the field name followed by .offset(value)
-                fields.append(offset_arg)
+            fields.append(offset_arg)
 
         query_params["fields"] = ",".join(fields)
 
@@ -489,7 +504,7 @@ class XBRL:
         parameters: Optional[Union[Parameters, dict]] = None,
         limit: Optional[int] = None,
         sort: Optional[dict] = None,
-        return_type: Optional[str] = "json",
+        as_dataframe: bool = False,
         print_query: Optional[bool] = False,
     ) -> Union[dict, DataFrame]:
         """
@@ -505,15 +520,22 @@ class XBRL:
                 using ``ASC`` or ``DESC`` (i.e. {"report.document-type": "DESC"}.
                 Multiple sort criteria can be defined and the sort sequence is determined by
                 the order of the items in the dictionary.
-            return_type (str): Whether to return the results as a ``DataFrame`` or ``json``. You can also use the
-                ``response`` to return the raw response from the API.
+            as_dataframe (bool): If ``True`` returns the results as a ``DataFrame`` else returns the data
+                as ``json``.
             print_query (bool=False): Whether to print the query.
 
         Returns:
             dict | DataFrame: The results of the query.
         """
 
+        method_url = self._get_method_url(method, parameters)
+        # if limit is all
+        if limit == "all":
+            # arbitrary large number
+            limit = 999999999
+
         query_params = self._build_query_params(
+            method=method,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -523,9 +545,28 @@ class XBRL:
         if print_query:
             print(query_params)
 
+        # check if the account limit has been set
+        if not self.account_limit:
+            self._get_account_limit(url=method_url, params=query_params)
+
+        # ensure the limit is not greater than the account limit
+        account_limit = min(limit, self.account_limit)
+
+        # create a progress bar
+        pbar = tqdm(total=None, desc="Downloading Data:", ncols=80)
+
+        # update the limit in the query params with the new limit
+        query_params = self._build_query_params(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=account_limit,
+            sort=sort,
+        )
+
         response = self._make_request(
             method="get",
-            url=self._get_method_url(method, parameters),
+            url=method_url,
             params=query_params,
         )
 
@@ -539,20 +580,16 @@ class XBRL:
 
         data = response_data["data"]
 
-        if limit is None or len(data) < limit:
+        # update the progress bar
+        pbar.update(len(data))
+
+        if limit is None:
             # Return the items from the first response if no user limit is provided
-            if return_type == "dataframe":
+            if as_dataframe:
                 return DataFrame.from_dict(data)
-            # for production only TODO: remove this
-            elif return_type == "response":
-                return response_data
             else:
                 return data
 
-        elif limit == "all":
-            # Set the remaining limit to infinity
-            limit = 999999999
-            remaining_limit = limit - len(data)
         else:
             remaining_limit = limit - len(data)
 
@@ -563,8 +600,9 @@ class XBRL:
 
         while remaining_limit > 0:
             # Determine the limit for the current request
-            current_limit = min(len(data), remaining_limit)
+            current_limit = min(account_limit, remaining_limit)
             query_params = self._build_query_params(
+                method=method,
                 fields=fields,
                 parameters=parameters,
                 limit=current_limit,
@@ -574,7 +612,7 @@ class XBRL:
 
             response = self._make_request(
                 method="get",
-                url=self._get_method_url(method, parameters),
+                url=method_url,
                 params=query_params,
             )
 
@@ -587,6 +625,9 @@ class XBRL:
             # Decrease the remaining limit by the number of items received
             remaining_limit -= len(data)
 
+            # update the progress bar
+            pbar.update(len(data))
+
             if len(data) < current_limit:
                 # If the number of items received is less than the current limit,
                 # it means we have reached the end
@@ -594,9 +635,9 @@ class XBRL:
                 break
 
             # Update the offset for the next request
-            offset += current_limit
+            offset += len(data)
 
-        if return_type == "dataframe":
+        if as_dataframe:
             return DataFrame.from_dict(all_data)
         else:
             return all_data

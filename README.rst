@@ -132,7 +132,7 @@ for specific financial facts::
             'entity.name',
             'report.sic-code',
         ],
-        limit={'fact': 100},
+        limit=100,
         as_dataframe=True
     )
 
@@ -176,7 +176,7 @@ readable, less prone to errors, and easier to maintain::
             Fields.ENTITY_NAME,
             Fields.REPORT_SIC_CODE,
         ],
-        limit={'fact': 100},
+        limit=100,
         as_dataframe=True
     )
 
