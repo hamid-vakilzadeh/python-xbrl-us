@@ -1,6 +1,6 @@
 import streamlit as st
 
-from xbrl_us import XBRL
+from xbrl_us.xbrl_us import XBRL
 
 
 @st.cache_data(show_spinner="validating credentials...")
