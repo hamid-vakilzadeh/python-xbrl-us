@@ -249,7 +249,7 @@ class XBRL:
             allowed_fields = allowed_for_query.get("fields", set())
             allowed_limit_fields = allowed_for_query.get("limit", set())
             allowed_sort_fields = [field for field in allowed_fields if "*" not in field]
-            allowed_offset_fields = allowed_for_query.get("offset", set())
+            allowed_offset_fields = allowed_limit_fields
 
             # Validate fields
             if not fields:
@@ -258,8 +258,14 @@ class XBRL:
             for field in fields:
                 if not isinstance(field, str):
                     raise exceptions.XBRLInvalidTypeError(key=field, expected_type=str, received_type=type(field))
-                if field not in allowed_fields:
-                    # TODO: add support for fields with sort values
+
+                # handle validation if the user passes in a field with a sort
+                pattern = r"(.+)\.(sort\((asc|desc)\))?$"
+                field_name = (
+                    re.match(pattern, field, flags=re.IGNORECASE).group(1) if re.match(pattern, field, flags=re.IGNORECASE) else field
+                )
+
+                if field_name not in allowed_fields:
                     raise exceptions.XBRLInvalidValueError(key=field, param="fields", expected_value=allowed_fields, method=method_name)
 
             # Validate parameters
@@ -272,16 +278,21 @@ class XBRL:
 
             # Validate limit
             if limit:
-                if not isinstance(limit, dict):
-                    raise ValueError(f"""limit must be a dictionary not {type(limit)}. e.g. limit = {{'fact': 100}}.""")
-                for key, value in limit.items():
-                    if key not in allowed_limit_fields:
-                        raise ValueError(f"Limit key '{key}' is not allowed. Allowed limit keys are: {allowed_limit_fields}")
-                    if not isinstance(value, int):
-                        raise ValueError(f"Limit value must be an integer. {value} is not an integer")
+                # if limit is all
+                if limit == "all" and not sort:
+                    warnings.warn(
+                        "getting all the data without a sort is not recommended; please pass a sort field",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                    limit = 999999999
+                # if not dict or an int, raise an error
+                elif not isinstance(limit, int):
+                    raise exceptions.XBRLInvalidTypeError(key=limit, expected_type=int, received_type=type(limit))
+
             else:
                 warnings.warn(
-                    "You have not set a limit. This will return the first 100 results by default.",
+                    "You have not set a limit; returning the first page only.",
                     UserWarning,
                     stacklevel=2,
                 )
@@ -292,40 +303,44 @@ class XBRL:
                     raise ValueError("Sort must be a dictionary")
                 for key, value in sort.items():
                     if key not in allowed_sort_fields:
-                        raise ValueError(f"Sort key '{key}' is not allowed. Allowed sort keys are: {allowed_sort_fields}.")
+                        raise exceptions.XBRLInvalidValueError(
+                            key=key, param="sort", expected_value=allowed_sort_fields, method=method_name
+                        )
                     if value.lower() not in ["asc", "desc"]:
-                        raise ValueError("Sort value should be 'asc' or 'desc' only.")
-
-            elif offset:
-                warnings.warn(
-                    "You have set an offset but not a sort method. "
-                    "When using offset, it is recommended that you set a sort method "
-                    "to get reliable results.",
-                    UserWarning,
-                    stacklevel=2,
-                )
+                        raise exceptions.XBRLInvalidValueError(key=value, param="sort", expected_value=["asc", "desc"])
 
             # Validate offset
             if offset:
-                if not isinstance(offset, dict):
-                    raise ValueError("Offset must be a dictionary")
-                for key, value in offset.items():
-                    if key not in allowed_offset_fields:
-                        raise ValueError(f"Offset key '{key}' is not allowed. Allowed offset keys are: {allowed_offset_fields}.")
-                    if not isinstance(value, int):
-                        raise ValueError(f"Offset value must be an integer. {value} is not an integer.")
+                if not isinstance(offset, int):
+                    raise exceptions.XBRLInvalidTypeError(key=offset, expected_type=int, received_type=type(offset))
 
-            return func(instance, *args, **kwargs)
+            limit_field = next(iter(allowed_limit_fields))
+            offset_field = next(iter(allowed_offset_fields))
+
+            return func(
+                instance,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                offset=offset,
+                limit_field=limit_field,
+                offset_field=offset_field,
+            )
 
         return wrapper
 
     @staticmethod
+    @_validate_parameters
     def _build_query_params(
         fields: Optional[list] = None,
-        parameters=None,
-        limit: Optional[dict] = None,
+        parameters: Optional[dict] = None,
+        limit: Optional[int] = None,
         sort: Optional[dict] = None,
-        offset: Optional[dict] = None,
+        offset: Optional[int] = 0,
+        limit_field: Optional[str] = None,
+        offset_field: Optional[str] = None,
+        **kwargs,
     ) -> dict:
         """
         Build the query parameters for the API request in the format required by the API.
@@ -352,43 +367,53 @@ class XBRL:
 
         # Handle sort
         if sort:
-            # TODO: verify that sort, limit, and offset work together for the same field
             # check if the sort field is in the fields list
             for field, direction in sort.items():
                 # if the field is not in the fields list add the field name followed by .sort(value)
-                if field not in fields:
-                    fields.append(f"{field}.sort({direction.upper()})")
-                # if the field is in the fields list, remove the field
-                # name and add the field name followed by .sort(value)
-                else:
-                    fields.remove(field)
-                    fields.append(f"{field}.sort({direction.upper()})")
+                sorted_value = f"{field}.sort({direction.upper()})"
+                if sorted_value not in fields:
+                    if field not in fields:
+                        fields.append(sorted_value)
+                        warnings.warn(
+                            f"Sort field '{field}' is not in the fields list. Adding '{field}' to the fields list.",
+                            UserWarning,
+                            stacklevel=2,
+                        )
+                    # if the field is in the fields list, remove the field
+                    else:
+                        fields.remove(field)
+                        fields.append(sorted_value)
 
         # Handle limit
         if limit:
             # check if the limit field is in the fields list
-            for field, value in limit.items():
-                # if the field is not in the fields list add the field name followed by .limit(value)
-                if field not in fields:
-                    fields.append(f"{field}.limit({value})")
+            fields[:] = [s for s in fields if not (s.startswith(f"{limit_field}.limit") and s[len(f"{limit_field}.limit") :].isdigit())]
+
+            # name and add the field name followed by .limit(value)
+            limit_arg = f"{limit_field}.limit({limit})"
+            if limit_field not in fields:
+                fields.append(limit_arg)
+                logging.info(f"Adding '{limit_field}' to the fields list.", UserWarning, stacklevel=2)
                 # if the field is in the fields list, remove the field
+            else:
+                fields.remove(limit_field)
                 # name and add the field name followed by .limit(value)
-                else:
-                    fields.remove(field)
-                    fields.append(f"{field}.limit({value})")
+                fields.append(limit_arg)
 
         # Handle offset
         if offset:
-            # check if the offset field is in the fields list
-            for field, value in offset.items():
-                # if the field is not in the fields list add the field name followed by .offset(value)
-                if field not in fields:
-                    fields.append(f"{field}.offset({value})")
-                # if the field is in the fields list, remove the field
+            fields[:] = [s for s in fields if not (s.startswith(f"{offset_field}.offset") and s[len(f"{offset_field}.offset") :].isdigit())]
+
+            # name and add the field name followed by .offset(value)
+            offset_arg = f"{offset_field}.offset({offset})"
+            if offset_field not in fields:
+                fields.append(offset_arg)
+                logging.info(f"Adding '{offset_field}' to the fields list.")
+            # if the field is in the fields list, remove the field
+            else:
+                fields.remove(offset_field)
                 # name and add the field name followed by .offset(value)
-                else:
-                    fields.remove(field)
-                    fields.append(f"{field}.offset({value})")
+                fields.append(offset_arg)
 
         query_params["fields"] = ",".join(fields)
 
@@ -457,17 +482,15 @@ class XBRL:
         return f"https://api.xbrl.us{url}?"
 
     @_convert_params_to_dict_decorator
-    @_validate_parameters
     def query(
         self,
         method: str,
         fields: Optional[list] = None,
         parameters: Optional[Union[Parameters, dict]] = None,
-        limit: Optional[dict] = None,
+        limit: Optional[int] = None,
         sort: Optional[dict] = None,
-        offset: Optional[dict] = None,
         return_type: Optional[str] = "json",
-        print_query: bool = False,
+        print_query: Optional[bool] = False,
     ) -> Union[dict, DataFrame]:
         """
 
@@ -475,16 +498,13 @@ class XBRL:
             method (str): The name of the method to query.
             fields (list): The fields query parameter establishes the details of the data to return for the specific query.
             parameters (dict | Parameters): The parameters for the query.
-            limit (dict): A limit restricts the number of results returned by the query.
+            limit (int): A limit restricts the number of results returned by the query.
                 The limit attribute can only be added to an object type and not a property.
                 For example, to limit the number of facts in a query, {"fact": 10}.
             sort (dict): Any returned value can be sorted in ascending or descending order,
                 using ``ASC`` or ``DESC`` (i.e. {"report.document-type": "DESC"}.
                 Multiple sort criteria can be defined and the sort sequence is determined by
                 the order of the items in the dictionary.
-            offset: This attribute enables targeting a return to a specific starting point in a
-                query return sequence (i.e. {"report": 100}. To work reliably,
-                at least one sorted property should be included in the returned fields.
             return_type (str): Whether to return the results as a ``DataFrame`` or ``json``. You can also use the
                 ``response`` to return the raw response from the API.
             print_query (bool=False): Whether to print the query.
@@ -492,12 +512,12 @@ class XBRL:
         Returns:
             dict | DataFrame: The results of the query.
         """
+
         query_params = self._build_query_params(
             fields=fields,
             parameters=parameters,
             limit=limit,
             sort=sort,
-            offset=offset,
         )
 
         if print_query:
@@ -514,35 +534,36 @@ class XBRL:
         if response.status_code != 200:
             raise response_data["message"]
         elif "data" not in response_data:
-            logging.warning("No data returned from the query.")
+            warnings.warn("No data returned from the query.", UserWarning, stacklevel=2)
             return response_data
 
         data = response_data["data"]
 
-        if limit is None:
+        if limit is None or len(data) < limit:
             # Return the items from the first response if no user limit is provided
             if return_type == "dataframe":
                 return DataFrame.from_dict(data)
+            # for production only TODO: remove this
             elif return_type == "response":
                 return response_data
             else:
                 return data
 
-        if limit == "all":
+        elif limit == "all":
             # Set the remaining limit to infinity
-            remaining_limit = float("inf") - len(data)
+            limit = 999999999
+            remaining_limit = limit - len(data)
         else:
             remaining_limit = limit - len(data)
 
         # To store all the items from the API response
         all_data = data
 
-        # TODO: that the methods updates the dictionary value with the new offset and limit
-        offset += len(data)
+        offset = len(data)
 
         while remaining_limit > 0:
             # Determine the limit for the current request
-            current_limit = min(5000, remaining_limit)
+            current_limit = min(len(data), remaining_limit)
             query_params = self._build_query_params(
                 fields=fields,
                 parameters=parameters,
