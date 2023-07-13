@@ -23,14 +23,16 @@ usage of the API and adherence to any applicable licensing terms.
     data from the XBRL US Database of Public Filings is in explicit consent and
     agreement with the `XBRL API Terms of Agreement <https://xbrl.us/home/about/legal/xbrl-api-clientid/>`_.
 
+.. note::
+    If you are utilizing the XBRL US Python Wrapper for research purposes, we kindly request that you cite the following paper:
 
-If you are utilizing the XBRL US Python Wrapper for research purposes, we kindly request that you cite the following paper:
+    [FILL: Insert Paper Title]
 
-[FILL: Insert Paper Title]
+    [FILL: Authors]
 
-[FILL: Authors]
+    [FILL: Publication Details]
 
-[FILL: Publication Details]
+
 
 .. caution::
 
