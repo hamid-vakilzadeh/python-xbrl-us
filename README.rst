@@ -33,15 +33,6 @@ usage of the API and adherence to any applicable licensing terms.
     [FILL: Publication Details]
 
 
-
-.. caution::
-
-        The XBRL US Python Wrapper is currently in beta and is subject to change.
-        We welcome your feedback and suggestions for improvement.
-        Please submit any issues or feature requests to
-        the `GitHub repository <https://github.com/hamid-vakilzadeh/python-xbrl-us/issues>`_.
-
-
 Tutorial ✏️📖📚
 ================
 
@@ -54,7 +45,7 @@ Before you begin, ensure you have the following:
 
 * **Python installed on your system**.
   Right now, the XBRL-US library supports Python 3.10 and above.
-  Backwards compatibility with Python 3.7 and above is planned for a future release.
+  Backwards compatibility with Python 3.8 and above is planned for a future release.
 * **XBRL-US library installed**.
 * **XBRL-US API credentials**.
   You can obtain your credentials by registering for a
@@ -68,6 +59,13 @@ You can install it using pip:
 .. code-block:: bash
 
     pip install xbrl-us
+
+.. caution::
+
+        The XBRL US Python Wrapper is currently in beta and is subject to change.
+        We welcome your feedback and suggestions for improvement.
+        Please submit any issues or feature requests to
+        the `GitHub repository <https://github.com/hamid-vakilzadeh/python-xbrl-us/issues>`_.
 
 
 **Documentation**
