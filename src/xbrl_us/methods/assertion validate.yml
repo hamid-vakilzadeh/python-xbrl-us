@@ -6,9 +6,20 @@ parameters:
   - status
   - run_rules
 fields:
-  -
 limit:
-  -
+  - assertion
+  - concept
+  - cube
+  - dimension
+  - document
+  - dts
+  - entity
+  - fact
+  - label
+  - network
+  - reference
+  - relationship
+  - report
 sort:
   -
 offset:

@@ -32,9 +32,5 @@ fields:
   - report.state-of-incorporation
   - report.*
 limit:
-  -
-sort:
-  -
 offset:
-  -
 url: /api/v1/report/{report.id}

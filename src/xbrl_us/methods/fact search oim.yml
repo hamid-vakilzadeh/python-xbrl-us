@@ -44,11 +44,8 @@ parameters:
   - report.source-name
   - unit
 fields:
-  -
 limit:
-  -
-sort:
-  -
+  - fact
 offset:
   -
 url: /api/v1/fact/oim/search

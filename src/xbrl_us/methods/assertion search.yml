@@ -35,7 +35,19 @@ fields:
   - report.sec-url
   - report.sic-code
 limit:
-  -
+  - assertion
+  - concept
+  - cube
+  - dimension
+  - document
+  - dts
+  - entity
+  - fact
+  - label
+  - network
+  - reference
+  - relationship
+  - report
 sort:
   -
 offset:

@@ -53,11 +53,93 @@ parameters:
   - report.source-name
   - unit
 fields:
-  -
+  - concept.balance-type
+  - concept.datatype
+  - concept.id
+  - concept.is-base
+  - concept.is-monetary
+  - concept.local-name
+  - concept.namespace
+  - concept.period-type
+  - dimension.is-base
+  - dimension.local-name
+  - dimension.namespace
+  - dimensions
+  - dimensions.count
+  - dimensions.id
+  - dts.entry-point
+  - dts.id
+  - dts.target-namespace
+  - entity.cik
+  - entity.id
+  - entity.name
+  - entity.scheme
+  - fact.decimals
+  - fact.example
+  - fact.has-dimensions
+  - fact.hash
+  - fact.highlighted-value
+  - fact.id
+  - fact.inline-display-value
+  - fact.inline-is-hidden
+  - fact.inline-negated
+  - fact.inline-scale
+  - fact.is-extended
+  - fact.numerical-value
+  - fact.ultimus
+  - fact.ultimus-index
+  - fact.value
+  - fact.value-link
+  - fact.xml-id
+  - member.is-base
+  - member.local-name
+  - member.typed-value
+  - member.member-value
+  - member.namespace
+  - period.calendar-period
+  - period.end
+  - period.fiscal-id
+  - period.fiscal-period
+  - period.fiscal-year
+  - period.id
+  - period.instant
+  - period.start
+  - period.year
+  - report.accepted-timestamp
+  - report.accession
+  - report.address
+  - report.base-taxonomy
+  - report.creation-software
+  - report.document-type
+  - report.document-index
+  - report.entity-name
+  - report.entry-type
+  - report.entry-url
+  - report.filer-category
+  - report.filing-date
+  - report.id
+  - report.is-most-current
+  - report.period-end
+  - report.period-index
+  - report.phone
+  - report.properties
+  - report.restated
+  - report.restated-index
+  - report.sec-url
+  - report.sic-code
+  - report.source-id
+  - report.source-name
+  - report.state-of-incorporation
+  - report.*
+  - unit
+  - unit.denominator
+  - unit.numerator
+  - unit.qname
+  - fact.*
 limit:
-  -
-sort:
-  -
+  - fact
+  - report
 offset:
-  -
+  - fact
+  - report
 url: /api/v1/report/fact/search

@@ -40,7 +40,19 @@ fields:
   - parts.part-value
   - parts.*
 limit:
-  -
+  - assertion
+  - concept
+  - cube
+  - dimension
+  - document
+  - dts
+  - entity
+  - fact
+  - label
+  - network
+  - reference
+  - relationship
+  - report
 sort:
   -
 offset:
