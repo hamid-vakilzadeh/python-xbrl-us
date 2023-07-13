@@ -12,10 +12,9 @@ import requests
 from pandas import DataFrame
 from retry import retry
 from tqdm import tqdm
+from utils import Parameters
+from utils import exceptions
 from yaml import safe_load
-
-from .utils import Parameters
-from .utils import exceptions
 
 logging.basicConfig()
 
@@ -329,6 +328,7 @@ class XBRL:
             if sort:
                 if not isinstance(sort, dict):
                     raise ValueError("Sort must be a dictionary")
+                sort = {instance._remove_special_fields(key): value for key, value in sort.items()}
                 for key, value in sort.items():
                     if key not in allowed_sort_fields:
                         raise exceptions.XBRLInvalidValueError(

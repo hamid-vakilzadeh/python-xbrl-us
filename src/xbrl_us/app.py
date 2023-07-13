@@ -1,16 +1,41 @@
 import streamlit as st
 
-from xbrl_us.xbrl_us import XBRL
+from xbrl_us import XBRL
 
 
-@st.cache_data(show_spinner="validating credentials...")
-def xbrl_instance(user_name: str, pass_word: str, client_id: str, client_secret: str):
+def try_credentials(user_name: str, pass_word: str, client_id: str, client_secret: str):
     try:
-        XBRL(username=user_name, password=pass_word, client_id=client_id, client_secret=client_secret)._get_token()
-        return XBRL(username=user_name, password=pass_word, client_id=client_id, client_secret=client_secret)
+        with st.spinner(text="Validating credentials..."):
+            XBRL(username=user_name, password=pass_word, client_id=client_id, client_secret=client_secret)._get_token()
+            st.session_state.username = user_name
+            st.session_state.password = pass_word
+            st.session_state.client_id = client_id
+            st.session_state.client_secret = client_secret
     except Exception as e:
         st.error(f"Invalid credentials. Please try again. {e}")
         st.stop()
+
+
+@st.cache_data(show_spinner="Running query...")
+def run_query(params: dict):
+    st.empty()
+    method = params.get("method", None)
+    fields = params.get("fields", None)
+    parameters = params.get("parameters", None)
+    limit = params.get("limit", None)
+    sort = params.get("sort", None)
+    df = xbrl.query(
+        method=method,
+        fields=fields,
+        parameters=parameters,
+        limit=limit,
+        sort=sort,
+        as_dataframe=True,
+        print_query=True,
+    )
+
+    st.session_state.last_query = df
+    st.session_state.pop("query_params")
 
 
 def show_login():
@@ -49,8 +74,8 @@ def show_login():
         disabled=disable_login_btn,
     )
     if verify_api:
-        # try the credentials before creating an instance
-        st.session_state.instance = xbrl_instance(user_name=username, pass_word=password, client_id=client_id, client_secret=client_secret)
+        # try the credentials before creating xbrl object
+        try_credentials(user_name=username, pass_word=password, client_id=client_id, client_secret=client_secret)
         st.experimental_rerun()
 
 
@@ -154,7 +179,7 @@ if __name__ == "__main__":
     st.title("Explore [XBRL.us](https://xbrl.us/)")
 
     sidebar = st.sidebar
-    if "instance" not in st.session_state:
+    if "username" not in st.session_state:
         st.error("Please enter your credentials to begin.")
 
         with sidebar:
@@ -170,11 +195,18 @@ if __name__ == "__main__":
                 key="logout",
             )
 
-        methods = st.session_state.instance.methods()
+        xbrl = XBRL(
+            username=st.session_state.username,
+            password=st.session_state.password,
+            client_id=st.session_state.client_id,
+            client_secret=st.session_state.client_secret,
+        )
+
+        st.session_state.methods = xbrl.methods()
 
         method = sidebar.selectbox(
             label="API Method",
-            options=sorted(methods),
+            options=sorted(st.session_state.methods),
             index=19,
             key="method",
             disabled=True,
@@ -184,25 +216,25 @@ if __name__ == "__main__":
         )
 
         # get the acceptable parameters for the method
-        method_params = st.session_state.instance.acceptable_params(method)
+        st.session_state.method_params = xbrl.acceptable_params(method)
         # parameters_options = dict(sorted(method_params.parameters.items(), key=lambda x: x[1]['type']))
         # print the name of the method
         st.header(method)
-        st.markdown(method_params.description)
+        st.markdown(st.session_state.method_params.description)
+        st.caption(f"**API end-point**: {xbrl.acceptable_params(method).url}")
         # print the url of the method
-        st.caption(f"**API end-point**: {st.session_state.instance.acceptable_params(method).url}")
 
         # show the list of fields in the sidebar
         with st.container():
             sidebar.multiselect(
                 label="Fields :red[*]",
-                options=method_params.fields,
+                options=st.session_state.method_params.fields,
                 key="fields",
             )
 
             sidebar.multiselect(
                 label="Parameters",
-                options=method_params.parameters,
+                options=st.session_state.method_params.parameters,
                 key="parameters",
             )
 
@@ -215,46 +247,27 @@ if __name__ == "__main__":
             if len(st.session_state.sort) == 0:
                 sidebar.warning("Please select at least one field to sort by.")
 
-            st.session_state.limit_params = {}
+            st.session_state.limit_param = None
             # check box for limit
             sidebar.checkbox(
                 label="Limit",
                 key="limit_yes",
             )
             if st.session_state.limit_yes:
-                for field in method_params.limit:
+                for field in st.session_state.method_params.limit:
                     limit = sidebar.number_input(
                         label=f"**{field} limit:**",
                         value=100,
                     )
-                    st.session_state.limit_params[field] = limit
-
-            # check box for offset
-            sidebar.checkbox(label="Offset", key="offset_yes", disabled=True)
-
-            if st.session_state.offset_yes:
-                sidebar.number_input(
-                    label="Offset",
-                    value=0,
-                    key="offset",
-                )
+                    st.session_state.limit_param = limit
 
         with st.expander(label="**Query Criteria Details**", expanded=True):
             if len(st.session_state.parameters) == 0:
                 st.info("Your query criteria will be applied to the following fields")
-            else:
-                # show a button to reset the parameters
-                st.button(
-                    label="Reset Parameters",
-                    help="Reset the parameters you have selected.",
-                    type="secondary",
-                    use_container_width=True,
-                    on_click=lambda: st.session_state.pop("query_params"),
-                    key="reset_parameters",
-                )
 
             st.session_state.sort_params = {}
             if len(st.session_state.sort) > 0:
+                st.subheader("**Sort**:")
                 for field in st.session_state.sort:
                     sort_order = st.radio(
                         label=f"Sort order for {field}:",
@@ -266,35 +279,36 @@ if __name__ == "__main__":
 
             for param in st.session_state.parameters:
                 st.subheader(f"**{param}**:")
-                st.write(method_params.parameters[param]["description"])
+                st.write(st.session_state.method_params.parameters[param]["description"])
 
-                if method_params.parameters[param]["type"] == "boolean":
+                if st.session_state.method_params.parameters[param]["type"] == "boolean":
                     boolean_input_for_booleans(param)
 
-                elif method_params.parameters[param]["type"] == "integer":
+                elif st.session_state.method_params.parameters[param]["type"] == "integer":
                     st.write(f"**{param}** is Integer")
                     input_number_for_integers(param)
 
-                elif method_params.parameters[param]["type"] == "string":
+                elif st.session_state.method_params.parameters[param]["type"] == "string":
                     st.write(f"**{param}** is String")
                     text_input_for_strings(param)
 
-                elif method_params.parameters[param]["type"] == "array[integer]":
+                elif st.session_state.method_params.parameters[param]["type"] == "array[integer]":
                     range_and_slider_for_array_integers(param)
 
-                elif method_params.parameters[param]["type"] == "array[string]":
+                elif st.session_state.method_params.parameters[param]["type"] == "array[string]":
                     text_box_for_array_strings_no_ops(param)
 
-            st.session_state.query_params = {"parameters": {item: item for item in st.session_state.parameters}}
+            st.session_state.query_params = {"fields": st.session_state.fields}
 
-            for param in st.session_state.parameters:
-                st.session_state.query_params["parameters"][param] = st.session_state[param]
-            if len(st.session_state.fields) > 0:
-                st.session_state.query_params["fields"] = st.session_state.fields
+            if len(st.session_state.parameters) > 0:
+                st.session_state.query_params["parameters"] = {}
+                for param in st.session_state.parameters:
+                    st.session_state.query_params["parameters"][param] = st.session_state[param]
+
             if len(st.session_state.sort_params) > 0:
                 st.session_state.query_params["sort"] = st.session_state.sort_params
-            if len(st.session_state.limit_params) > 0:
-                st.session_state.query_params["limit"] = st.session_state.limit_params
+            if st.session_state.limit_param:
+                st.session_state.query_params["limit"] = st.session_state.limit_param
             st.session_state.query_params["method"] = method
 
     # create a checkbox to show the query parameters
@@ -317,12 +331,9 @@ if __name__ == "__main__":
         type="primary",
         use_container_width=True,
         disabled=query_btn_disabled,
+        on_click=run_query,
+        args=(st.session_state.query_params,),
     )
-
-    if st.session_state.run_query:
-        with st.spinner("Running query..."):
-            df = st.session_state.instance.query(**st.session_state.query_params, as_dataframe=True)
-            st.session_state.last_query = df
 
     # show the dataframe
     if "last_query" not in st.session_state:
@@ -355,13 +366,19 @@ if __name__ == "__main__":
             )
 
         # show a download button to get the data in csv format
+        # box for file name
+        filename = st.text_input(
+            label="File Name",
+            value="xbrl data",
+        )
+
         col1_data, col2_data = st.columns(2)
         with col1_data:
             st.download_button(
-                label="Download Data",
+                label="Download as CSV File",
                 use_container_width=True,
-                data=st.session_state.last_query.to_csv().encode("utf-8"),
-                file_name="xbrl_data.csv",
+                data=st.session_state.last_query.to_csv(index=False).encode("utf-8"),
+                file_name=f"{filename}.csv",
                 mime="text/csv",
                 key="download_data",
             )
