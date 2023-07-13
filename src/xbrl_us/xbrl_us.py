@@ -550,7 +550,7 @@ class XBRL:
             self._get_account_limit(url=method_url, params=query_params)
 
         # ensure the limit is not greater than the account limit
-        account_limit = min(limit, self.account_limit)
+        account_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
 
         # create a progress bar
         pbar = tqdm(total=None, desc="Downloading Data:", ncols=80)
