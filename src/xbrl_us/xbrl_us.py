@@ -12,9 +12,10 @@ import requests
 from pandas import DataFrame
 from retry import retry
 from tqdm import tqdm
-from utils import Parameters
-from utils import exceptions
 from yaml import safe_load
+
+from .utils import Parameters
+from .utils import exceptions
 
 logging.basicConfig()
 
@@ -506,6 +507,7 @@ class XBRL:
         sort: Optional[dict] = None,
         as_dataframe: bool = False,
         print_query: Optional[bool] = False,
+        **kwargs,
     ) -> Union[dict, DataFrame]:
         """
 
@@ -552,8 +554,14 @@ class XBRL:
         # ensure the limit is not greater than the account limit
         account_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
 
-        # create a progress bar
-        pbar = tqdm(total=None, desc="Downloading Data:", ncols=80)
+        streamlit_indicator = kwargs.get("streamlit", False)
+        if streamlit_indicator:
+            from stqdm import stqdm
+
+            pbar = stqdm(total=None, desc="Downloading Data:", ncols=80)
+        else:
+            # create a progress bar
+            pbar = tqdm(total=None, desc="Downloading Data:", ncols=80)
 
         # update the limit in the query params with the new limit
         query_params = self._build_query_params(

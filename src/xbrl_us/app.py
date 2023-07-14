@@ -32,6 +32,7 @@ def run_query(params: dict):
         sort=sort,
         as_dataframe=True,
         print_query=True,
+        streamlit=True,
     )
 
     st.session_state.last_query = df
