@@ -16,18 +16,18 @@ def try_credentials(user_name: str, pass_word: str, client_id: str, client_secre
         st.stop()
 
 
-@st.cache_data(show_spinner="Running query...")
+@st.cache_data(show_spinner="Running query...", max_entries=1000)
 def run_query(params: dict):
     st.empty()
     method = params.get("method", None)
     fields = params.get("fields", None)
-    parameters = params.get("parameters", None)
+    _parameters = params.get("parameters", None)
     limit = params.get("limit", None)
     sort = params.get("sort", None)
     df = xbrl.query(
         method=method,
         fields=fields,
-        parameters=parameters,
+        parameters=_parameters,
         limit=limit,
         sort=sort,
         as_dataframe=True,
@@ -92,6 +92,7 @@ def text_input_for_strings(key):
         label=f"Input **{key}**:",
         value="",
         key=f"{key}",
+        label_visibility="collapsed",
     )
 
 
@@ -101,6 +102,7 @@ def boolean_input_for_booleans(key):
         options=("true", "false"),
         horizontal=True,
         key=f"{key}",
+        label_visibility="collapsed",
     )
 
 
@@ -145,12 +147,8 @@ def range_and_slider_for_array_integers(key, values):
                 min_value=values["min"],
                 max_value=values["max"],
                 value=(values["min"], values["max"]),
+                label_visibility="collapsed",
                 key=f"{key}_selector",
-                args=(
-                    f"{key}",
-                    f"{key}",
-                    f"{key}_max_value",
-                ),
             )
 
             if st.session_state[f"{key}_selector"][0] == st.session_state[f"{key}_selector"][1]:
@@ -163,6 +161,7 @@ def range_and_slider_for_array_integers(key, values):
             label=f"{key}",
             options=list(range(values["min"], values["max"])),
             key=f"{key}",
+            label_visibility="collapsed",
         )
 
 
@@ -259,66 +258,85 @@ if __name__ == "__main__":
                 key="limit_yes",
             )
             if st.session_state.limit_yes:
-                for field in st.session_state.method_params.limit:
+                # show radio to choose between specific limit or all
+                limit_type = sidebar.radio(
+                    label="Limit Type", options=["Specific", "All"], horizontal=True, key="limit_type", label_visibility="collapsed"
+                )
+                if limit_type == "Specific":
+                    # show the limit for first limit parameter as defined in the method file
                     limit = sidebar.number_input(
-                        label=f"**{field} limit:**",
+                        label=f"**{st.session_state.method_params.limit[0]} limit:**",
                         value=100,
                     )
                     st.session_state.limit_param = limit
+                else:
+                    st.session_state.limit_param = "all"
+                    sidebar.error(
+                        """This may take a long time to run. Only use this option if you are sure you want to retrieve all the data."""
+                    )
 
         query_button_placeholder = st.empty()
+        show_criteria = True
         if len(st.session_state.parameters) == 0 and len(st.session_state.sort) == 0:
             st.info("No **Sort** or search criteria (**Parameters**) has been selected")
-        with st.expander(label="**Query Criteria Details**", expanded=True):
-            st.session_state.sort_params = {}
-            if len(st.session_state.sort) > 0:
-                st.subheader("**Sort**:")
-                for field in st.session_state.sort:
-                    sort_order = st.radio(
-                        label=f"**{field}**:",
-                        options=("Ascending", "Descending"),
-                        horizontal=True,
-                        key=f"{field}_sort",
-                    )
-                    st.session_state.sort_params[field] = "asc" if sort_order == "Ascending" else "desc"
-                st.markdown("---")
+        else:
+            # a checkbox to expand the query criteria
+            query_button = st.checkbox(
+                label="Show Query Criteria",
+                key="query_button",
+                value=True,
+            )
+            if not query_button:
+                show_criteria = False
+        if show_criteria:
+            with st.expander(label="**Query Criteria Details**", expanded=True):
+                st.session_state.sort_params = {}
+                if len(st.session_state.sort) > 0:
+                    st.subheader("**Sort**:")
+                    for field in st.session_state.sort:
+                        sort_order = st.radio(
+                            label=f"**{field}**:",
+                            options=("Ascending", "Descending"),
+                            horizontal=True,
+                            key=f"{field}_sort",
+                        )
+                        st.session_state.sort_params[field] = "asc" if sort_order == "Ascending" else "desc"
+                    st.markdown("---")
 
-            for param in st.session_state.parameters:
-                st.subheader(f"**{param}**:")
-                st.write(st.session_state.method_params.parameters[param]["description"])
-
-                if st.session_state.method_params.parameters[param]["type"] == "boolean":
-                    boolean_input_for_booleans(param)
-
-                elif st.session_state.method_params.parameters[param]["type"] == "integer":
-                    input_number_for_integers(param)
-
-                elif st.session_state.method_params.parameters[param]["type"] == "string":
-                    text_input_for_strings(param)
-
-                elif st.session_state.method_params.parameters[param]["type"] == "array[integer]":
-                    range_and_slider_for_array_integers(
-                        param,
-                        st.session_state.method_params.parameters[param]["values"],
-                    )
-
-                elif st.session_state.method_params.parameters[param]["type"] == "array[string]":
-                    text_box_for_array_strings_no_ops(param)
-
-                st.markdown("---")
-
-            st.session_state.query_params = {"fields": st.session_state.fields}
-
-            if len(st.session_state.parameters) > 0:
-                st.session_state.query_params["parameters"] = {}
                 for param in st.session_state.parameters:
-                    st.session_state.query_params["parameters"][param] = st.session_state[param]
+                    st.subheader(f"**{param}**:")
+                    st.write(st.session_state.method_params.parameters[param]["description"])
 
-            if len(st.session_state.sort_params) > 0:
-                st.session_state.query_params["sort"] = st.session_state.sort_params
-            if st.session_state.limit_param:
-                st.session_state.query_params["limit"] = st.session_state.limit_param
-            st.session_state.query_params["method"] = method
+                    if st.session_state.method_params.parameters[param]["type"] == "boolean":
+                        boolean_input_for_booleans(param)
+
+                    elif st.session_state.method_params.parameters[param]["type"] == "integer":
+                        input_number_for_integers(param)
+
+                    elif st.session_state.method_params.parameters[param]["type"] == "string":
+                        text_input_for_strings(param)
+
+                    elif st.session_state.method_params.parameters[param]["type"] == "array[integer]":
+                        range_and_slider_for_array_integers(
+                            param,
+                            st.session_state.method_params.parameters[param]["values"],
+                        )
+
+                    elif st.session_state.method_params.parameters[param]["type"] == "array[string]":
+                        text_box_for_array_strings_no_ops(param)
+
+                st.session_state.query_params = {"fields": st.session_state.fields}
+
+                if len(st.session_state.parameters) > 0:
+                    st.session_state.query_params["parameters"] = {}
+                    for param in st.session_state.parameters:
+                        st.session_state.query_params["parameters"][param] = st.session_state[param]
+
+                if len(st.session_state.sort_params) > 0:
+                    st.session_state.query_params["sort"] = st.session_state.sort_params
+                if st.session_state.limit_param:
+                    st.session_state.query_params["limit"] = st.session_state.limit_param
+                st.session_state.query_params["method"] = method
 
     # create a checkbox to show the query parameters
     st.checkbox(
