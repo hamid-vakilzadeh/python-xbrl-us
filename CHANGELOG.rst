@@ -3,7 +3,7 @@ Changelog
 =========
 
 0.0.31 (2023-07-14)
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 * fixed dependency issues
 * Bug fixes
