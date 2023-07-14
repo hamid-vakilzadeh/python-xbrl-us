@@ -250,7 +250,7 @@ if __name__ == "__main__":
             )
 
             if len(st.session_state.sort) == 0:
-                sidebar.warning("Please select at least one field to sort by.")
+                sidebar.warning("It is recommended to choose at least one field to sort")
 
             st.session_state.limit_param = None
             # check box for limit
@@ -345,11 +345,18 @@ if __name__ == "__main__":
     )
 
     # show the dataframe
+    st.subheader("Last Query Results")
     if "last_query" not in st.session_state:
         st.info("No **Query** has been run yet.")
 
     else:
-        st.subheader("Last Query Results")
+        # show a download button to get the data in csv format
+        # box for file name
+        filename = st.text_input(
+            label="File Name",
+            value="xbrl data",
+        )
+        dwnld_btn_place, del_btn_place = st.columns(2)
 
         # show a button to show the full data
         st.checkbox(
@@ -357,16 +364,24 @@ if __name__ == "__main__":
             help="Show the full data.",
             key="show_full_data",
         )
-
         if st.session_state.show_full_data:
+            st.success(
+                f"""Viewing full data: **{st.session_state.last_query.shape[0]}**
+                rows and **{st.session_state.last_query.shape[1]}** columns."""
+            )
+
             st.dataframe(
                 data=st.session_state.last_query,
                 use_container_width=True,
                 hide_index=True,
             )
-
         else:
-            st.success(f"This query has {st.session_state.last_query.shape[0]} rows. " f"but you are only seeing the first 100 rows.")
+            st.success(
+                f"""Query has **{st.session_state.last_query.shape[0]}** rows.
+                You are viewing **{min(100, st.session_state.last_query.shape[0])}** rows
+                and **{st.session_state.last_query.shape[1]}** columns.
+                You can try **Show Full Data** or **Download** the full data instead."""
+            )
 
             st.dataframe(
                 data=st.session_state.last_query.head(100),
@@ -374,15 +389,7 @@ if __name__ == "__main__":
                 hide_index=True,
             )
 
-        # show a download button to get the data in csv format
-        # box for file name
-        filename = st.text_input(
-            label="File Name",
-            value="xbrl data",
-        )
-
-        col1_data, col2_data = st.columns(2)
-        with col1_data:
+        with dwnld_btn_place:
             st.download_button(
                 label="Download as CSV File",
                 use_container_width=True,
@@ -392,7 +399,7 @@ if __name__ == "__main__":
                 key="download_data",
             )
 
-        with col2_data:
+        with del_btn_place:
             st.button(
                 label="Delete Query",
                 key="delete_query_btn",
