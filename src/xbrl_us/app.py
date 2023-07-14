@@ -1,6 +1,6 @@
 import streamlit as st
 
-from xbrl_us import XBRL
+from xbrl_us.xbrl_us import XBRL
 
 
 def try_credentials(user_name: str, pass_word: str, client_id: str, client_secret: str):
