@@ -231,8 +231,7 @@ class XBRL:
             print(f"Error: {response.status_code}")
             self.account_limit = None
 
-    @staticmethod
-    def _remove_special_fields(fields):
+    def _remove_special_fields(self, fields):
         # Define the patterns to be removed
         patterns = [r"(.+)\.(sort\((.+)\))?$", r"(.+)\.(limit\((\d+)\))?$", r"(.+)\.(offset\((\d+)\))?$"]
 
@@ -243,10 +242,9 @@ class XBRL:
 
         return fields
 
-    @staticmethod
-    def _validate_parameters(func):
+    def _validate_parameters(instance, func):
         @wraps(func)
-        def wrapper(instance, **kwargs):
+        def wrapper(**kwargs):
             """
             Validate the parameters passed to the query method including fields, parameters, sort, limit, and offset.
             This is a decorator for the query _build_query_params method.
@@ -435,15 +433,13 @@ class XBRL:
 
         return query_params
 
-    @staticmethod
-    def _convert_params_to_dict_decorator(func):
+    def _convert_params_to_dict_decorator(self, func):
         @wraps(func)
-        def wrapper(self, *args, **kwargs):
+        def wrapper(*args, **kwargs):
             """
             Convert the Parameters object to a dictionary before building the query.
 
             Args:
-                self: The instance of the XBRL class.
                 *args: Variable length argument list.
                 **kwargs: Arbitrary keyword arguments.
 
@@ -459,8 +455,7 @@ class XBRL:
 
         return wrapper
 
-    @staticmethod
-    def _get_method_url(method_name: str, parameters) -> str:
+    def _get_method_url(self, method_name: str, parameters) -> str:
         """
         Get the URL for the specified method from the YAML file.
 
