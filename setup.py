@@ -13,7 +13,7 @@ def read(*names, **kwargs):
 
 setup(
     name="xbrl-us",
-    version="0.0.1",
+    version="0.0.3",
     license="MIT",
     description="Python wrapper for xbrl.us API",
     long_description_content_type="text/x-rst",
@@ -61,7 +61,7 @@ setup(
     keywords=[
         # eg: "xbrl-us", "xbrl", "sec",
     ],
-    python_requires=">=3.10",
+    python_requires=">=3.8",
     install_requires=["requests>=2.25.1", "pandas>=1.2.4", "PyYAML>=5.3", "sphinx-copybutton", "streamlit", "retry", "tqdm", "stqdm"],
     extras_require={
         # eg:
