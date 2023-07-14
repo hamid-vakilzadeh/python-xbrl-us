@@ -2,6 +2,12 @@
 Changelog
 =========
 
+0.0.3 (2023-07-14)
+~~~~~~~~~~~~~~~~~~
+
+* Backward compatibility with Python 3.8 and 3.9
+* Bug fixes
+
 0.0.2 (2023-07-12)
 ~~~~~~~~~~~~~~~~~~
 
