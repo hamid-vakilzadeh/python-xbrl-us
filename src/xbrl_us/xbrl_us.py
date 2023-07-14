@@ -608,42 +608,46 @@ class XBRL:
 
         while remaining_limit > 0:
             # Determine the limit for the current request
-            current_limit = min(account_limit, remaining_limit)
-            query_params = self._build_query_params(
-                method=method,
-                fields=fields,
-                parameters=parameters,
-                limit=current_limit,
-                sort=sort,
-                offset=offset,
-            )
+            try:
+                current_limit = min(account_limit, remaining_limit)
+                query_params = self._build_query_params(
+                    method=method,
+                    fields=fields,
+                    parameters=parameters,
+                    limit=current_limit,
+                    sort=sort,
+                    offset=offset,
+                )
 
-            response = self._make_request(
-                method="get",
-                url=method_url,
-                params=query_params,
-            )
+                response = self._make_request(
+                    method="get",
+                    url=method_url,
+                    params=query_params,
+                )
 
-            response_data = response.json()
-            data = response_data["data"]
+                response_data = response.json()
+                data = response_data["data"]
 
-            # Add the items to the overall collection
-            all_data.extend(data)
+                # Add the items to the overall collection
+                all_data.extend(data)
 
-            # Decrease the remaining limit by the number of items received
-            remaining_limit -= len(data)
+                # Decrease the remaining limit by the number of items received
+                remaining_limit -= len(data)
 
-            # update the progress bar
-            pbar.update(len(data))
+                # update the progress bar
+                pbar.update(len(data))
 
-            if len(data) < current_limit:
-                # If the number of items received is less than the current limit,
-                # it means we have reached the end
-                # of available items, so we can break out of the loop.
-                break
+                if len(data) < current_limit:
+                    # If the number of items received is less than the current limit,
+                    # it means we have reached the end
+                    # of available items, so we can break out of the loop.
+                    break
 
-            # Update the offset for the next request
-            offset += len(data)
+                # Update the offset for the next request
+                offset += len(data)
+
+            except Exception as e:
+                raise e
 
         if as_dataframe:
             return DataFrame.from_dict(all_data)
