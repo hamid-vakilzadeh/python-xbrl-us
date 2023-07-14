@@ -36,16 +36,16 @@ usage of the API and adherence to any applicable licensing terms.
 Tutorial ✏️📖📚
 ================
 
-This tutorial will guide you through using the XBRL-US Python library to interact with the XBRL API. The XBRL-US library provides a convenient way to query and retrieve financial data from the XBRL API using Python.
+This tutorial will guide you through using the XBRL-US Python library to interact with the XBRL API.
+The XBRL-US library provides a convenient way to query and retrieve financial data from the XBRL API using Python.
 
-Prerequisites
+1. Prerequisites
 ~~~~~~~~~~~~~
 
 Before you begin, ensure you have the following:
 
 * **Python installed on your system**.
   The XBRL-US library supports Python 3.8 and above.
-* **XBRL-US library installed**.
 * **XBRL-US API credentials**.
   You can obtain your credentials by registering for a
   free XBRL-US account at https://xbrl.us/home/use/xbrl-api/.
@@ -53,7 +53,7 @@ Before you begin, ensure you have the following:
   You can obtain your client ID and client secret by registering for a
   filling the request form at https://xbrl.us/home/use/xbrl-api/access-token/.
 
-You can install it using pip:
+You can install this package using pip:
 
 .. code-block:: bash
 
@@ -76,16 +76,34 @@ library, you can refer to the documentation at https://python-xbrl-us.readthedoc
 
 For more information about the XBRL API and its endpoints, refer to the original API documentation at https://xbrlus.github.io/xbrl-api.
 
-Step 1: Import the XBRL Library
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+2. Choose Your Preferred Approach
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are two distinct ways to use the XBRL-US Python package:
+
+* **Code-Based Approach**: Import the XBRL-US Python package directly into your Python
+  environment for in-depth, custom analysis (see :ref:`Code-Based Approach <code-based approach>`)
+
+* **Browser Interface**: For a no-code experience, navigate to the :ref:`Browser Interface section <browser interface>`.
+  This interface allows for easy exploration and analysis of XBRL data directly in your web
+  browser.
+
+.. _code-based approach:
+
+2.1. Code-Based Approach
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Import the XBRL Library
+-------------------------------
 
 To start using the XBRL-US library,
 you need to import it into your Python script::
 
     from xbrl_us import XBRL
 
-Step 2: Create an Instance of XBRL Class
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Create an Instance of XBRL Class
+----------------------------------------
 
 Next, you need to create an instance of the ``XBRL`` class,
 providing your authentication credentials
@@ -102,8 +120,8 @@ Make sure to replace ``Your client id``,
 ``Your client secret``, ``Your username``, and
 ``Your password`` with your actual credentials.
 
-Step 3: Query the XBRL API
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Query the XBRL API
+------------------
 
 The XBRL-US library provides a query method to search
 for data from the XBRL API. You can specify various
@@ -193,8 +211,8 @@ This alternative approach also allows you to
 take advantage of the autocomplete feature of your IDE to
 easily find the parameters and fields.
 
-Step 4: Perform Additional Queries
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Perform Additional Queries
+----------------------------------
 
 You can use the same query method to call other API
 endpoints by changing the method parameter and
@@ -226,6 +244,57 @@ search for a specific fact by its ID::
 
 Congratulations! You have learned how to use the XBRL-US Python library to interact with the XBRL API.
 In this example you will receive the data in json format as the ``as_dataframe`` parameter is set to ``False``.
+
+.. _browser interface:
+
+2.2 Browser Interface 🖥️
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+This feature is designed to make our package even more user-friendly, allowing users to interact and work with XBRL data
+directly through a graphical interface, in addition to the existing code-based methods.
+
+The browser interface streamlines data visualization, simplifies navigation, and enhances user interactions.
+With this intuitive, user-friendly interface, you can easily explore, interpret, and analyze XBRL data in real-time,
+right from your web browser.
+
+Key Features:
+
+* Create Real-time queries right in your browser
+* Intuitive navigation and search features
+* Filtering and sorting options
+* Seamless integration with the existing XBRL-US Python API
+
+Getting started is as simple as ever.
+Update your XBRL-US Python package to the latest version and launch the new Browser Interface from the package menu.
+
+Getting Started with the Browser Interface
+------------------------------------------
+
+Getting started is as simple as ever.
+First, ensure you have the latest version of ``xbrl-us`` installed by running the following code:
+
+.. code-block:: bash
+
+    pip install xbrl-us --upgrade
+
+
+Next, launch the new Browser Interface from the package menu:
+
+.. code-block:: bash
+
+    python -m xbrl_us
+
+That is it!
+You should now see the new Browser Interface open in your default web browser.
+
+Happy data exploring!
+
+.. note::
+
+    Please note, while we have tested the interface extensively, this is its initial release.
+    We encourage users to provide feedback to help us further improve the tool. We value your input!
+    You can also find tutorials, example codes, and more resources to help you get started.
+
 
 
 Development
