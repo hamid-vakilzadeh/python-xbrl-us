@@ -79,11 +79,6 @@ def show_login():
         st.experimental_rerun()
 
 
-def update_number_input(slider_key: str, number_input_key_min: str, number_input_key_max: str):
-    st.session_state[number_input_key_min] = st.session_state[slider_key][0]
-    st.session_state[number_input_key_max] = st.session_state[slider_key][1]
-
-
 def input_number_for_integers(key):
     st.number_input(
         label=f"Input **{key}**:",
@@ -109,54 +104,64 @@ def boolean_input_for_booleans(key):
     )
 
 
-def range_and_slider_for_array_integers(key):
+def range_and_slider_for_array_integers(key, values):
     st.radio(
         label=f"Input **{key}** as a range or list:",
         options=("Range", "List"),
         horizontal=True,
         key=f"{key}_input_method",
+        label_visibility="collapsed",
+        on_change=lambda: st.session_state.pop(f"{key}"),
     )
+    if f"{key}_max_value" not in st.session_state:
+        st.session_state[f"{key}_max_value"] = values["max"]
 
     if st.session_state[f"{key}_input_method"] == "Range":
         # update_slider_range("period.fiscal-year_input")
         col1, col2 = st.columns(2)
 
-        col1.number_input(
-            label="Between",
-            min_value=1952,
-            max_value=9999,
-            value=1952,
-            key=f"{key}_min_value",
-        )
+        if values["max"] - values["min"] > 200:
+            col1.number_input(
+                label="Between",
+                min_value=values["min"],
+                max_value=values["max"],
+                value=values["min"],
+                key=f"{key}_min_value",
+            )
 
-        col2.number_input(
-            label="And",
-            min_value=1952,
-            max_value=9999,
-            value=2021,
-            key=f"{key}_max_value",
-        )
+            col2.number_input(
+                label="And",
+                min_value=values["min"],
+                max_value=values["max"],
+                value=values["max"],
+                key=f"{key}_max_value",
+            )
 
-        st.slider(
-            label=f"**{key}**",
-            min_value=1952,
-            max_value=2023,
-            value=[st.session_state[f"{key}_min_value"], st.session_state[f"{key}_max_value"]],
-            key=f"{key}",
-            on_change=update_number_input,
-            args=(
-                f"{key}",
-                f"{key}",
-                f"{key}_max_value",
-            ),
-        )
+            st.session_state[key] = range(st.session_state[f"{key}_min_value"], st.session_state[f"{key}_max_value"])
 
-        if st.session_state[f"{key}"][0] == st.session_state[f"{key}"][1]:
-            st.error(f"switch to list mode and select {st.session_state[f'{key}'][0]}")
+        else:
+            st.slider(
+                label=f"**{key}**",
+                min_value=values["min"],
+                max_value=values["max"],
+                value=(values["min"], values["max"]),
+                key=f"{key}_selector",
+                args=(
+                    f"{key}",
+                    f"{key}",
+                    f"{key}_max_value",
+                ),
+            )
+
+            if st.session_state[f"{key}_selector"][0] == st.session_state[f"{key}_selector"][1]:
+                st.error(f"switch to list mode and select {st.session_state[f'{key}'][0]}")
+
+            st.session_state[key] = range(st.session_state[f"{key}_selector"][0], st.session_state[f"{key}_selector"][1])
+
     else:
         st.multiselect(
             label=f"{key}",
-            options=list(range(1952, 2024)),
+            options=list(range(values["min"], values["max"])),
             key=f"{key}",
         )
 
@@ -176,7 +181,7 @@ if __name__ == "__main__":
         initial_sidebar_state="expanded",
     )
 
-    st.title("Explore [XBRL.us](https://xbrl.us/)")
+    st.title("Explore XBRL.us Data")
 
     sidebar = st.sidebar
     if "username" not in st.session_state:
@@ -188,7 +193,7 @@ if __name__ == "__main__":
     else:
         with sidebar:
             st.button(
-                label="Reset Credentials",
+                label="Log out",
                 type="secondary",
                 use_container_width=True,
                 on_click=lambda: st.session_state.clear(),
@@ -261,21 +266,22 @@ if __name__ == "__main__":
                     )
                     st.session_state.limit_param = limit
 
+        query_button_placeholder = st.empty()
+        if len(st.session_state.parameters) == 0 and len(st.session_state.sort) == 0:
+            st.info("No **Sort** or search criteria (**Parameters**) has been selected")
         with st.expander(label="**Query Criteria Details**", expanded=True):
-            if len(st.session_state.parameters) == 0:
-                st.info("Your query criteria will be applied to the following fields")
-
             st.session_state.sort_params = {}
             if len(st.session_state.sort) > 0:
                 st.subheader("**Sort**:")
                 for field in st.session_state.sort:
                     sort_order = st.radio(
-                        label=f"Sort order for {field}:",
+                        label=f"**{field}**:",
                         options=("Ascending", "Descending"),
                         horizontal=True,
                         key=f"{field}_sort",
                     )
                     st.session_state.sort_params[field] = "asc" if sort_order == "Ascending" else "desc"
+                st.markdown("---")
 
             for param in st.session_state.parameters:
                 st.subheader(f"**{param}**:")
@@ -285,18 +291,21 @@ if __name__ == "__main__":
                     boolean_input_for_booleans(param)
 
                 elif st.session_state.method_params.parameters[param]["type"] == "integer":
-                    st.write(f"**{param}** is Integer")
                     input_number_for_integers(param)
 
                 elif st.session_state.method_params.parameters[param]["type"] == "string":
-                    st.write(f"**{param}** is String")
                     text_input_for_strings(param)
 
                 elif st.session_state.method_params.parameters[param]["type"] == "array[integer]":
-                    range_and_slider_for_array_integers(param)
+                    range_and_slider_for_array_integers(
+                        param,
+                        st.session_state.method_params.parameters[param]["values"],
+                    )
 
                 elif st.session_state.method_params.parameters[param]["type"] == "array[string]":
                     text_box_for_array_strings_no_ops(param)
+
+                st.markdown("---")
 
             st.session_state.query_params = {"fields": st.session_state.fields}
 
@@ -325,7 +334,7 @@ if __name__ == "__main__":
     if len(st.session_state["fields"]) > 0:
         query_btn_disabled = False
 
-    st.button(
+    query_button_placeholder.button(
         label="Run Query",
         key="run_query",
         type="primary",
@@ -337,14 +346,14 @@ if __name__ == "__main__":
 
     # show the dataframe
     if "last_query" not in st.session_state:
-        st.info("your data will appear here")
+        st.info("No **Query** has been run yet.")
 
     else:
         st.subheader("Last Query Results")
 
         # show a button to show the full data
         st.checkbox(
-            label="My computer rock! 🚀 Show Full Data",
+            label="My computer rocks! 🚀 Show Full Data",
             help="Show the full data.",
             key="show_full_data",
         )

@@ -89,7 +89,9 @@ parameters:
     description: The namespace of the member.
   period.calendar-period:
     type: array[string]
-    description: The period identifier for the fact, such as year (Y), quarters (Q1, Q2, Q3, Q4), cumulative quarters (3QCUM), and half years (H1, H2). The calendar period aligns the periods with a calendar year.
+    description: The period identifier for the fact, such as year (Y), quarters (Q1, Q2, Q3, Q4), cumulative quarters (3QCUM),
+      and half years (H1, H2). The calendar period aligns the periods with a calendar year.
+    values: [Y, Q1, Q2, Q3, Q4, 3QCUM, H1, H2]
   period.fiscal-id:
     type: string
     description: The identifier of the fiscal period. Each period has an assigned hash that identifies the fiscal period.
@@ -99,12 +101,14 @@ parameters:
   period.fiscal-year:
     type: array[integer]
     description: The fiscal year in which the fact is applicable in the format 'YYYY'.
+    values: {"min":1952, "max":2023}
   period.id:
     type: string
     description: The identifier of the calendar period. Each period has an assigned hash that identifies the period.
   period.year:
     type: array[integer]
     description: The calendar year in which the fact is applicable in the format 'YYYY'.
+    values: {"min":1952, "max":2023}
   report.accession:
     type: string
     description: The unique identifier (inclusive of the entity CIK) used by the SEC for a report.
@@ -135,6 +139,7 @@ parameters:
   report.sic-code:
     type: array[integer]
     description: The Standard Industrial Classification (SIC) code used by the SEC in the United States.
+    values: {"min":100, "max":9999}
   report.source-id:
     type: integer
     description: ID of the filing program.
