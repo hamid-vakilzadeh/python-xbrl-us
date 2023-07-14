@@ -2,6 +2,13 @@
 Changelog
 =========
 
+0.0.31 (2023-07-14)
+~~~~~~~~~~~~~~~~~~
+
+* fixed dependency issues
+* Bug fixes
+
+
 0.0.3 (2023-07-14)
 ~~~~~~~~~~~~~~~~~~
 
@@ -14,7 +21,7 @@ Changelog
 
 * Bug fixes
 * Enhanced error handling
-* Improved method attributes
+* Improved ``methods`` attributes
 * Added the ability to print the query string
 * Implemented a feature to handle queries with large limits
 * NEW: Introduced a web interface for the API, making it even easier to use

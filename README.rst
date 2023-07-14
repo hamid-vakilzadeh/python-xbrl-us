@@ -44,15 +44,14 @@ Prerequisites
 Before you begin, ensure you have the following:
 
 * **Python installed on your system**.
-  Right now, the XBRL-US library supports Python 3.10 and above.
-  Backwards compatibility with Python 3.8 and above is planned for a future release.
+  The XBRL-US library supports Python 3.8 and above.
 * **XBRL-US library installed**.
 * **XBRL-US API credentials**.
   You can obtain your credentials by registering for a
   free XBRL-US account at https://xbrl.us/home/use/xbrl-api/.
 * **XBRL-US OAuth2 Access**.
   You can obtain your client ID and client secret by registering for a
-  free XBRL-US account at https://xbrl.us/home/use/xbrl-api/access-token/.
+  filling the request form at https://xbrl.us/home/use/xbrl-api/access-token/.
 
 You can install it using pip:
 
@@ -226,6 +225,7 @@ search for a specific fact by its ID::
     )
 
 Congratulations! You have learned how to use the XBRL-US Python library to interact with the XBRL API.
+In this example you will receive the data in json format as the ``as_dataframe`` parameter is set to ``False``.
 
 
 Development
