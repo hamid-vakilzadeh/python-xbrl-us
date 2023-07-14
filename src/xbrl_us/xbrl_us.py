@@ -22,6 +22,249 @@ logging.basicConfig()
 _dir = Path(__file__).resolve()
 
 
+def _remove_special_fields(fields):
+    # Define the patterns to be removed
+    patterns = [r"(.+)\.(sort\((.+)\))?$", r"(.+)\.(limit\((\d+)\))?$", r"(.+)\.(offset\((\d+)\))?$"]
+
+    # For each field, check if it matches any of the patterns. If it does, remove it.
+    for field in fields[:]:  # iterate over a slice copy of the list to safely modify it during iteration
+        if any(re.match(pattern, field, re.IGNORECASE) for pattern in patterns):
+            fields.remove(field)
+
+    return fields
+
+
+def _methods():
+    """
+    Get the names of the attributes that are allowed to be used for
+        the given method.
+    """
+    # location of all method files
+    file_path = _dir.parent / "methods"
+
+    # list all the files in the directory
+    method_files = Path(file_path).glob("*.yml")
+
+    return [file_path.stem for file_path in method_files]
+
+
+def _validate_parameters():
+    def decorator(func):
+        @wraps(func)
+        def wrapper(**kwargs):
+            """
+            Validate the parameters passed to the query method including fields, parameters, sort, limit, and offset.
+            This is a decorator for the ``_build_query_params`` method in XBRL class.
+
+            Args:
+                **kwargs: Arbitrary keyword arguments.
+
+            Returns:
+                The result of the wrapped function.
+            """
+            method_name = kwargs.get("method")
+
+            if not method_name:
+                raise exceptions.XBRLMissingValueError(param="method", expected_value=_methods())
+            elif method_name not in _methods():
+                raise exceptions.XBRLInvalidValueError(key=method_name, param="method", expected_value=_methods())
+
+            elif not isinstance(method_name, str):
+                raise exceptions.XBRLInvalidTypeError(key=method_name, received_type=type(method_name), expected_type=str)
+
+            # load the yaml file that has allowed parameters for the method
+            file_path = _dir.parent / "methods" / f"{method_name.lower()}.yml"
+
+            with file_path.open("r") as file:
+                allowed_for_query = safe_load(file)
+
+            # get the parameters, fields, limit, sort, and offset from kwargs that the user passed in
+            parameters = kwargs.get("parameters")
+            fields = kwargs.get("fields")
+            limit = kwargs.get("limit")
+            sort = kwargs.get("sort")
+            offset = kwargs.get("offset")
+            kwargs.get("print_query")
+
+            # get the allowed parameters, fields, limit, sort, and offset from the yaml file
+            allowed_params = list(allowed_for_query.get("parameters", set()).keys())
+            allowed_fields = allowed_for_query.get("fields", set())
+            allowed_limit_fields = allowed_for_query.get("limit", set())
+            allowed_sort_fields = [field for field in allowed_fields if "*" not in field]
+            allowed_offset_fields = allowed_limit_fields
+
+            # Validate fields
+            if not fields:
+                raise exceptions.XBRLMissingValueError(param="fields", expected_value=allowed_fields)
+
+            # clear the conditions from the previous query
+            # this could happen when the limit is greater than account limit or
+            # when the user passes in a field with a condition
+            fields = _remove_special_fields(fields)
+            for field in fields:
+                if not isinstance(field, str):
+                    raise exceptions.XBRLInvalidTypeError(key=field, expected_type=str, received_type=type(field))
+
+                if field not in allowed_fields:
+                    raise exceptions.XBRLInvalidValueError(key=field, param="fields", expected_value=allowed_fields, method=method_name)
+
+            # Validate parameters
+            if parameters:
+                for param in parameters:
+                    if param not in allowed_params:
+                        raise exceptions.XBRLInvalidValueError(
+                            key=param, param="parameters", expected_value=allowed_params, method=method_name
+                        )
+
+            # Validate limit
+            if limit:
+                # if not dict or an int, raise an error
+                if not isinstance(limit, int):
+                    raise exceptions.XBRLInvalidTypeError(key=limit, expected_type=int, received_type=type(limit))
+
+            else:
+                warnings.warn(
+                    "You have not set a limit; returning the first page only.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+
+            # Validate sort
+            if sort:
+                if not isinstance(sort, dict):
+                    raise ValueError("Sort must be a dictionary")
+                sort = {_remove_special_fields(key): value for key, value in sort.items()}
+                for key, value in sort.items():
+                    if key not in allowed_sort_fields:
+                        raise exceptions.XBRLInvalidValueError(
+                            key=key, param="sort", expected_value=allowed_sort_fields, method=method_name
+                        )
+                    if value.lower() not in ["asc", "desc"]:
+                        raise exceptions.XBRLInvalidValueError(key=value, param="sort", expected_value=["asc", "desc"])
+            else:
+                warnings.warn(
+                    "You have not passed a sort value; for reliable results, set a field to sort.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+
+            # Validate offset
+            if offset:
+                if not isinstance(offset, int):
+                    raise exceptions.XBRLInvalidTypeError(key=offset, expected_type=int, received_type=type(offset))
+
+            limit_field = next(iter(allowed_limit_fields))
+            offset_field = next(iter(allowed_offset_fields))
+
+            return func(
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                offset=offset,
+                limit_field=limit_field,
+                offset_field=offset_field,
+            )
+
+        return wrapper
+
+    return decorator
+
+
+def _convert_params_to_dict_decorator():
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """
+            Convert the Parameters object to a dictionary before building the query.
+            This is a decorator for the ``query`` method in XBRL class.
+
+            Args:
+                *args: Variable length argument list.
+                **kwargs: Arbitrary keyword arguments.
+
+            Returns:
+                The result of the wrapped function.
+            """
+            parameters = kwargs.get("parameters")
+            if isinstance(parameters, Parameters):
+                kwargs["parameters"] = parameters.get_parameters_dict()
+            elif parameters and not isinstance(parameters, dict):
+                raise ValueError(f"Parameters must be a dict or Parameters object. " f"Got {type(parameters)} instead.")
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+@_validate_parameters()
+def _build_query_params(
+    fields: Optional[list] = None,
+    parameters: Optional[dict] = None,
+    limit: Optional[int] = None,
+    sort: Optional[dict] = None,
+    offset: Optional[int] = 0,
+    limit_field: Optional[str] = None,
+    offset_field: Optional[str] = None,
+) -> dict:
+    """
+    Build the query parameters for the API request in the format required by the API.
+
+    Args:
+        fields (list): The list of fields to include in the query.
+        parameters (dict): The parameters for the query.
+        limit (dict): The limit parameters for the query.
+        sort (dict): The sort parameters for the query.
+        offset (dict): dynamically set if needed
+        limit_field (str): The limit field accepted for the chosen method.
+        offset_field (str): The offset field accepted for the chosen method (which is usually the same as the
+            ``limit_filed``).
+
+    Returns:
+        dict: The query parameters that will be submitted to the API.
+    """
+    query_params = {}
+
+    if parameters:
+        # convert the parameters to a string and add it to the query_params
+        query_params.update(
+            {f"{k}": ",".join(map(str, v)) if isinstance(v, Iterable) and not isinstance(v, str) else str(v) for k, v in parameters.items()}
+        )
+
+    # Handle sort
+    if sort:
+        # check if the sort field is in the fields list
+        for field, direction in sort.items():
+            # name the field name followed by .sort(value)
+            sorted_arg = f"{field}.sort({direction.upper()})"
+            if field in fields:
+                # if the field is in the fields list, remove the field
+                fields.remove(field)
+            fields.append(sorted_arg)
+
+    # Handle limit
+    if limit:
+        # name and add the field name followed by .limit(value)
+        limit_arg = f"{limit_field}.limit({limit})"
+        if limit_field in fields:
+            # if the field is in the fields list, remove the field
+            fields.remove(limit_field)
+        fields.append(limit_arg)
+
+    # Handle offset
+    if offset:
+        # name and add the field name followed by .offset(value)
+        offset_arg = f"{offset_field}.offset({offset})"
+        if offset_field in fields:
+            fields.remove(offset_field)
+        fields.append(offset_arg)
+
+    query_params["fields"] = ",".join(fields)
+
+    return query_params
+
+
 class XBRL:
     """
     XBRL US API client. Initializes an instance of XBRL authorized connection.
@@ -59,33 +302,6 @@ class XBRL:
         self.account_limit = None
         self._access_token_expires_at = 0
         self._refresh_token_expires_at = 0
-
-    @staticmethod
-    def acceptable_params(method_name: str):
-        """
-        Get the names of the attributes that are allowed to be used for
-            the given method.
-
-        Args:
-            method_name (str): The name of the API method to get the acceptable parameters for (e.g. "search_fact").
-
-        Returns:
-
-        """
-        file_path = _dir.parent / "methods" / f"{method_name.lower()}.yml"
-
-        with file_path.open("r") as file:
-            method_features = safe_load(file)
-
-        _attributes = {"method_name": method_name}
-        for key, _value in method_features.items():
-            _attributes[f"{key}"] = method_features.get(key)
-
-        _attributes["sort"] = [value for value in _attributes["fields"] if "*" not in value]
-
-        # Create the dynamic class using type()
-        _class = type(method_name, (), _attributes)
-        return _class()
 
     @staticmethod
     def methods():
@@ -132,13 +348,34 @@ class XBRL:
             ===================================  ==================================================
 
         """
-        # location of all method files
-        file_path = _dir.parent / "methods"
+        return _methods()
 
-        # list all the files in the directory
-        method_files = Path(file_path).glob("*.yml")
+    @staticmethod
+    def acceptable_params(method_name: str):
+        """
+        Get the names of the attributes that are allowed to be used for
+            the given method.
 
-        return [file_path.stem for file_path in method_files]
+        Args:
+            method_name (str): The name of the API method to get the acceptable parameters for (e.g. "search_fact").
+
+        Returns:
+
+        """
+        file_path = _dir.parent / "methods" / f"{method_name.lower()}.yml"
+
+        with file_path.open("r") as file:
+            method_features = safe_load(file)
+
+        _attributes = {"method_name": method_name}
+        for key, _value in method_features.items():
+            _attributes[f"{key}"] = method_features.get(key)
+
+        _attributes["sort"] = [value for value in _attributes["fields"] if "*" not in value]
+
+        # Create the dynamic class using type()
+        _class = type(method_name, (), _attributes)
+        return _class()
 
     def _get_token(self, grant_type: Optional[str] = None, refresh_token=None):
         """
@@ -231,230 +468,6 @@ class XBRL:
             print(f"Error: {response.status_code}")
             self.account_limit = None
 
-    def _remove_special_fields(self, fields):
-        # Define the patterns to be removed
-        patterns = [r"(.+)\.(sort\((.+)\))?$", r"(.+)\.(limit\((\d+)\))?$", r"(.+)\.(offset\((\d+)\))?$"]
-
-        # For each field, check if it matches any of the patterns. If it does, remove it.
-        for field in fields[:]:  # iterate over a slice copy of the list to safely modify it during iteration
-            if any(re.match(pattern, field, re.IGNORECASE) for pattern in patterns):
-                fields.remove(field)
-
-        return fields
-
-    def _validate_parameters(instance, func):
-        @wraps(func)
-        def wrapper(**kwargs):
-            """
-            Validate the parameters passed to the query method including fields, parameters, sort, limit, and offset.
-            This is a decorator for the query _build_query_params method.
-
-            Args:
-                instance (XBRLAPIClient): The instance of the XBRLAPIClient.
-                **kwargs: Arbitrary keyword arguments.
-
-            Returns:
-                The result of the wrapped function.
-            """
-            method_name = kwargs.get("method")
-
-            if not method_name:
-                raise exceptions.XBRLMissingValueError(param="method", expected_value=instance.methods())
-            elif method_name not in instance.methods():
-                raise exceptions.XBRLInvalidValueError(key=method_name, param="method", expected_value=instance.methods())
-
-            elif not isinstance(method_name, str):
-                raise exceptions.XBRLInvalidTypeError(key=method_name, received_type=type(method_name), expected_type=str)
-
-            # load the yaml file that has allowed parameters for the method
-            file_path = _dir.parent / "methods" / f"{method_name.lower()}.yml"
-
-            with file_path.open("r") as file:
-                allowed_for_query = safe_load(file)
-
-            # get the parameters, fields, limit, sort, and offset from kwargs that the user passed in
-            parameters = kwargs.get("parameters")
-            fields = kwargs.get("fields")
-            limit = kwargs.get("limit")
-            sort = kwargs.get("sort")
-            offset = kwargs.get("offset")
-            kwargs.get("print_query")
-
-            # get the allowed parameters, fields, limit, sort, and offset from the yaml file
-            allowed_params = list(allowed_for_query.get("parameters", set()).keys())
-            allowed_fields = allowed_for_query.get("fields", set())
-            allowed_limit_fields = allowed_for_query.get("limit", set())
-            allowed_sort_fields = [field for field in allowed_fields if "*" not in field]
-            allowed_offset_fields = allowed_limit_fields
-
-            # Validate fields
-            if not fields:
-                raise exceptions.XBRLMissingValueError(param="fields", expected_value=allowed_fields)
-
-            # clear the conditions from the previous query
-            # this could happen when the limit is greater than account limit or
-            # when the user passes in a field with a condition
-            fields = instance._remove_special_fields(fields)
-            for field in fields:
-                if not isinstance(field, str):
-                    raise exceptions.XBRLInvalidTypeError(key=field, expected_type=str, received_type=type(field))
-
-                if field not in allowed_fields:
-                    raise exceptions.XBRLInvalidValueError(key=field, param="fields", expected_value=allowed_fields, method=method_name)
-
-            # Validate parameters
-            if parameters:
-                for param in parameters:
-                    if param not in allowed_params:
-                        raise exceptions.XBRLInvalidValueError(
-                            key=param, param="parameters", expected_value=allowed_params, method=method_name
-                        )
-
-            # Validate limit
-            if limit:
-                # if not dict or an int, raise an error
-                if not isinstance(limit, int):
-                    raise exceptions.XBRLInvalidTypeError(key=limit, expected_type=int, received_type=type(limit))
-
-            else:
-                warnings.warn(
-                    "You have not set a limit; returning the first page only.",
-                    UserWarning,
-                    stacklevel=2,
-                )
-
-            # Validate sort
-            if sort:
-                if not isinstance(sort, dict):
-                    raise ValueError("Sort must be a dictionary")
-                sort = {instance._remove_special_fields(key): value for key, value in sort.items()}
-                for key, value in sort.items():
-                    if key not in allowed_sort_fields:
-                        raise exceptions.XBRLInvalidValueError(
-                            key=key, param="sort", expected_value=allowed_sort_fields, method=method_name
-                        )
-                    if value.lower() not in ["asc", "desc"]:
-                        raise exceptions.XBRLInvalidValueError(key=value, param="sort", expected_value=["asc", "desc"])
-            else:
-                warnings.warn(
-                    "You have not passed a sort value; for reliable results, set a field to sort.",
-                    UserWarning,
-                    stacklevel=2,
-                )
-
-            # Validate offset
-            if offset:
-                if not isinstance(offset, int):
-                    raise exceptions.XBRLInvalidTypeError(key=offset, expected_type=int, received_type=type(offset))
-
-            limit_field = next(iter(allowed_limit_fields))
-            offset_field = next(iter(allowed_offset_fields))
-
-            return func(
-                instance,
-                fields=fields,
-                parameters=parameters,
-                limit=limit,
-                sort=sort,
-                offset=offset,
-                limit_field=limit_field,
-                offset_field=offset_field,
-            )
-
-        return wrapper
-
-    @_validate_parameters
-    def _build_query_params(
-        self,
-        fields: Optional[list] = None,
-        parameters: Optional[dict] = None,
-        limit: Optional[int] = None,
-        sort: Optional[dict] = None,
-        offset: Optional[int] = 0,
-        limit_field: Optional[str] = None,
-        offset_field: Optional[str] = None,
-    ) -> dict:
-        """
-        Build the query parameters for the API request in the format required by the API.
-
-        Args:
-            fields (list): The list of fields to include in the query.
-            parameters (dict): The parameters for the query.
-            limit (dict): The limit parameters for the query.
-            sort (dict): The sort parameters for the query.
-            offset (dict): dynamically set if needed
-            limit_field (str): The limit field accepted for the chosen method.
-            offset_field (str): The offset field accepted for the chosen method (which is usually the same as the
-                ``limit_filed``).
-
-        Returns:
-            dict: The query parameters that will be submitted to the API.
-        """
-        query_params = {}
-
-        if parameters:
-            # convert the parameters to a string and add it to the query_params
-            query_params.update(
-                {
-                    f"{k}": ",".join(map(str, v)) if isinstance(v, Iterable) and not isinstance(v, str) else str(v)
-                    for k, v in parameters.items()
-                }
-            )
-
-        # Handle sort
-        if sort:
-            # check if the sort field is in the fields list
-            for field, direction in sort.items():
-                # name the field name followed by .sort(value)
-                sorted_arg = f"{field}.sort({direction.upper()})"
-                if field in fields:
-                    # if the field is in the fields list, remove the field
-                    fields.remove(field)
-                fields.append(sorted_arg)
-
-        # Handle limit
-        if limit:
-            # name and add the field name followed by .limit(value)
-            limit_arg = f"{limit_field}.limit({limit})"
-            if limit_field in fields:
-                # if the field is in the fields list, remove the field
-                fields.remove(limit_field)
-            fields.append(limit_arg)
-
-        # Handle offset
-        if offset:
-            # name and add the field name followed by .offset(value)
-            offset_arg = f"{offset_field}.offset({offset})"
-            if offset_field in fields:
-                fields.remove(offset_field)
-            fields.append(offset_arg)
-
-        query_params["fields"] = ",".join(fields)
-
-        return query_params
-
-    def _convert_params_to_dict_decorator(self, func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            """
-            Convert the Parameters object to a dictionary before building the query.
-
-            Args:
-                *args: Variable length argument list.
-                **kwargs: Arbitrary keyword arguments.
-
-            Returns:
-                The result of the wrapped function.
-            """
-            parameters = kwargs.get("parameters")
-            if isinstance(parameters, Parameters):
-                kwargs["parameters"] = parameters.get_parameters_dict()
-            elif parameters and not isinstance(parameters, dict):
-                raise ValueError(f"Parameters must be a dict or Parameters object. " f"Got {type(parameters)} instead.")
-            return func(self, *args, **kwargs)
-
-        return wrapper
-
     def _get_method_url(self, method_name: str, parameters) -> str:
         """
         Get the URL for the specified method from the YAML file.
@@ -492,7 +505,7 @@ class XBRL:
                 url = url.replace(placeholder, str(value))
         return f"https://api.xbrl.us{url}?"
 
-    @_convert_params_to_dict_decorator
+    @_convert_params_to_dict_decorator()
     def query(
         self,
         method: str,
@@ -531,7 +544,7 @@ class XBRL:
             # arbitrary large number
             limit = 999999999
 
-        query_params = self._build_query_params(
+        query_params = _build_query_params(
             method=method,
             fields=fields,
             parameters=parameters,
@@ -559,7 +572,7 @@ class XBRL:
             pbar = tqdm(total=None, desc="Downloading Data:", ncols=80)
 
         # update the limit in the query params with the new limit
-        query_params = self._build_query_params(
+        query_params = _build_query_params(
             method=method,
             fields=fields,
             parameters=parameters,
@@ -605,7 +618,7 @@ class XBRL:
             # Determine the limit for the current request
             try:
                 current_limit = min(account_limit, remaining_limit)
-                query_params = self._build_query_params(
+                query_params = _build_query_params(
                     method=method,
                     fields=fields,
                     parameters=parameters,
