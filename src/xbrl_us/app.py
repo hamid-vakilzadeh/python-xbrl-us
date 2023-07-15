@@ -1,6 +1,6 @@
 import streamlit as st
 
-from xbrl_us.xbrl_us import XBRL
+from xbrl_us import XBRL
 
 
 def try_credentials(user_name: str, pass_word: str, client_id: str, client_secret: str):
@@ -16,27 +16,21 @@ def try_credentials(user_name: str, pass_word: str, client_id: str, client_secre
         st.stop()
 
 
-@st.cache_data(show_spinner="Running query...", max_entries=1000)
-def run_query(params: dict):
-    st.empty()
-    method = params.get("method", None)
-    fields = params.get("fields", None)
-    _parameters = params.get("parameters", None)
-    limit = params.get("limit", None)
-    sort = params.get("sort", None)
-    df = xbrl.query(
-        method=method,
-        fields=fields,
-        parameters=_parameters,
-        limit=limit,
-        sort=sort,
-        as_dataframe=True,
-        print_query=True,
-        streamlit=True,
-    )
+@st.cache_data(show_spinner=False)
+def cache_params(params: dict):
+    cached_params = {
+        "method": params.get("method", None),
+        "fields": params.get("fields", None),
+        "parameters": params.get("parameters", None),
+        "limit": params.get("limit", None),
+        "sort": params.get("sort", None),
+        "unique": params.get("unique", False),
+        "print_query": params.get("print_query", True),
+        "as_dataframe": params.get("as_dataframe", True),
+        "streamlit": params.get("streamlit", True),
+    }
 
-    st.session_state.last_query = df
-    st.session_state.pop("query_params")
+    st.session_state.cached_params = cached_params
 
 
 def show_login():
@@ -155,7 +149,7 @@ def range_and_slider_for_array_integers(key, values):
             if st.session_state[f"{key}_selector"][0] == st.session_state[f"{key}_selector"][1]:
                 st.error(f"switch to list mode and select {st.session_state[f'{key}'][0]}")
 
-            st.session_state[key] = range(st.session_state[f"{key}_selector"][0], st.session_state[f"{key}_selector"][1])
+            st.session_state[key] = range(st.session_state[f"{key}_selector"][0], st.session_state[f"{key}_selector"][1] + 1)
 
     else:
         st.multiselect(
@@ -252,6 +246,13 @@ if __name__ == "__main__":
             if len(st.session_state.sort) == 0:
                 sidebar.warning("It is recommended to choose at least one field to sort")
 
+            # check box for unique
+            sidebar.checkbox(
+                label="Unique",
+                key="unique_yes",
+                help="Return unique rows from the results",
+            )
+
             st.session_state.limit_param = None
             # check box for limit
             sidebar.checkbox(
@@ -278,66 +279,68 @@ if __name__ == "__main__":
 
         query_button_placeholder = st.empty()
         show_criteria = True
+        show_criteria_placeholder = st.empty()
         if len(st.session_state.parameters) == 0 and len(st.session_state.sort) == 0:
             st.info("No **Sort** or search criteria (**Parameters**) has been selected")
         else:
             # a checkbox to expand the query criteria
-            query_button = st.checkbox(
+            query_button = show_criteria_placeholder.checkbox(
                 label="Show Query Criteria",
                 key="query_button",
                 value=True,
             )
             if not query_button:
                 show_criteria = False
-        if show_criteria:
-            with st.expander(label="**Query Criteria Details**", expanded=True):
-                st.session_state.sort_params = {}
-                if len(st.session_state.sort) > 0:
-                    st.subheader("**Sort**:")
-                    for field in st.session_state.sort:
-                        sort_order = st.radio(
-                            label=f"**{field}**:",
-                            options=("Ascending", "Descending"),
-                            horizontal=True,
-                            key=f"{field}_sort",
-                        )
-                        st.session_state.sort_params[field] = "asc" if sort_order == "Ascending" else "desc"
-                    st.markdown("---")
+        with st.expander(label="**Query Criteria Details**", expanded=show_criteria):
+            st.session_state.sort_params = {}
+            if len(st.session_state.sort) > 0:
+                st.subheader("**Sort**:")
+                for field in st.session_state.sort:
+                    sort_order = st.radio(
+                        label=f"**{field}**:",
+                        options=("Ascending", "Descending"),
+                        horizontal=True,
+                        key=f"{field}_sort",
+                    )
+                    st.session_state.sort_params[field] = "asc" if sort_order == "Ascending" else "desc"
+                st.markdown("---")
 
+            for param in st.session_state.parameters:
+                st.subheader(f"**{param}**:")
+                st.write(st.session_state.method_params.parameters[param]["description"])
+
+                if st.session_state.method_params.parameters[param]["type"] == "boolean":
+                    boolean_input_for_booleans(param)
+
+                elif st.session_state.method_params.parameters[param]["type"] == "integer":
+                    input_number_for_integers(param)
+
+                elif st.session_state.method_params.parameters[param]["type"] == "string":
+                    text_input_for_strings(param)
+
+                elif st.session_state.method_params.parameters[param]["type"] == "array[integer]":
+                    range_and_slider_for_array_integers(
+                        param,
+                        st.session_state.method_params.parameters[param]["values"],
+                    )
+
+                elif st.session_state.method_params.parameters[param]["type"] == "array[string]":
+                    text_box_for_array_strings_no_ops(param)
+
+            st.session_state.query_params = {"fields": st.session_state.fields}
+
+            if len(st.session_state.parameters) > 0:
+                st.session_state.query_params["parameters"] = {}
                 for param in st.session_state.parameters:
-                    st.subheader(f"**{param}**:")
-                    st.write(st.session_state.method_params.parameters[param]["description"])
+                    st.session_state.query_params["parameters"][param] = st.session_state[param]
 
-                    if st.session_state.method_params.parameters[param]["type"] == "boolean":
-                        boolean_input_for_booleans(param)
-
-                    elif st.session_state.method_params.parameters[param]["type"] == "integer":
-                        input_number_for_integers(param)
-
-                    elif st.session_state.method_params.parameters[param]["type"] == "string":
-                        text_input_for_strings(param)
-
-                    elif st.session_state.method_params.parameters[param]["type"] == "array[integer]":
-                        range_and_slider_for_array_integers(
-                            param,
-                            st.session_state.method_params.parameters[param]["values"],
-                        )
-
-                    elif st.session_state.method_params.parameters[param]["type"] == "array[string]":
-                        text_box_for_array_strings_no_ops(param)
-
-                st.session_state.query_params = {"fields": st.session_state.fields}
-
-                if len(st.session_state.parameters) > 0:
-                    st.session_state.query_params["parameters"] = {}
-                    for param in st.session_state.parameters:
-                        st.session_state.query_params["parameters"][param] = st.session_state[param]
-
-                if len(st.session_state.sort_params) > 0:
-                    st.session_state.query_params["sort"] = st.session_state.sort_params
-                if st.session_state.limit_param:
-                    st.session_state.query_params["limit"] = st.session_state.limit_param
-                st.session_state.query_params["method"] = method
+            if len(st.session_state.sort_params) > 0:
+                st.session_state.query_params["sort"] = st.session_state.sort_params
+            if st.session_state.limit_param:
+                st.session_state.query_params["limit"] = st.session_state.limit_param
+            if st.session_state.unique_yes:
+                st.session_state.query_params["unique"] = True
+            st.session_state.query_params["method"] = method
 
     # create a checkbox to show the query parameters
     st.checkbox(
@@ -359,72 +362,89 @@ if __name__ == "__main__":
         type="primary",
         use_container_width=True,
         disabled=query_btn_disabled,
-        on_click=run_query,
-        args=(st.session_state.query_params,),
     )
+    new_results_placeholder = st.empty()
+    if st.session_state.run_query:
+        try:
+            with st.spinner("Running query..."):
+                st.session_state.pop("last_query", None)
+                st.session_state.last_query = xbrl.query(
+                    **st.session_state.query_params, as_dataframe=True, print_query=True, streamlit=True
+                )
 
-    # show the dataframe
-    st.subheader("Last Query Results")
-    if "last_query" not in st.session_state:
-        st.info("No **Query** has been run yet.")
-
-    else:
-        # show a download button to get the data in csv format
-        # box for file name
-        filename = st.text_input(
-            label="File Name",
-            value="xbrl data",
-        )
-        dwnld_btn_place, del_btn_place = st.columns(2)
-
-        # show a button to show the full data
-        st.checkbox(
-            label="My computer rocks! 🚀 Show Full Data",
-            help="Show the full data.",
-            key="show_full_data",
-        )
-        if st.session_state.show_full_data:
-            st.success(
-                f"""Viewing full data: **{st.session_state.last_query.shape[0]}**
-                rows and **{st.session_state.last_query.shape[1]}** columns."""
+        except Exception as e:
+            new_results_placeholder.warning(
+                f"Your query is taking a long time... \n"
+                f"The server may still be working on this query. "
+                f"You can wait and try again in a few minutes. "
+                f"Or try narrowing your search criteria. \n"
+                f"\n {e}"
             )
+            st.stop()
 
-            st.dataframe(
-                data=st.session_state.last_query,
-                use_container_width=True,
-                hide_index=True,
-            )
+    with new_results_placeholder.container():
+        # show the dataframe
+        st.subheader("Last Query Results")
+        if "last_query" not in st.session_state:
+            st.info("No **Query** has been run yet.")
+
         else:
-            st.success(
-                f"""Query has **{st.session_state.last_query.shape[0]}** rows.
-                You are viewing **{min(100, st.session_state.last_query.shape[0])}** rows
-                and **{st.session_state.last_query.shape[1]}** columns.
-                You can try **Show Full Data** or **Download** the full data instead."""
+            # show a download button to get the data in csv format
+            # box for file name
+            filename = st.text_input(
+                label="File Name",
+                value="xbrl data",
             )
+            dwnld_btn_place, del_btn_place = st.columns(2)
 
-            st.dataframe(
-                data=st.session_state.last_query.head(100),
-                use_container_width=True,
-                hide_index=True,
+            # show a button to show the full data
+            st.checkbox(
+                label="My computer rocks! 🚀 Show Full Data",
+                help="Show the full data.",
+                key="show_full_data",
             )
+            if st.session_state.show_full_data:
+                st.success(
+                    f"""Viewing full data: **{st.session_state.last_query.shape[0]}**
+                    rows and **{st.session_state.last_query.shape[1]}** columns."""
+                )
 
-        with dwnld_btn_place:
-            st.download_button(
-                label="Download as CSV File",
-                use_container_width=True,
-                data=st.session_state.last_query.to_csv(index=False).encode("utf-8"),
-                file_name=f"{filename}.csv",
-                mime="text/csv",
-                key="download_data",
-            )
+                st.dataframe(
+                    data=st.session_state.last_query,
+                    use_container_width=True,
+                    hide_index=True,
+                )
+            else:
+                st.success(
+                    f"""Query has **{st.session_state.last_query.shape[0]}** rows.
+                    You are viewing **{min(100, st.session_state.last_query.shape[0])}** rows
+                    and **{st.session_state.last_query.shape[1]}** columns.
+                    You can try **Show Full Data** or **Download** the full data instead."""
+                )
 
-        with del_btn_place:
-            st.button(
-                label="Delete Query",
-                key="delete_query_btn",
-                on_click=lambda: st.session_state.pop("last_query"),
-                type="primary",
-                use_container_width=True,
-            )
+                st.dataframe(
+                    data=st.session_state.last_query.head(100),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+            with dwnld_btn_place:
+                st.download_button(
+                    label="Download as CSV File",
+                    use_container_width=True,
+                    data=st.session_state.last_query.to_csv(index=False).encode("utf-8"),
+                    file_name=f"{filename}.csv",
+                    mime="text/csv",
+                    key="download_data",
+                )
+
+            with del_btn_place:
+                st.button(
+                    label="Delete Query",
+                    key="delete_query_btn",
+                    on_click=lambda: st.session_state.pop("last_query"),
+                    type="primary",
+                    use_container_width=True,
+                )
 
     # st.write(st.session_state)
