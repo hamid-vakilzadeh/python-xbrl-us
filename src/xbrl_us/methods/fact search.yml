@@ -3,6 +3,7 @@ parameters:
   concept.id:
     type: integer
     description: A unique integer for a concept that can be searched. This is a faster way to retrieve the details of a fact, however it is namespace specific and will only search for the use of a concept for a specific schema.
+    values: 0
   concept.is-base:
     type: boolean
     description: Indicates whether the concept is a base element in the reporting taxonomy or a company extension.
@@ -12,21 +13,26 @@ parameters:
   concept.local-name:
     type: array[string]
     description: The name of the concept in the base schema of a taxonomy, excluding the namespace. Use this to search across multiple taxonomies where the local name is known to be consistent over time.
+    vales: "e.g. Revenue,NetIncomeLoss (no spaces allowed)"
   concept.namespace:
     type: string
     description: The namespace of the concept used to identify a fact.
+    values: ""  # TODO: check
   dimension.is-base:
     type: boolean
     description: Indicates whether the dimension (aspect) is a base element in the reporting taxonomy or a company extension.
   dimension.local-name:
     type: array[string]
     description: The local name of the dimension used with the fact.
+    values: ""
   dimension.namespace:
     type: string
     description: The namespace of the dimension used with the fact.
+    values: ""
   dimensions.count:
     type: array[integer]
     description: The number of dimensional qualifiers associated with a given fact. A comma-delimited list will return facts with 0, 1, 2, etc., dimensions.
+    values: {"min":0, "max":1000} # TODO: check max
   dimensions.id:
     type: string
     description: The ID of the dimension.
