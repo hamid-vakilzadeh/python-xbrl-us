@@ -98,7 +98,9 @@ Import the XBRL Library
 -------------------------------
 
 To start using the XBRL-US library,
-you need to import it into your Python script::
+you need to import it into your Python script:
+
+.. code-block:: python
 
     from xbrl_us import XBRL
 
@@ -107,7 +109,9 @@ Create an Instance of XBRL Class
 
 Next, you need to create an instance of the ``XBRL`` class,
 providing your authentication credentials
-(client ID, client secret, username, and password) as parameters::
+(client ID, client secret, username, and password) as parameters:
+
+.. code-block:: python
 
     xbrl = XBRL(
     client_id='Your client id',
@@ -129,7 +133,9 @@ parameters and fields to filter and retrieve the
 desired data.
 
 Here's an example of using the query method to search
-for specific financial facts::
+for specific financial facts:
+
+.. code-block:: python
 
     response = xbrl.query(
         method='fact search',
@@ -171,7 +177,9 @@ ensures the response is returned as a ``Pandas DataFrame``.
 
 Alternatively, you can use the ``Parameters`` and ``Fields``
 classes provided by the library to make the query more
-readable, less prone to errors, and easier to maintain::
+readable, less prone to errors, and easier to maintain:
+
+.. code-block:: python
 
     from xbrl_us.utils import Parameters, Fields
 
@@ -219,7 +227,9 @@ endpoints by changing the method parameter and
 providing the relevant parameters and fields.
 
 Here's an example of using the query method to
-search for a specific fact by its ID::
+search for a specific fact by its ID:
+
+.. code-block:: python
 
     response = xbrl.query(
     method='fact id',
@@ -320,3 +330,4 @@ Note, to combine the coverage data from all the tox environments run:
       - ::
 
             PYTEST_ADDOPTS=--cov-append tox
+
