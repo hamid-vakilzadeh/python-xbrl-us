@@ -310,9 +310,12 @@ Happy data exploring!
 Development
 ===========
 
-To run all the tests run::
+To run all the tests run:
+
+.. code-block:: bash
 
     tox
+
 
 Note, to combine the coverage data from all the tox environments run:
 
@@ -321,13 +324,14 @@ Note, to combine the coverage data from all the tox environments run:
     :stub-columns: 1
 
     - - Windows
-      - ::
+      - .. code-block:: bash
 
             set PYTEST_ADDOPTS=--cov-append
             tox
 
+
     - - Other
-      - ::
+      - .. code-block:: bash
 
             PYTEST_ADDOPTS=--cov-append tox
 
