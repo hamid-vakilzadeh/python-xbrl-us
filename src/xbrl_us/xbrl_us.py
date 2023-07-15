@@ -440,9 +440,11 @@ class XBRL:
         headers = kwargs.get("headers", {})
         headers.update({"Authorization": f"Bearer {self.access_token}"})
         kwargs["headers"] = headers
-
-        response = requests.request(method, url, timeout=30, **kwargs)
-        return response
+        try:
+            response = requests.request(method, url, timeout=2, **kwargs)
+            return response
+        except requests.exceptions.RequestException as e:
+            raise e
 
     def _get_account_limit(
         self,
@@ -468,7 +470,7 @@ class XBRL:
             print(f"Error: {response.status_code}")
             self.account_limit = None
 
-    def _get_method_url(self, method_name: str, parameters) -> str:
+    def _get_method_url(self, method_name: str, parameters: dict, unique: bool) -> str:
         """
         Get the URL for the specified method from the YAML file.
 
@@ -503,6 +505,9 @@ class XBRL:
             for key, value in values.items():
                 placeholder = "{" + key + "}"
                 url = url.replace(placeholder, str(value))
+        if unique:
+            return f"https://api.xbrl.us{url}?unique"
+
         return f"https://api.xbrl.us{url}?"
 
     @_convert_params_to_dict_decorator()
@@ -513,6 +518,7 @@ class XBRL:
         parameters: Optional[Union[Parameters, dict]] = None,
         limit: Optional[int] = None,
         sort: Optional[dict] = None,
+        unique: Optional[bool] = False,
         as_dataframe: bool = False,
         print_query: Optional[bool] = False,
         **kwargs,
@@ -530,6 +536,7 @@ class XBRL:
                 using ``ASC`` or ``DESC`` (i.e. {"report.document-type": "DESC"}.
                 Multiple sort criteria can be defined and the sort sequence is determined by
                 the order of the items in the dictionary.
+            unique (bool): If ``True`` returns only unique values.
             as_dataframe (bool): If ``True`` returns the results as a ``DataFrame`` else returns the data
                 as ``json``.
             print_query (bool=False): Whether to print the query.
@@ -538,7 +545,7 @@ class XBRL:
             dict | DataFrame: The results of the query.
         """
 
-        method_url = self._get_method_url(method, parameters)
+        method_url = self._get_method_url(method_name=method, parameters=parameters, unique=unique)
         # if limit is all
         if limit == "all":
             # arbitrary large number
