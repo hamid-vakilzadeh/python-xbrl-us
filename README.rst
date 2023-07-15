@@ -323,14 +323,14 @@ Note, to combine the coverage data from all the tox environments run:
     :widths: 10 90
     :stub-columns: 1
 
-    - - Windows
+    * - Windows
       - .. code-block:: bash
 
             set PYTEST_ADDOPTS=--cov-append
             tox
 
 
-    - - Other
+    * - Other
       - .. code-block:: bash
 
             PYTEST_ADDOPTS=--cov-append tox
