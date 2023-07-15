@@ -83,9 +83,9 @@ For more information about the XBRL API and its endpoints, refer to the original
 There are two distinct ways to use the XBRL-US Python package:
 
 * **Code-Based Approach**: Import the XBRL-US Python package directly into your Python
-  environment for in-depth, custom analysis (see :ref:`Code-Based Approach <code-based approach>`)
+  environment for in-depth, custom analysis (see **Code-Based Approach**)
 
-* **Browser Interface**: For a no-code experience, navigate to the :ref:`Browser Interface section <browser interface>`.
+* **Browser Interface**: For a no-code experience, navigate to the **Browser Interface**.
   This interface allows for easy exploration and analysis of XBRL data directly in your web
   browser.
 
