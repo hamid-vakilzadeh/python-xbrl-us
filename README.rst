@@ -40,7 +40,7 @@ This tutorial will guide you through using the XBRL-US Python library to interac
 The XBRL-US library provides a convenient way to query and retrieve financial data from the XBRL API using Python.
 
 1. Prerequisites
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 Before you begin, ensure you have the following:
 
@@ -78,7 +78,7 @@ For more information about the XBRL API and its endpoints, refer to the original
 
 
 2. Choose Your Preferred Approach
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There are two distinct ways to use the XBRL-US Python package:
 
@@ -334,4 +334,3 @@ Note, to combine the coverage data from all the tox environments run:
       - .. code-block:: bash
 
             PYTEST_ADDOPTS=--cov-append tox
-
