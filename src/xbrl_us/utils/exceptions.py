@@ -33,3 +33,11 @@ class XBRLRequiredValueError(ValueError):
     def __init__(self, key, method):
         message = f"Missing required parameters: required parameter(s) for '{method}' method: '{key}'."
         super().__init__(message)
+
+
+class XBRLTimeOutError(ConnectionError):
+    """Raised when a connection error occurs."""
+
+    def __init__(self, e):
+        message = f"{e}\n\n The query is taking a long time. set timeout to None or try again later."
+        super().__init__(message)
