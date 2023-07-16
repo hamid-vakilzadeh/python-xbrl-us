@@ -422,7 +422,7 @@ class XBRL:
             else:
                 self._get_token()
 
-    @retry(exceptions=_query_exceptions, tries=3, delay=2, backoff=2)
+    @retry(exceptions=_query_exceptions, tries=3, delay=2, backoff=2, logger=None)
     def _make_request(self, method, url, **kwargs) -> requests.Response:
         """
         Makes an HTTP request with the provided method, URL, and additional arguments.
@@ -441,9 +441,9 @@ class XBRL:
         headers.update({"Authorization": f"Bearer {self.access_token}"})
         kwargs["headers"] = headers
         try:
-            response = requests.request(method, url, timeout=2, **kwargs)
+            response = requests.request(method, url, **kwargs)
             return response
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             raise e
 
     def _get_account_limit(
@@ -521,6 +521,7 @@ class XBRL:
         unique: Optional[bool] = False,
         as_dataframe: bool = False,
         print_query: Optional[bool] = False,
+        timeout: Optional[int] = 5,
         **kwargs,
     ) -> Union[dict, DataFrame]:
         """
@@ -540,6 +541,8 @@ class XBRL:
             as_dataframe (bool): If ``True`` returns the results as a ``DataFrame`` else returns the data
                 as ``json``.
             print_query (bool=False): Whether to print the query.
+            timeout: The number of seconds to wait for a response from the server. Defaults to 5 seconds.
+                If ``None`` will wait indefinitely.
 
         Returns:
             dict | DataFrame: The results of the query.
@@ -573,10 +576,10 @@ class XBRL:
         if streamlit_indicator:
             from stqdm import stqdm
 
-            pbar = stqdm(total=None, desc="Downloading Data:", ncols=80)
+            pbar = stqdm(total=None, desc="Matches Found", ncols=80)
         else:
             # create a progress bar
-            pbar = tqdm(total=None, desc="Downloading Data:", ncols=80)
+            pbar = tqdm(total=None, desc="Matches Found", ncols=80, position=0, leave=True)
 
         # update the limit in the query params with the new limit
         query_params = _build_query_params(
@@ -587,11 +590,15 @@ class XBRL:
             sort=sort,
         )
 
-        response = self._make_request(
-            method="get",
-            url=method_url,
-            params=query_params,
-        )
+        try:
+            response = self._make_request(
+                method="get",
+                url=method_url,
+                params=query_params,
+                timeout=timeout,
+            )
+        except requests.exceptions.ReadTimeout as e:
+            raise exceptions.XBRLTimeOutError(e) from e
 
         response_data = response.json()
 
@@ -638,6 +645,7 @@ class XBRL:
                     method="get",
                     url=method_url,
                     params=query_params,
+                    timeout=timeout,
                 )
 
                 response_data = response.json()
@@ -661,8 +669,8 @@ class XBRL:
                 # Update the offset for the next request
                 offset += len(data)
 
-            except Exception as e:
-                raise e
+            except requests.exceptions.ReadTimeout as e:
+                raise exceptions.XBRLTimeOutError(e) from e
 
         if as_dataframe:
             return DataFrame.from_dict(all_data)
