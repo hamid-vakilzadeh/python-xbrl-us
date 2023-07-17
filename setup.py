@@ -13,7 +13,7 @@ def read(*names, **kwargs):
 
 setup(
     name="xbrl-us",
-    version="0.0.31",
+    version="0.0.32",
     license="MIT",
     description="Python wrapper for xbrl.us API",
     long_description_content_type="text/x-rst",
@@ -41,8 +41,8 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3 :: Only",
         # "Programming Language :: Python :: 3.7",
-        # "Programming Language :: Python :: 3.8",
-        # "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: Implementation :: CPython",
