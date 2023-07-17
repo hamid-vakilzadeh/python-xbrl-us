@@ -306,8 +306,9 @@ class XBRL:
     @staticmethod
     def methods():
         """
-        Get the names of the attributes that are allowed to be used for
-            the given method. A list of available methods are:
+        Get the names of the methods that are allowed to be used for
+            as a ``method`` name. A list of available methods along with
+            their corresponding API endpoints is shown below.
 
             ===================================  ==================================================
             Method                               API Endpoint
@@ -351,30 +352,31 @@ class XBRL:
         return _methods()
 
     @staticmethod
-    def acceptable_params(method_name: str):
+    def acceptable_params(method: str):
         """
-        Get the names of the attributes that are allowed to be used for
-            the given method.
+        Get the names of the attributes (e.g. acceptable ``fields``, ``parameters``,``sort``, ``limit``, etc.)
+            that are allowed to be used for a given ``method``.
 
         Args:
-            method_name (str): The name of the API method to get the acceptable parameters for (e.g. "search_fact").
+            method (str): The name of the API method to get the acceptable parameters for (e.g. "fact search").
 
         Returns:
+            A class where the attributes are the acceptable parameters for the given ``method``.
 
         """
-        file_path = _dir.parent / "methods" / f"{method_name.lower()}.yml"
+        file_path = _dir.parent / "methods" / f"{method.lower()}.yml"
 
         with file_path.open("r") as file:
             method_features = safe_load(file)
 
-        _attributes = {"method_name": method_name}
+        _attributes = {"method_name": method}
         for key, _value in method_features.items():
             _attributes[f"{key}"] = method_features.get(key)
 
         _attributes["sort"] = [value for value in _attributes["fields"] if "*" not in value]
 
         # Create the dynamic class using type()
-        _class = type(method_name, (), _attributes)
+        _class = type(method, (), _attributes)
         return _class()
 
     def _get_token(self, grant_type: Optional[str] = None, refresh_token=None):
