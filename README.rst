@@ -2,6 +2,28 @@
 XBRL-US Python Library
 ======================
 
+|Workflow| |Docs| |license| |Versions|
+
+
+.. |Workflow| image:: https://img.shields.io/github/actions/workflow/status/hamid-vakilzadeh/python-xbrl-us/github-actions.yml?logo=github&logoColor=white
+   :alt: GitHub Workflow Status (main)
+   :target: https://github.com/hamid-vakilzadeh/python-xbrl-us/actions/workflows/github-actions.yml
+
+.. |Downloads| image:: https://img.shields.io/pypi/dm/xbrl-us?logo=pypi&logoColor=orange&color=blue
+    :alt: PyPI - Downloads
+    :target: https://pypi.org/project/xbrl-us/
+
+.. |Versions| image:: https://img.shields.io/pypi/pyversions/xbrl-us?logo=python&logoColor=yellow&color=yellow
+    :alt: PyPI - Python Version
+    :target: https://pypi.org/project/xbrl-us/
+
+.. |Docs| image:: https://img.shields.io/readthedocs/python-xbrl-us/latest?logo=read-the-docs&logoColor=white
+    :target: https://python-xbrl-us.readthedocs.io/en/latest/?badge=latest
+    :alt: Read the Docs (latest)
+
+.. |license| image:: https://img.shields.io/github/license/hamid-vakilzadeh/python-xbrl-us?logo=github&logoColor=white&color=blue
+   :target: https://github.com/hamid-vakilzadeh/python-xbrl-us/blob/main/LICENSE
+
 About
 =====
 
