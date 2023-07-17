@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 import time
@@ -8,6 +9,7 @@ from pathlib import Path
 from typing import Optional
 from typing import Union
 
+import aiohttp
 import requests
 from pandas import DataFrame
 from retry import retry
@@ -676,3 +678,91 @@ class XBRL:
             return DataFrame.from_dict(all_data)
         else:
             return all_data
+
+    @_convert_params_to_dict_decorator()
+    def aquery(
+        self,
+        method: str,
+        fields: Optional[list] = None,
+        parameters: Optional[Union[Parameters, dict]] = None,
+        limit: Optional[int] = None,
+        sort: Optional[dict] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = None,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        method_url = self._get_method_url(method_name=method, parameters=parameters, unique=unique)
+
+        query_params = _build_query_params(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+        )
+
+        if not self.account_limit:
+            self._get_account_limit(url=method_url, params=query_params)
+
+        account_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
+
+        query_params = _build_query_params(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=account_limit,
+            sort=sort,
+        )
+
+        if print_query:
+            print(query_params)
+
+        remaining_limit = limit
+        all_data = []
+        offset = len(all_data)
+
+        async def execute_remaining_queries():
+            nonlocal all_data, remaining_limit, offset
+            self._ensure_access_token()
+            headers = {"Authorization": f"Bearer {self.access_token}"}
+
+            async with aiohttp.ClientSession() as session:
+                tasks = []
+                while remaining_limit > 0:
+                    current_limit = min(self.account_limit, remaining_limit)
+                    query_params = _build_query_params(
+                        method=method,
+                        fields=fields,
+                        parameters=parameters,
+                        limit=current_limit,
+                        sort=sort,
+                        offset=offset,
+                    )
+
+                    tasks.append(session.get(url=method_url, params=query_params, headers=headers, timeout=timeout))
+                    remaining_limit -= current_limit
+                    offset += current_limit
+
+                with tqdm(total=len(tasks)) as pbar:
+                    for task in asyncio.as_completed(tasks):
+                        response_data = await task
+                        all_data.append(await response_data.json())
+
+                        pbar.update(1)
+                # responses = await asyncio.gather(*tasks, return_exceptions=True)
+
+                # for response in responses:
+                #   all_data.append(await response.json())
+
+        asyncio.run(execute_remaining_queries())
+        data = []
+        for item in all_data:
+            if "data" in item:
+                data.extend(item["data"])
+
+        if as_dataframe:
+            return DataFrame.from_dict(data)
+        else:
+            return data
