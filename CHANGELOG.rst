@@ -2,6 +2,13 @@
 Changelog
 =========
 
+0.0.32 (2023-07-17)
+~~~~~~~~~~~~~~~~~~~
+
+* Improved Browser Interface
+* Added ``unique`` keyword to ``query`` method
+* Bug fixes
+
 0.0.31 (2023-07-14)
 ~~~~~~~~~~~~~~~~~~~
 
