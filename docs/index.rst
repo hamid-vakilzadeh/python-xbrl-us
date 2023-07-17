@@ -8,7 +8,6 @@ Contents
    readme
    reference/index
    contributing
-   authors
    changelog
 
 Indices and tables
