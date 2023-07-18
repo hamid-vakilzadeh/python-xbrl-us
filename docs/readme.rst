@@ -55,9 +55,21 @@ Before you begin, ensure you have the following:
 
 You can install this package using pip:
 
-.. code-block:: bash
+.. list-table::
+    :widths: 30 70
+    :stub-columns: 1
 
-    pip install xbrl-us
+    * - Command Line
+      - .. code-block:: bash
+
+            python -m xbrl_us
+
+    * - Jupyter Notebook
+      - .. code-block:: bash
+
+            !python -m xbrl_us
+
+If ``!`` does not work in Jupyter Notebook, use ``%`` instead.
 
 .. caution::
 
@@ -283,16 +295,35 @@ Getting Started with the Browser Interface
 Getting started is as simple as ever.
 First, ensure you have the latest version of ``xbrl-us`` installed by running the following code:
 
-.. code-block:: bash
+.. list-table::
+    :widths: 30 70
+    :stub-columns: 1
 
-    pip install xbrl-us --upgrade
+    * - Command Line
+      - .. code-block:: bash
 
+            pip install xbrl-us --upgrade
 
-Next, launch the new Browser Interface from the package menu:
+    * - Jupyter Notebook
+      - .. code-block:: bash
 
-.. code-block:: bash
+            !pip install xbrl-us --upgrade
 
-    python -m xbrl_us
+Next, launch the new Browser Interface from the package menu from the command line by running the following code:
+
+.. list-table::
+    :widths: 30 70
+    :stub-columns: 1
+
+    * - Command Line
+      - .. code-block:: bash
+
+            python -m xbrl_us
+
+    * - Jupyter Notebook
+      - .. code-block:: bash
+
+            !python -m xbrl_us
 
 That is it!
 You should now see the new Browser Interface open in your default web browser.
