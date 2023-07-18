@@ -313,48 +313,47 @@ class XBRL:
             ===================================  ==================================================
             Method                               API Endpoint
             ===================================  ==================================================
-            ``assertion search``                  ``/api/v1/assertion/search``
-            ``assertion validate``                ``/api/v1/assertion/validate``
-            ``concept name search``               ``/api/v1/concept/{concept.local-name}/search``
-            ``concept search``                    ``/api/v1/concept/search``
-            ``cube search``                       ``/api/v1/cube/search``
-            ``dimension search``                  ``/api/v1/dimension/search``
-            ``document search``                   ``/api/v1/document/search``
-            ``dts id concept label``              ``/api/v1/dts/{dts.id}/concept/{concept.local-name}/label``
-            ``dts id concept name``               ``/api/v1/dts/{dts.id}/concept/{concept.local-name}``
-            ``dts id concept reference``          ``/api/v1/dts/{dts.id}/concept/{concept.local-name}/reference``
-            ``dts id concept search``             ``/api/v1/dts/{dts.id}/concept/search``
-            ``dts id network``                    ``/api/v1/dts/{dts.id}/network``
-            ``dts id network search``             ``/api/v1/dts/{dts.id}/network/search``
-            ``dts search``                        ``/api/v1/dts/search``
-            ``entity id``                         ``/api/v1/entity/{entity.id}``
-            ``entity id report search``           ``/api/v1/entity/{entity.id}/report/search``
-            ``entity report search``              ``/api/v1/entity/report/search``
-            ``entity search``                     ``/api/v1/entity/search``
-            ``fact id``                           ``/api/v1/fact/{fact.id}``
-            ``fact search``                       ``/api/v1/fact/search``
-            ``fact search oim``                   ``/api/v1/fact/oim/search``
-            ``label dts id search``               ``/api/v1/label/{dts.id}/search``
-            ``label search``                      ``/api/v1/label/search``
-            ``network id``                        ``/api/v1/network/{network.id}``
-            ``network id relationship search``    ``/api/v1/network/{network.id}/relationship/search``
-            ``network relationship search``       ``/api/v1/network/relationship/search``
-            ``relationship search``               ``/api/v1/relationship/search``
-            ``relationship tree search``          ``/api/v1/relationship/tree/search``
-            ``report fact search``                ``/api/v1/report/fact/search``
-            ``report id``                         ``/api/v1/report/{report.id}``
-            ``report id delete``                  ``/api/v1/report/{report.id}/delete``
-            ``report id fact``                    ``/api/v1/report/{report.id}/fact/search``
-            ``report search``                     ``/api/v1/report/search``
+            ``assertion search``                  */api/v1/assertion/search*
+            ``concept name search``               */api/v1/concept/{concept.local-name}/search*
+            ``concept search``                    */api/v1/concept/search*
+            ``cube search``                       */api/v1/cube/search*
+            ``dimension search``                  */api/v1/dimension/search*
+            ``document search``                   */api/v1/document/search*
+            ``dts id concept label``              */api/v1/dts/{dts.id}/concept/{concept.local-name}/label*
+            ``dts id concept name``               */api/v1/dts/{dts.id}/concept/{concept.local-name}*
+            ``dts id concept reference``          */api/v1/dts/{dts.id}/concept/{concept.local-name}/reference*
+            ``dts id concept search``             */api/v1/dts/{dts.id}/concept/search*
+            ``dts id network``                    */api/v1/dts/{dts.id}/network*
+            ``dts id network search``             */api/v1/dts/{dts.id}/network/search*
+            ``dts search``                        */api/v1/dts/search*
+            ``entity id``                         */api/v1/entity/{entity.id}*
+            ``entity id report search``           */api/v1/entity/{entity.id}/report/search*
+            ``entity report search``              */api/v1/entity/report/search*
+            ``entity search``                     */api/v1/entity/search*
+            ``fact id``                           */api/v1/fact/{fact.id}*
+            ``fact search``                       */api/v1/fact/search*
+            ``fact search oim``                   */api/v1/fact/oim/search*
+            ``label dts id search``               */api/v1/label/{dts.id}/search*
+            ``label search``                      */api/v1/label/search*
+            ``network id``                        */api/v1/network/{network.id}*
+            ``network id relationship search``    */api/v1/network/{network.id}/relationship/search*
+            ``network relationship search``       */api/v1/network/relationship/search*
+            ``relationship search``               */api/v1/relationship/search*
+            ``relationship tree search``          */api/v1/relationship/tree/search*
+            ``report fact search``                */api/v1/report/fact/search*
+            ``report id``                         */api/v1/report/{report.id}*
+            ``report id fact search``             */api/v1/report/{report.id}/fact/search*
+            ``report search``                     */api/v1/report/search*
             ===================================  ==================================================
 
         """
+        # TODO: add support for report delete, assertion validate,
         return _methods()
 
     @staticmethod
     def acceptable_params(method: str):
         """
-        Get the names of the attributes (e.g. acceptable ``fields``, ``parameters``,``sort``, ``limit``, etc.)
+        Get the names of the attributes (e.g. acceptable ``fields``, ``parameters``, ``sort``, ``limit``, etc.)
             that are allowed to be used for a given ``method``.
 
         Args:
