@@ -62,12 +62,12 @@ You can install this package using pip:
     * - Command Line
       - .. code-block:: bash
 
-            python -m xbrl_us
+            pip install xbrl-us
 
     * - Jupyter Notebook
       - .. code-block:: bash
 
-            !python -m xbrl_us
+            !pip install xbrl-us
 
 If ``!`` does not work in Jupyter Notebook, use ``%`` instead.
 
