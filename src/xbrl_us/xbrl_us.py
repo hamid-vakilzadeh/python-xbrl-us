@@ -17,9 +17,27 @@ from yaml import safe_load
 from .utils import Parameters
 from .utils import exceptions
 
-logging.basicConfig()
-
 _dir = Path(__file__).resolve()
+
+
+# logging.basicConfig()
+class OneTimeWarningFilter(logging.Filter):
+    def __init__(self):
+        super().__init__()
+        self.msgs = set()
+
+    def filter(self, record):
+        if record.msg not in self.msgs:
+            self.msgs.add(record.msg)
+            return True
+        return False
+
+
+logger = logging.getLogger(__name__)
+handler = logging.StreamHandler()
+handler.addFilter(OneTimeWarningFilter())
+logger.addHandler(handler)
+logger.setLevel(logging.WARNING)
 
 
 def _remove_special_fields(fields):
@@ -123,9 +141,9 @@ def _validate_parameters():
                     raise exceptions.XBRLInvalidTypeError(key=limit, expected_type=int, received_type=type(limit))
 
             else:
-                warnings.warn(
-                    "You have not set a limit; returning the first page only.",
-                    UserWarning,
+                logger.warning(
+                    "No limit set: this will automatically limit the number of results to your account limit."
+                    " if you want more results, set the limit.",
                     stacklevel=2,
                 )
 
@@ -142,9 +160,8 @@ def _validate_parameters():
                     if value.lower() not in ["asc", "desc"]:
                         raise exceptions.XBRLInvalidValueError(key=value, param="sort", expected_value=["asc", "desc"])
             else:
-                warnings.warn(
-                    "You have not passed a sort value; for reliable results, set a field to sort.",
-                    UserWarning,
+                logger.warning(
+                    "No sort field: It is recommended to sort by a field for reliable results.",
                     stacklevel=2,
                 )
 
@@ -580,10 +597,10 @@ class XBRL:
         if streamlit_indicator:
             from stqdm import stqdm
 
-            pbar = stqdm(total=None, desc="Matches Found", ncols=80)
+            pbar = stqdm(total=None, desc="Running Query, Please Wait", ncols=80)
         else:
             # create a progress bar
-            pbar = tqdm(total=None, desc="Matches Found", ncols=80, position=0, leave=True)
+            pbar = tqdm(total=None, desc="Running Query, Please Wait", ncols=80, position=0, leave=True)
 
         # update the limit in the query params with the new limit
         query_params = _build_query_params(
