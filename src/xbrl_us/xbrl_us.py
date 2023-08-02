@@ -19,6 +19,12 @@ from .utils import exceptions
 
 _dir = Path(__file__).resolve()
 
+# Get the home directory path as a Path object
+_home_directory = Path.home()
+
+# Join the home directory path with the file name to get the full file path
+user_info_path = _home_directory / ".xbrl-us"
+
 
 # logging.basicConfig()
 class OneTimeWarningFilter(logging.Filter):
@@ -302,10 +308,10 @@ class XBRL:
 
     def __init__(
         self,
-        client_id: str,
-        client_secret: str,
-        username: str,
-        password: str,
+        client_id: Optional[str] = None,
+        client_secret: Optional[str] = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
         grant_type: str = "password",
     ):
         self._url = "https://api.xbrl.us/oauth2/token"
@@ -319,6 +325,10 @@ class XBRL:
         self.account_limit = None
         self._access_token_expires_at = 0
         self._refresh_token_expires_at = 0
+
+        # If the class was initiated without any arguments, try finding the user info file
+        if not (client_id and client_secret and username and password):
+            self._get_user()
 
     @staticmethod
     def methods():
@@ -395,7 +405,7 @@ class XBRL:
         _class = type(method, (), _attributes)
         return _class()
 
-    def _get_token(self, grant_type: Optional[str] = None, refresh_token=None):
+    def _get_token(self, grant_type: Optional[str] = None, refresh_token=None, **kwargs):
         """
         Retrieves an access token from the token URL.
 
@@ -424,6 +434,12 @@ class XBRL:
             self.refresh_token = token_info["refresh_token"]
             self._access_token_expires_at = time.time() + token_info["expires_in"]
             self._refresh_token_expires_at = time.time() + token_info["refresh_token_expires_in"]
+            if not user_info_path.exists():
+                store = kwargs.get("store", None)
+                if store is None:
+                    store = input("Do you want to store your credentials for future use on this computer? (y/n): ")
+                if store.lower() == "y":
+                    self._set_user()
         else:
             raise ValueError(f"Unable to retrieve token: {response.json()}. Please check your credentials.")
 
@@ -487,6 +503,28 @@ class XBRL:
         else:
             print(f"Error: {response.status_code}")
             self.account_limit = None
+
+    def _set_user(self):
+        # Write info file
+        with user_info_path.open("w") as file:
+            file.write("\n".join([self.username, self.password, self.client_id, self.client_secret]))
+
+        print("Remember me enabled.")
+
+    def _get_user(self):
+        try:
+            with user_info_path.open("r") as file:
+                lines = file.readlines()
+
+            self.username = lines[0].strip()  # set username
+            self.password = lines[1].strip()  # set password
+            self.client_id = lines[2].strip()  # set client id
+            self.client_secret = lines[3].strip()  # set client secret
+
+        except FileNotFoundError:
+            raise FileNotFoundError("Credentials file not found. Please initialize the client with your credentials.") from None
+        except Exception as e:
+            raise ValueError("Error reading credentials from file:", str(e)) from None
 
     def _get_method_url(self, method_name: str, parameters: dict, unique: bool) -> str:
         """
@@ -579,7 +617,6 @@ class XBRL:
             method=method,
             fields=fields,
             parameters=parameters,
-            limit=limit,
             sort=sort,
         )
 
