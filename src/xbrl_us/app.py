@@ -1,12 +1,20 @@
+from pathlib import Path
+
 import streamlit as st
 
 from xbrl_us import XBRL
 
+user_info_path = Path.home() / ".xbrl-us"
 
-def try_credentials(user_name: str, pass_word: str, client_id: str, client_secret: str):
+
+def try_credentials(user_name: str, pass_word: str, client_id: str, client_secret: str, store: bool = False):
     try:
+        if store:
+            store = "y"
+        else:
+            store = "n"
         with st.spinner(text="Validating credentials..."):
-            XBRL(username=user_name, password=pass_word, client_id=client_id, client_secret=client_secret)._get_token()
+            XBRL(username=user_name, password=pass_word, client_id=client_id, client_secret=client_secret)._get_token(store=store)
             st.session_state.username = user_name
             st.session_state.password = pass_word
             st.session_state.client_id = client_id
@@ -58,6 +66,13 @@ def show_login():
         help="Your client secret for the [XBRL.US](https://www.xbrl.us) API.",
     )
 
+    # checkbox for remember me
+    remember_me = st.checkbox(
+        label="Remember me",
+        value=False,
+        key="remember_me",
+    )
+
     disable_login_btn = False
     if username == "" or password == "" or client_id == "" or client_secret == "":
         disable_login_btn = True
@@ -68,9 +83,10 @@ def show_login():
         use_container_width=True,
         disabled=disable_login_btn,
     )
+
     if verify_api:
         # try the credentials before creating xbrl object
-        try_credentials(user_name=username, pass_word=password, client_id=client_id, client_secret=client_secret)
+        try_credentials(user_name=username, pass_word=password, client_id=client_id, client_secret=client_secret, store=remember_me)
         st.experimental_rerun()
 
 
@@ -167,6 +183,11 @@ def text_box_for_array_strings_no_ops(key):
     )
 
 
+def restart_everything():
+    st.session_state.clear()
+    st.session_state.update({"returning_user": False})
+
+
 if __name__ == "__main__":
     st.set_page_config(
         page_title="XBRL.US API Explorer",
@@ -178,10 +199,21 @@ if __name__ == "__main__":
     st.title("Explore XBRL.us Data")
 
     sidebar = st.sidebar
+    if user_info_path.exists():
+        if "returning_user" not in st.session_state:
+            st.session_state.returning_user = True
+            temp_xbrl = XBRL()
+            # show button to continue with the username
+            st.session_state.username = temp_xbrl.username
+            st.session_state.password = temp_xbrl.password
+            st.session_state.client_id = temp_xbrl.client_id
+            st.session_state.client_secret = temp_xbrl.client_secret
+
     if "username" not in st.session_state:
         st.error("Please enter your credentials to begin.")
 
         with sidebar:
+            st.success(f"Logged in as {st.session_state.username}")
             show_login()
         st.stop()
     else:
@@ -190,7 +222,7 @@ if __name__ == "__main__":
                 label="Log out",
                 type="secondary",
                 use_container_width=True,
-                on_click=lambda: st.session_state.clear(),
+                on_click=lambda: restart_everything(),
                 key="logout",
             )
 
