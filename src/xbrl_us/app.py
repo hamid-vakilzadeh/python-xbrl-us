@@ -176,9 +176,10 @@ def range_and_slider_for_array_integers(key, values):
         )
 
 
-def text_box_for_array_strings_no_ops(key):
+def text_box_for_array_strings_no_ops(key, palceholder):
     st.text_area(
         label=f"**{key}**",
+        placeholder=f"{palceholder}",
         key=f"{key}",
     )
 
@@ -218,6 +219,7 @@ if __name__ == "__main__":
         st.stop()
     else:
         with sidebar:
+            st.success(f"Logged in as {st.session_state.username}")
             st.button(
                 label="Log out",
                 type="secondary",
@@ -357,7 +359,10 @@ if __name__ == "__main__":
                     )
 
                 elif st.session_state.method_params.parameters[param]["type"] == "array[string]":
-                    text_box_for_array_strings_no_ops(param)
+                    text_box_for_array_strings_no_ops(
+                        param,
+                        st.session_state.method_params.parameters[param]["placeholder"],
+                    )
 
             st.session_state.query_params = {"fields": st.session_state.fields}
 
@@ -401,17 +406,11 @@ if __name__ == "__main__":
             with st.spinner("Running query..."):
                 st.session_state.pop("last_query", None)
                 st.session_state.last_query = xbrl.query(
-                    **st.session_state.query_params, as_dataframe=True, print_query=True, streamlit=True
+                    **st.session_state.query_params, as_dataframe=True, print_query=True, streamlit=True, timeout=10
                 )
 
         except Exception as e:
-            new_results_placeholder.warning(
-                f"Your query is taking a long time... \n"
-                f"The server may still be working on this query. "
-                f"You can wait and try again in a few minutes. "
-                f"Or try narrowing your search criteria. \n"
-                f"\n {e}"
-            )
+            new_results_placeholder.error(f"{e}")
             st.stop()
 
     with new_results_placeholder.container():
