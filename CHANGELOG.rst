@@ -2,6 +2,14 @@
 Changelog
 =========
 
+0.0.4 (2023-08-03)
+~~~~~~~~~~~~~~~~~~~
+
+* Improved Browser Interface
+* improved error handling for requests
+* Bug fixes
+
+
 0.0.32 (2023-07-17)
 ~~~~~~~~~~~~~~~~~~~
 
