@@ -111,7 +111,7 @@ def _validate_parameters():
             kwargs.get("print_query")
 
             # get the allowed parameters, fields, limit, sort, and offset from the yaml file
-            allowed_params = list(allowed_for_query.get("parameters", set()).keys())
+            allowed_params = allowed_for_query.get("parameters", set())
             allowed_fields = allowed_for_query.get("fields", set())
             allowed_limit_fields = allowed_for_query.get("limit", set())
             allowed_sort_fields = [field for field in allowed_fields if "*" not in field]
@@ -248,6 +248,7 @@ def _build_query_params(
         dict: The query parameters that will be submitted to the API.
     """
     query_params = {}
+    fields_copy = fields[:]
 
     if parameters:
         # convert the parameters to a string and add it to the query_params
@@ -257,33 +258,35 @@ def _build_query_params(
 
     # Handle sort
     if sort:
+        sort_copy = dict(sort)
+
         # check if the sort field is in the fields list
-        for field, direction in sort.items():
+        for field, direction in sort_copy.items():
             # name the field name followed by .sort(value)
             sorted_arg = f"{field}.sort({direction.upper()})"
-            if field in fields:
+            if field in fields_copy:
                 # if the field is in the fields list, remove the field
-                fields.remove(field)
-            fields.append(sorted_arg)
+                fields_copy.remove(field)
+            fields_copy.append(sorted_arg)
 
     # Handle limit
     if limit:
         # name and add the field name followed by .limit(value)
         limit_arg = f"{limit_field}.limit({limit})"
-        if limit_field in fields:
+        if limit_field in fields_copy:
             # if the field is in the fields list, remove the field
-            fields.remove(limit_field)
-        fields.append(limit_arg)
+            fields_copy.remove(limit_field)
+        fields_copy.append(limit_arg)
 
     # Handle offset
     if offset:
         # name and add the field name followed by .offset(value)
         offset_arg = f"{offset_field}.offset({offset})"
-        if offset_field in fields:
-            fields.remove(offset_field)
-        fields.append(offset_arg)
+        if offset_field in fields_copy:
+            fields_copy.remove(offset_field)
+        fields_copy.append(offset_arg)
 
-    query_params["fields"] = ",".join(fields)
+    query_params["fields"] = ",".join(fields_copy)
 
     return query_params
 
@@ -405,6 +408,24 @@ class XBRL:
         _class = type(method, (), _attributes)
         return _class()
 
+    @staticmethod
+    def define(parameter: str):
+        """
+        Get the definition of any parameter.
+        Args:
+            parameter:
+
+        Returns:
+            dict: The definition of the parameter with the type, description, etc.
+        """
+        # load definitions file
+        file_path = _dir.parent / "methods" / "_definitions.yaml"
+
+        with file_path.open("r") as file:
+            definitions = safe_load(file)
+
+        return definitions.get(parameter)
+
     def _get_token(self, grant_type: Optional[str] = None, refresh_token=None, **kwargs):
         """
         Retrieves an access token from the token URL.
@@ -474,11 +495,24 @@ class XBRL:
         headers = kwargs.get("headers", {})
         headers.update({"Authorization": f"Bearer {self.access_token}"})
         kwargs["headers"] = headers
-        try:
-            response = requests.request(method, url, **kwargs)
-            return response
-        except Exception as e:
-            raise e
+        response = requests.request(method, url, **kwargs)
+        if response.status_code == 200:
+            if "error" not in response.json():
+                return response
+            else:
+                if "user limit amount" in response.text:
+                    return response
+                else:
+                    raise ValueError(
+                        f"Unable to retrieve data! {response.json()['error']}: {response.json()['error_description']}"
+                    ) from None
+
+        elif response.status_code == 503:
+            raise f"Error {response.status_code}: {response.text}"
+        elif response.status_code == 404:
+            raise ValueError(f"Error {response.status_code}: {response.json()['error_description']}") from None
+        else:
+            raise ValueError(f"Error {response.status_code}: {response.text}") from None
 
     def _get_account_limit(
         self,
@@ -655,8 +689,8 @@ class XBRL:
                 params=query_params,
                 timeout=timeout,
             )
-        except requests.exceptions.ReadTimeout as e:
-            raise exceptions.XBRLTimeOutError(e) from e
+        except Exception as e:
+            raise e
 
         response_data = response.json()
 
