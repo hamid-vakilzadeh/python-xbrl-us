@@ -12,9 +12,10 @@ import requests
 from pandas import DataFrame
 from retry import retry
 from tqdm import tqdm
-from utils import Parameters
-from utils import exceptions
 from yaml import safe_load
+
+from .utils import Parameters
+from .utils import exceptions
 
 _dir = Path(__file__).resolve()
 
