@@ -1,160 +1,55 @@
 description: Search for XBRL facts based on the attributes of the fact, the report it was in, or the source of the data.
+long_description: A **fact** is an individual piece of information in an XBRL report. A fact is represented by reporting a value against a concept (e.g., profit, assets), and associating it with a number of dimension values (e.g., units, entity, period, other dimensions) that together uniquely define a data point.
+reference: https://www.xbrl.org/guidance/xbrl-glossary/
 parameters:
-  concept.id:
-    type: integer
-    description: A unique integer for a concept that can be searched. This is a faster way to retrieve the details of a fact, however it is namespace specific and will only search for the use of a concept for a specific schema.
-    values: 0
-  concept.is-base:
-    type: boolean
-    description: Indicates whether the concept is a base element in the reporting taxonomy or a company extension.
-  concept.is-monetary:
-    type: boolean
-    description: Indicates whether the concept represents a monetary value.
-  concept.local-name:
-    type: array[string]
-    description: The name of the concept in the base schema of a taxonomy, excluding the namespace. Use this to search across multiple taxonomies where the local name is known to be consistent over time.
-    vales: "e.g. Revenue,NetIncomeLoss (no spaces allowed)"
-  concept.namespace:
-    type: string
-    description: The namespace of the concept used to identify a fact.
-    values: ""  # TODO: check
-  dimension.is-base:
-    type: boolean
-    description: Indicates whether the dimension (aspect) is a base element in the reporting taxonomy or a company extension.
-  dimension.local-name:
-    type: array[string]
-    description: The local name of the dimension used with the fact.
-    values: ""
-  dimension.namespace:
-    type: string
-    description: The namespace of the dimension used with the fact.
-    values: ""
-  dimensions.count:
-    type: array[integer]
-    description: The number of dimensional qualifiers associated with a given fact. A comma-delimited list will return facts with 0, 1, 2, etc., dimensions.
-    values: {"min":0, "max":1000} # TODO: check max
-  dimensions.id:
-    type: string
-    description: The ID of the dimension.
-  dts.entry-point:
-    type: string
-    description: The URL entry point of a discoverable taxonomy set. Also known as the entry point for a taxonomy.
-  dts.id:
-    type: array[integer]
-    description: A unique integer identifier for a given group of taxonomies, typically associated with XBRL facts and linkbases.
-  dts.target-namespace:
-    type: string
-    description: The target namespace of a discoverable taxonomy set (DTS).
-  entity.cik:
-    type: array[string]
-    description: The SEC identifier used to identify a reporting entity. This is the CIK associated with a given fact, DTS, or report.
-  entity.id:
-    type: array[integer]
-    description: The internal identifier used to identify an entity. This will be replaced with the LEI when the SEC supports the LEI standard.
-  fact.has-dimensions:
-    type: boolean
-    description: Indicates whether the fact has any dimensions associated with it.
-  fact.hash:
-    type: string
-    description: The hash derived from the aspect properties of the fact. Each fact will have a different hash in a given report, but identical facts may have the same hash over time.
-  fact.id:
-    type: array[integer]
-    description: The internal identifier used to identify a fact.
-  fact.is-extended:
-    type: boolean
-    description: Indicates if the fact is comprised of an extension concept, extension axis, or extension member.
-  fact.text-search:
-    type: string
-    description: Allows searching for strings within fact.value data to locate specific names, topics, or references within a text block. Returned fields include fact.example and fact.highlighted-value.
-  fact.ultimus:
-    type: boolean
-    description: Indicates if the fact is the latest value reported. True represents the latest value, while false means the value has been superseded by a more recent fact.
-  fact.ultimus-index:
-    type: array[integer]
-    description: Records the incarnation of the fact. Represents the reverse order of incarnation for the fact's reporting. A value of 1 indicates the latest value, while higher values indicate subsequent reports.
-  fact.value:
-    type: string
-    description: The value of the fact as a text value, including numerical and non-numerical values reported.
-  fact.value-link:
-    type: string
-    description: A URL to the rendered fact.value data. For data encoded as HTML (text block disclosures), the URL displays the formatted data excerpted from the full report.
-  member.is-base:
-    type: boolean
-    description: Indicates if the member is a base element in the reporting taxonomy or a company extension.
-  member.local-name:
-    type: array[string]
-    description: The local name of the member.
-  member.typed-value:
-    type: array[string]
-    description: Typed member value.
-  member.member-value:
-    type: array[string]
-    description: Typed member or explicit member value.
-  member.namespace:
-    type: string
-    description: The namespace of the member.
-  period.calendar-period:
-    type: array[string]
-    description: The period identifier for the fact, such as year (Y), quarters (Q1, Q2, Q3, Q4), cumulative quarters (3QCUM),
-      and half years (H1, H2). The calendar period aligns the periods with a calendar year.
-    values: [Y, Q1, Q2, Q3, Q4, 3QCUM, H1, H2]
-  period.fiscal-id:
-    type: string
-    description: The identifier of the fiscal period. Each period has an assigned hash that identifies the fiscal period.
-  period.fiscal-period:
-    type: array[string]
-    description: The period identifier for the fact, such as year (Y), quarters (Q1, Q2, Q3, Q4), cumulative quarters (3QCUM), and half years (H1, H2). The fiscal period aligns the periods with a fiscal year.
-  period.fiscal-year:
-    type: array[integer]
-    description: The fiscal year in which the fact is applicable in the format 'YYYY'.
-    values: {"min":1952, "max":2023}
-  period.id:
-    type: string
-    description: The identifier of the calendar period. Each period has an assigned hash that identifies the period.
-  period.year:
-    type: array[integer]
-    description: The calendar year in which the fact is applicable in the format 'YYYY'.
-    values: {"min":1952, "max":2023}
-  report.accession:
-    type: string
-    description: The unique identifier (inclusive of the entity CIK) used by the SEC for a report.
-  report.creation-software:
-    type: string
-    description: The creation software that was used to create a report.
-  report.document-type:
-    type: array[string]
-    description: The document type of the report, such as 10-K, 10-Q, etc.
-  report.document-index:
-    type: array[integer]
-    description: Allows retrieval of reports other than the most current. A value of 1 gets the latest report, 2 gets the second-to-last report, and so on.
-  report.entry-url:
-    type: string
-    description: The URL entry point of a discoverable taxonomy set. Represents the DTS entry point for a specific report.
-  report.id:
-    type: array[integer]
-    description: The internal identifier assigned to a report.
-  report.restated:
-    type: boolean
-    description: Indicates if the report has been subsequently restated. True represents that the
-  report.restated-index:
-    type: array[integer]
-    description: A numerical indicator that identifies if a report has been restated. 1 indicates the latest report, while higher values indicate updated copies of the report.
-  report.sec-url:
-    type: string
-    description: The URL at which the details of a filing can be accessed from the SEC EDGAR system.
-  report.sic-code:
-    type: array[integer]
-    description: The Standard Industrial Classification (SIC) code used by the SEC in the United States.
-    values: {"min":100, "max":9999}
-  report.source-id:
-    type: integer
-    description: ID of the filing program.
-  report.source-name:
-    type: string
-    description: Name of the source of the data, such as SEC.
-  unit:
-    type: array[string]
-    description: The unit of measure associated with the fact, such as USD.
+  - concept.id
+  - concept.is-base
+  - concept.is-monetary
+  - concept.local-name
+  - concept.namespace
+  - dimension.is-base
+  - dimension.local-name
+  - dimension.namespace
+  - dimensions.count
+  - dimensions.id
+  - dts.entry-point
+  - dts.id
+  - dts.target-namespace
+  - entity.cik
+  - entity.id
+  - fact.has-dimensions
+  - fact.hash
+  - fact.id
+  - fact.is-extended
+  - fact.text-search
+  - fact.ultimus
+  - fact.ultimus-index
+  - fact.value
+  - fact.value-link
+  - member.is-base
+  - member.local-name
+  - member.typed-value
+  - member.member-value
+  - member.namespace
+  - period.calendar-period
+  - period.fiscal-id
+  - period.fiscal-period
+  - period.fiscal-year
+  - period.id
+  - period.year
+  - report.accession
+  - report.creation-software
+  - report.document-type
+  - report.document-index
+  - report.entry-url
+  - report.id
+  - report.restated
+  - report.restated-index
+  - report.sec-url
+  - report.sic-code
+  - report.source-id
+  - report.source-name
+  - unit
 fields:
   - concept.balance-type
   - concept.datatype
