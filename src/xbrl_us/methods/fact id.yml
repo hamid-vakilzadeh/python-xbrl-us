@@ -1,3 +1,6 @@
+description: Search for XBRL facts based on the **fact.id** attribute of the fact.
+long_description: A **fact** is an individual piece of information in an XBRL report. A fact is represented by reporting a value against a concept (e.g., profit, assets), and associating it with a number of dimension values (e.g., units, entity, period, other dimensions) that together uniquely define a data point.
+reference: https://www.xbrl.org/guidance/xbrl-glossary/
 parameters:
   - fact.id
   - fact.text-search
