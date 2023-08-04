@@ -19,6 +19,7 @@ def try_credentials(user_name: str, pass_word: str, client_id: str, client_secre
             st.session_state.password = pass_word
             st.session_state.client_id = client_id
             st.session_state.client_secret = client_secret
+            st.session_state.returning_user = True
     except Exception as e:
         st.error(f"Invalid credentials. Please try again. {e}")
         st.stop()
@@ -210,14 +211,13 @@ if __name__ == "__main__":
             st.session_state.client_id = temp_xbrl.client_id
             st.session_state.client_secret = temp_xbrl.client_secret
 
-    if "username" not in st.session_state:
+    if "returning_user" not in st.session_state or not st.session_state.returning_user:
         st.error("Please enter your credentials to begin.")
 
         with sidebar:
-            st.success(f"Logged in as {st.session_state.username}")
             show_login()
         st.stop()
-    else:
+    if "returning_user" in st.session_state and st.session_state.returning_user:
         with sidebar:
             st.success(f"Logged in as {st.session_state.username}")
             st.button(
@@ -255,7 +255,7 @@ if __name__ == "__main__":
         st.header(method)
 
         # two tabs
-        method_summary, definitions = st.tabs(["Summary", "Search Definitions"])
+        method_summary, definitions = st.tabs(["Summary", "Field Definition"])
 
         with method_summary:
             st.markdown(st.session_state.method_params.description)
@@ -399,103 +399,103 @@ if __name__ == "__main__":
                 st.session_state.query_params["unique"] = True
             st.session_state.query_params["method"] = method
 
-    # create a checkbox to show the query parameters
-    st.checkbox(
-        label="Show Query Parameters",
-        key="show_query_params",
-        help="Show the query parameters.",
-    )
-    if st.session_state.show_query_params:
-        st.write(st.session_state.query_params)
+        # create a checkbox to show the query parameters
+        st.checkbox(
+            label="Show Query Parameters",
+            key="show_query_params",
+            help="Show the query parameters.",
+        )
+        if st.session_state.show_query_params:
+            st.write(st.session_state.query_params)
 
-    # run the query
-    query_btn_disabled = True
-    if len(st.session_state["fields"]) > 0:
-        query_btn_disabled = False
+        # run the query
+        query_btn_disabled = True
+        if len(st.session_state["fields"]) > 0:
+            query_btn_disabled = False
 
-    query_button_placeholder.button(
-        label="Run Query",
-        key="run_query",
-        type="primary",
-        use_container_width=True,
-        disabled=query_btn_disabled,
-    )
-    new_results_placeholder = st.empty()
-    if st.session_state.run_query:
-        try:
-            with st.spinner("Running query..."):
-                st.session_state.pop("last_query", None)
-                st.session_state.last_query = xbrl.query(
-                    **st.session_state.query_params, as_dataframe=True, print_query=True, streamlit=True, timeout=10
-                )
+        query_button_placeholder.button(
+            label="Run Query",
+            key="run_query",
+            type="primary",
+            use_container_width=True,
+            disabled=query_btn_disabled,
+        )
+        new_results_placeholder = st.empty()
+        if st.session_state.run_query:
+            try:
+                with st.spinner("Running query..."):
+                    st.session_state.pop("last_query", None)
+                    st.session_state.last_query = xbrl.query(
+                        **st.session_state.query_params, as_dataframe=True, print_query=True, streamlit=True, timeout=10
+                    )
 
-        except Exception as e:
-            new_results_placeholder.error(f"{e}")
-            st.stop()
+            except Exception as e:
+                new_results_placeholder.error(f"{e}")
+                st.stop()
 
-    with new_results_placeholder.container():
-        # show the dataframe
-        st.subheader("Last Query Results")
-        if "last_query" not in st.session_state:
-            st.info("No **Query** has been run yet.")
+        with new_results_placeholder.container():
+            # show the dataframe
+            st.subheader("Last Query Results")
+            if "last_query" not in st.session_state:
+                st.info("No **Query** has been run yet.")
 
-        else:
-            # show a download button to get the data in csv format
-            # box for file name
-            filename = st.text_input(
-                label="File Name",
-                value="xbrl data",
-            )
-            dwnld_btn_place, del_btn_place = st.columns(2)
-
-            # show a button to show the full data
-            st.checkbox(
-                label="My computer rocks! 🚀 Show Full Data",
-                help="Show the full data.",
-                key="show_full_data",
-            )
-            if st.session_state.show_full_data:
-                st.success(
-                    f"""Viewing full data: **{st.session_state.last_query.shape[0]}**
-                    rows and **{st.session_state.last_query.shape[1]}** columns."""
-                )
-
-                st.dataframe(
-                    data=st.session_state.last_query,
-                    use_container_width=True,
-                    hide_index=True,
-                )
             else:
-                st.success(
-                    f"""Query has **{st.session_state.last_query.shape[0]}** rows.
-                    You are viewing **{min(100, st.session_state.last_query.shape[0])}** rows
-                    and **{st.session_state.last_query.shape[1]}** columns.
-                    You can try **Show Full Data** or **Download** the full data instead."""
+                # show a download button to get the data in csv format
+                # box for file name
+                filename = st.text_input(
+                    label="File Name",
+                    value="xbrl data",
                 )
+                dwnld_btn_place, del_btn_place = st.columns(2)
 
-                st.dataframe(
-                    data=st.session_state.last_query.head(100),
-                    use_container_width=True,
-                    hide_index=True,
+                # show a button to show the full data
+                st.checkbox(
+                    label="My computer rocks! 🚀 Show Full Data",
+                    help="Show the full data.",
+                    key="show_full_data",
                 )
+                if st.session_state.show_full_data:
+                    st.success(
+                        f"""Viewing full data: **{st.session_state.last_query.shape[0]}**
+                        rows and **{st.session_state.last_query.shape[1]}** columns."""
+                    )
 
-            with dwnld_btn_place:
-                st.download_button(
-                    label="Download as CSV File",
-                    use_container_width=True,
-                    data=st.session_state.last_query.to_csv(index=False).encode("utf-8"),
-                    file_name=f"{filename}.csv",
-                    mime="text/csv",
-                    key="download_data",
-                )
+                    st.dataframe(
+                        data=st.session_state.last_query,
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+                else:
+                    st.success(
+                        f"""Query has **{st.session_state.last_query.shape[0]}** rows.
+                        You are viewing **{min(100, st.session_state.last_query.shape[0])}** rows
+                        and **{st.session_state.last_query.shape[1]}** columns.
+                        You can try **Show Full Data** or **Download** the full data instead."""
+                    )
 
-            with del_btn_place:
-                st.button(
-                    label="Delete Query",
-                    key="delete_query_btn",
-                    on_click=lambda: st.session_state.pop("last_query"),
-                    type="primary",
-                    use_container_width=True,
-                )
+                    st.dataframe(
+                        data=st.session_state.last_query.head(100),
+                        use_container_width=True,
+                        hide_index=True,
+                    )
 
-    # st.write(st.session_state)
+                with dwnld_btn_place:
+                    st.download_button(
+                        label="Download as CSV File",
+                        use_container_width=True,
+                        data=st.session_state.last_query.to_csv(index=False).encode("utf-8"),
+                        file_name=f"{filename}.csv",
+                        mime="text/csv",
+                        key="download_data",
+                    )
+
+                with del_btn_place:
+                    st.button(
+                        label="Delete Query",
+                        key="delete_query_btn",
+                        on_click=lambda: st.session_state.pop("last_query"),
+                        type="primary",
+                        use_container_width=True,
+                    )
+
+        # st.write(st.session_state)
