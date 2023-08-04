@@ -127,8 +127,6 @@ def range_and_slider_for_array_integers(key, values):
         label_visibility="collapsed",
         on_change=lambda: st.session_state.pop(f"{key}"),
     )
-    if f"{key}_max_value" not in st.session_state:
-        st.session_state[f"{key}_max_value"] = values["max"]
 
     if st.session_state[f"{key}_input_method"] == "Range":
         # update_slider_range("period.fiscal-year_input")
@@ -151,7 +149,7 @@ def range_and_slider_for_array_integers(key, values):
                 key=f"{key}_max_value",
             )
 
-            st.session_state[key] = range(st.session_state[f"{key}_min_value"], st.session_state[f"{key}_max_value"])
+            st.session_state[key] = range(st.session_state[f"{key}_min_value"], st.session_state[f"{key}_max_value"] + 1)
 
         else:
             st.slider(
@@ -234,6 +232,8 @@ if __name__ == "__main__":
             client_id=st.session_state.client_id,
             client_secret=st.session_state.client_secret,
         )
+        if "account_limit" in st.session_state:
+            xbrl.account_limit = st.session_state.account_limit
 
         st.session_state.methods = xbrl.methods()
 
@@ -242,7 +242,7 @@ if __name__ == "__main__":
             options=sorted(st.session_state.methods),
             index=19,
             key="method",
-            disabled=True,
+            disabled=False,
             help="""Select the method you would like to use.
             For more information on the methods,
             see the [XBRL.US API Documentation](https://xbrlus.github.io/xbrl-api/#/).""",
@@ -306,28 +306,29 @@ if __name__ == "__main__":
             )
 
             st.session_state.limit_param = None
-            # check box for limit
-            sidebar.checkbox(
-                label="Limit",
-                key="limit_yes",
-            )
-            if st.session_state.limit_yes:
-                # show radio to choose between specific limit or all
-                limit_type = sidebar.radio(
-                    label="Limit Type", options=["Specific", "All"], horizontal=True, key="limit_type", label_visibility="collapsed"
+            if st.session_state.method_params.limit:
+                # check box for limit
+                sidebar.checkbox(
+                    label="Limit",
+                    key="limit_yes",
                 )
-                if limit_type == "Specific":
-                    # show the limit for first limit parameter as defined in the method file
-                    limit = sidebar.number_input(
-                        label=f"**{st.session_state.method_params.limit[0]} limit:**",
-                        value=100,
+                if st.session_state.limit_yes:
+                    # show radio to choose between specific limit or all
+                    limit_type = sidebar.radio(
+                        label="Limit Type", options=["Specific", "All"], horizontal=True, key="limit_type", label_visibility="collapsed"
                     )
-                    st.session_state.limit_param = limit
-                else:
-                    st.session_state.limit_param = "all"
-                    sidebar.error(
-                        """This may take a long time to run. Only use this option if you are sure you want to retrieve all the data."""
-                    )
+                    if limit_type == "Specific":
+                        # show the limit for first limit parameter as defined in the method file
+                        limit = sidebar.number_input(
+                            label=f"**{st.session_state.method_params.limit[0]} limit:**",
+                            value=100,
+                        )
+                        st.session_state.limit_param = limit
+                    else:
+                        st.session_state.limit_param = "all"
+                        sidebar.error(
+                            """This may take a long time to run. Only use this option if you are sure you want to retrieve all the data."""
+                        )
 
         query_button_placeholder = st.empty()
         show_criteria = True
@@ -428,6 +429,8 @@ if __name__ == "__main__":
                     st.session_state.last_query = xbrl.query(
                         **st.session_state.query_params, as_dataframe=True, print_query=True, streamlit=True, timeout=10
                     )
+                    if "account_limit" not in st.session_state:
+                        st.session_state.account_limit = xbrl.account_limit
 
             except Exception as e:
                 new_results_placeholder.error(f"{e}")
@@ -498,4 +501,4 @@ if __name__ == "__main__":
                         use_container_width=True,
                     )
 
-        # st.write(st.session_state)
+        st.write(st.session_state)
