@@ -12,10 +12,9 @@ import requests
 from pandas import DataFrame
 from retry import retry
 from tqdm import tqdm
+from utils import Parameters
+from utils import exceptions
 from yaml import safe_load
-
-from .utils import Parameters
-from .utils import exceptions
 
 _dir = Path(__file__).resolve()
 
@@ -176,8 +175,13 @@ def _validate_parameters():
                 if not isinstance(offset, int):
                     raise exceptions.XBRLInvalidTypeError(key=offset, expected_type=int, received_type=type(offset))
 
-            limit_field = next(iter(allowed_limit_fields))
-            offset_field = next(iter(allowed_offset_fields))
+            limit_field = None
+            offset_field = None
+
+            if allowed_limit_fields:
+                limit_field = next(iter(allowed_limit_fields), None)
+            if allowed_offset_fields:
+                offset_field = next(iter(allowed_offset_fields), None)
 
             return func(
                 fields=fields,
@@ -271,20 +275,22 @@ def _build_query_params(
 
     # Handle limit
     if limit:
-        # name and add the field name followed by .limit(value)
-        limit_arg = f"{limit_field}.limit({limit})"
-        if limit_field in fields_copy:
-            # if the field is in the fields list, remove the field
-            fields_copy.remove(limit_field)
-        fields_copy.append(limit_arg)
+        if limit_field is not None:
+            # name and add the field name followed by .limit(value)
+            limit_arg = f"{limit_field}.limit({limit})"
+            if limit_field in fields_copy:
+                # if the field is in the fields list, remove the field
+                fields_copy.remove(limit_field)
+            fields_copy.append(limit_arg)
 
     # Handle offset
     if offset:
-        # name and add the field name followed by .offset(value)
-        offset_arg = f"{offset_field}.offset({offset})"
-        if offset_field in fields_copy:
-            fields_copy.remove(offset_field)
-        fields_copy.append(offset_arg)
+        if offset_field is None:
+            # name and add the field name followed by .offset(value)
+            offset_arg = f"{offset_field}.offset({offset})"
+            if offset_field in fields_copy:
+                fields_copy.remove(offset_field)
+            fields_copy.append(offset_arg)
 
     query_params["fields"] = ",".join(fields_copy)
 
@@ -654,15 +660,12 @@ class XBRL:
             sort=sort,
         )
 
-        if print_query:
-            print(query_params)
-
         # check if the account limit has been set
         if not self.account_limit:
             self._get_account_limit(url=method_url, params=query_params)
 
         # ensure the limit is not greater than the account limit
-        account_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
+        chunk_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
 
         streamlit_indicator = kwargs.get("streamlit", False)
         if streamlit_indicator:
@@ -678,9 +681,12 @@ class XBRL:
             method=method,
             fields=fields,
             parameters=parameters,
-            limit=account_limit,
+            limit=chunk_limit,
             sort=sort,
         )
+
+        if print_query:
+            print(query_params)
 
         try:
             response = self._make_request(
@@ -711,6 +717,12 @@ class XBRL:
                 return DataFrame.from_dict(data)
             else:
                 return data
+        elif chunk_limit >= len(data):
+            # Return the items from the first response if the user limit is greater than the number of items
+            if as_dataframe:
+                return DataFrame.from_dict(data)
+            else:
+                return data
 
         else:
             remaining_limit = limit - len(data)
@@ -723,7 +735,7 @@ class XBRL:
         while remaining_limit > 0:
             # Determine the limit for the current request
             try:
-                current_limit = min(account_limit, remaining_limit)
+                current_limit = min(chunk_limit, remaining_limit)
                 query_params = _build_query_params(
                     method=method,
                     fields=fields,
