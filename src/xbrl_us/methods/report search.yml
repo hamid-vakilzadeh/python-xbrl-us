@@ -1,3 +1,10 @@
+description: Return details for XBRL reports based on the attributes of the report(s).
+long_description: XBRL **report** is a business report prepared using the XBRL standard.
+  An XBRL report is the file that contains the data that is to be reported in an XBRL
+  filing programme. A report refers to a specific taxonomy entry point and it is the
+  combination of the XBRL report and the taxonomy that enables the contents of an XBRL
+  report to be fully understood.
+reference: https://www.xbrl.org/guidance/xbrl-glossary/
 parameters:
   - dts.id
   - entity.cik
