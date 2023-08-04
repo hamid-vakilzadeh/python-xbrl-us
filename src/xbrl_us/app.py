@@ -253,9 +253,27 @@ if __name__ == "__main__":
         # parameters_options = dict(sorted(method_params.parameters.items(), key=lambda x: x[1]['type']))
         # print the name of the method
         st.header(method)
-        st.markdown(st.session_state.method_params.description)
-        st.caption(f"**API end-point**: {xbrl.acceptable_params(method).url}")
-        # print the url of the method
+
+        # two tabs
+        method_summary, definitions = st.tabs(["Summary", "Search Definitions"])
+
+        with method_summary:
+            st.markdown(st.session_state.method_params.description)
+            st.markdown(
+                f"{st.session_state.method_params.long_description} <sup>[1]({st.session_state.method_params.reference})</sup>",
+                unsafe_allow_html=True,
+            )
+            st.markdown(f"**Glossary**: {st.session_state.method_params.reference}")
+            st.caption(f"**API end-point**: {xbrl.acceptable_params(method).url}")
+            # print the url of the method
+
+        with definitions:
+            with st.expander("Search Definitions", expanded=True):
+                if "fields" in st.session_state and len(st.session_state.fields) > 0:
+                    st.markdown(f"**Field Name**: *{st.session_state.fields[-1]}*")
+                    st.markdown(f"**Description**: {xbrl.define(st.session_state.fields[-1])['description']}")
+                else:
+                    st.info("Select a field to see the definition")
 
         # show the list of fields in the sidebar
         with st.container():
@@ -341,27 +359,29 @@ if __name__ == "__main__":
 
             for param in st.session_state.parameters:
                 st.subheader(f"**{param}**:")
-                st.write(st.session_state.method_params.parameters[param]["description"])
+                param_info = xbrl.define(param)
+                st.markdown(param_info["description"])
+                type = param_info["type"]
 
-                if st.session_state.method_params.parameters[param]["type"] == "boolean":
+                if type == "boolean":
                     boolean_input_for_booleans(param)
 
-                elif st.session_state.method_params.parameters[param]["type"] == "integer":
+                elif type == "integer":
                     input_number_for_integers(param)
 
-                elif st.session_state.method_params.parameters[param]["type"] == "string":
+                elif type == "string":
                     text_input_for_strings(param)
 
-                elif st.session_state.method_params.parameters[param]["type"] == "array[integer]":
+                elif type == "array[integer]":
                     range_and_slider_for_array_integers(
                         param,
-                        st.session_state.method_params.parameters[param]["values"],
+                        param_info["values"],
                     )
 
-                elif st.session_state.method_params.parameters[param]["type"] == "array[string]":
+                elif type == "array[string]":
                     text_box_for_array_strings_no_ops(
                         param,
-                        st.session_state.method_params.parameters[param]["placeholder"],
+                        param_info["placeholder"],
                     )
 
             st.session_state.query_params = {"fields": st.session_state.fields}
