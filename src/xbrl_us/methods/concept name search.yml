@@ -1,3 +1,13 @@
+description: Allows searching for XBRL concept details in XBRL reports.
+long_description: The DTS layer of the financial reporting taxonomy architecture encompasses
+  the scope, syntax, naming and documentation relating to a DTS whose starting point is a
+  given taxonomy schema.
+  A **concept** is a taxonomy element that provides the meaning for a fact.
+  For example, "Profit", "Turnover", and "Assets" would be typical concepts.
+  [approximate technical term: concept (XBRL v2.1) or primary item (XBRL Dimensions).
+  Concept, as defined here, excludes header and structural element. The term "Line Item"
+  will sometimes be used to refer to a concept.]
+reference: https://www.xbrl.org/guidance/xbrl-glossary/
 parameters:
   - concept.local-name
   - concept.id
@@ -40,21 +50,7 @@ fields:
   - parts.part-value
   - parts.*
 limit:
-  - assertion
   - concept
-  - cube
-  - dimension
-  - document
-  - dts
-  - entity
-  - fact
-  - label
-  - network
-  - reference
-  - relationship
-  - report
-sort:
-  -
 offset:
-  -
+  - concept
 url: /api/v1/concept/{concept.local-name}/search
