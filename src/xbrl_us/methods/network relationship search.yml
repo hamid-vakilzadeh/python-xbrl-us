@@ -1,3 +1,7 @@
+description: Search for a specific XBRL network based on XBRL network and XBRL
+  relationship characteristics.
+long_description: Network
+reference: https://www.xbrl.org/guidance/xbrl-glossary/
 parameters:
   - dts.entry-point
   - dts.id
@@ -41,21 +45,7 @@ fields:
   - relationship.tree-sequence
   - relationship.weight
 limit:
-  - assertion
-  - concept
-  - cube
-  - dimension
-  - document
-  - dts
-  - entity
-  - fact
-  - label
   - network
-  - reference
-  - relationship
-  - report
-sort:
-  -
 offset:
-  -
+  - network
 url: /api/v1/network/relationship/search
