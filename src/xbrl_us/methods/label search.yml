@@ -1,3 +1,9 @@
+description: Search for XBRL label details in XBRL reports.
+long_description: A **Label** is a human readable description of a taxonomy component.
+  XBRL labels can be defined in multiple languages and can be of multiple types, such
+  as a "standard label", which provides a concise name for the component, or a
+  "documentation label" which provides a more complete definition of the component.
+reference: https://www.xbrl.org/guidance/xbrl-glossary/
 parameters:
   - dts.id
   - label.text
@@ -18,21 +24,7 @@ fields:
   - label.role-short
   - label.*
 limit:
-  - assertion
-  - concept
-  - cube
-  - dimension
-  - document
-  - dts
-  - entity
-  - fact
   - label
-  - network
-  - reference
-  - relationship
-  - report
-sort:
-  -
 offset:
-  -
+  - label
 url: /api/v1/label/search
