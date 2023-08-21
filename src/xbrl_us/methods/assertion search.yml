@@ -1,3 +1,8 @@
+description: Search for errors in XBRL reports based on validation frameworks used
+  by regulators and Data Quality Committees. The API allows searching for errors by
+  report, error code, severity of the error, etc.
+long_description: entity
+reference: https://www.xbrl.org/guidance/xbrl-glossary/
 parameters:
   - assertion.code
   - assertion.severity
@@ -36,20 +41,6 @@ fields:
   - report.sic-code
 limit:
   - assertion
-  - concept
-  - cube
-  - dimension
-  - document
-  - dts
-  - entity
-  - fact
-  - label
-  - network
-  - reference
-  - relationship
-  - report
-sort:
-  -
 offset:
-  -
+  - assertion
 url: /api/v1/assertion/search
