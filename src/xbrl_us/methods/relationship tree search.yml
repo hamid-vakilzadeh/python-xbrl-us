@@ -1,3 +1,7 @@
+description: Search a specific set of XBRL relationships based on characteristics
+  of the relationship and returning the data as a tree in different formats.
+long_description: Relationships
+reference: https://www.xbrl.org/guidance/xbrl-glossary/
 parameters:
   - dts.id
   - network.arcrole-uri
@@ -29,21 +33,7 @@ fields:
   - relationship.tree-sequence
   - relationship.weight
 limit:
-  - assertion
-  - concept
-  - cube
-  - dimension
-  - document
-  - dts
-  - entity
-  - fact
-  - label
-  - network
-  - reference
   - relationship
-  - report
-sort:
-  -
 offset:
-  -
+  - relationship
 url: /api/v1/relationship/tree/search
