@@ -34,21 +34,7 @@ fields:
   - report.id
   - document.*
 limit:
-  - assertion
-  - concept
-  - cube
-  - dimension
   - document
-  - dts
-  - entity
-  - fact
-  - label
-  - network
-  - reference
-  - relationship
-  - report
-sort:
-  -
 offset:
-  -
+  - document
 url: /api/v1/document/search
