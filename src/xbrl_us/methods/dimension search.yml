@@ -38,21 +38,7 @@ fields:
   - dts.id
   - dimension.*
 limit:
-  - assertion
-  - concept
-  - cube
   - dimension
-  - document
-  - dts
-  - entity
-  - fact
-  - label
-  - network
-  - reference
-  - relationship
-  - report
-sort:
-  -
 offset:
-  -
+  - dimension
 url: /api/v1/dimension/search

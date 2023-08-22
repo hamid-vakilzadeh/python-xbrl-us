@@ -52,21 +52,7 @@ fields:
   - unit
   - cube.*
 limit:
-  - assertion
-  - concept
   - cube
-  - dimension
-  - document
-  - dts
-  - entity
-  - fact
-  - label
-  - network
-  - reference
-  - relationship
-  - report
-sort:
-  -
 offset:
-  -
+  - cube
 url: /api/v1/cube/search
