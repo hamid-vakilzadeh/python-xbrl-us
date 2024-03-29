@@ -239,8 +239,12 @@ if __name__ == "__main__":
 
         method = sidebar.selectbox(
             label="API Method",
-            options=sorted(st.session_state.methods),
-            index=19,
+            options=[
+                "fact search",
+                "report search",
+                "entity search",
+            ],  # sorted(st.session_state.methods), TODO: This is hard coded. Need to fix it.
+            index=0,
             key="method",
             disabled=False,
             help="""Select the method you would like to use.
@@ -278,15 +282,15 @@ if __name__ == "__main__":
         # show the list of fields in the sidebar
         with st.container():
             sidebar.multiselect(
-                label="Fields :red[*]",
-                options=st.session_state.method_params.fields,
-                key="fields",
-            )
-
-            sidebar.multiselect(
                 label="Parameters",
                 options=st.session_state.method_params.parameters,
                 key="parameters",
+            )
+
+            sidebar.multiselect(
+                label="Fields :red[*]",
+                options=st.session_state.method_params.fields,
+                key="fields",
             )
 
             sidebar.multiselect(
@@ -306,29 +310,25 @@ if __name__ == "__main__":
             )
 
             st.session_state.limit_param = None
+
             if st.session_state.method_params.limit:
                 # check box for limit
-                sidebar.checkbox(
-                    label="Limit",
-                    key="limit_yes",
+                sidebar.toggle(
+                    label="Download All",
+                    value=False,
+                    key="download_all",
                 )
-                if st.session_state.limit_yes:
-                    # show radio to choose between specific limit or all
-                    limit_type = sidebar.radio(
-                        label="Limit Type", options=["Specific", "All"], horizontal=True, key="limit_type", label_visibility="collapsed"
+                if not st.session_state.download_all:
+                    limit = sidebar.number_input(
+                        label=f"**{st.session_state.method_params.limit[0]} limit:**",
+                        value=100,
                     )
-                    if limit_type == "Specific":
-                        # show the limit for first limit parameter as defined in the method file
-                        limit = sidebar.number_input(
-                            label=f"**{st.session_state.method_params.limit[0]} limit:**",
-                            value=100,
-                        )
-                        st.session_state.limit_param = limit
-                    else:
-                        st.session_state.limit_param = "all"
-                        sidebar.error(
-                            """This may take a long time to run. Only use this option if you are sure you want to retrieve all the data."""
-                        )
+                    st.session_state.limit_param = limit
+                else:
+                    st.session_state.limit_param = "all"
+                    sidebar.error(
+                        """This may take a long time to run. Only use this option if you are sure you want to retrieve all the data."""
+                    )
 
         query_button_placeholder = st.empty()
         show_criteria = True
@@ -440,7 +440,7 @@ if __name__ == "__main__":
             # show the dataframe
             st.subheader("Last Query Results")
             if "last_query" not in st.session_state:
-                st.info("No **Query** has been run yet.")
+                st.info("No **Query** has been submitted yet")
 
             else:
                 # show a download button to get the data in csv format
@@ -501,4 +501,4 @@ if __name__ == "__main__":
                         use_container_width=True,
                     )
 
-        st.write(st.session_state)
+        # st.write(st.session_state)
