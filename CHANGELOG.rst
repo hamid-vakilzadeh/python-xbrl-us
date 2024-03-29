@@ -2,6 +2,13 @@
 Changelog
 =========
 
+0.0.42 (2023-08-05)
+~~~~~~~~~~~~~~~~~~~
+
+* Bug fixes
+* Improved Browser Interface
+* Added new methods to the API for Browser Interface
+
 0.0.41 (2023-08-04)
 ~~~~~~~~~~~~~~~~~~~
 
