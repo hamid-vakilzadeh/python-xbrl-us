@@ -271,8 +271,11 @@ def _build_query_params(
             sorted_arg = f"{field}.sort({direction.upper()})"
             if field in fields_copy:
                 # if the field is in the fields list, remove the field
+                field_index = fields_copy.index(field)
                 fields_copy.remove(field)
-            fields_copy.append(sorted_arg)
+                fields_copy.insert(field_index, sorted_arg)
+            else:
+                fields_copy.append(sorted_arg)
 
     # Handle limit
     if limit:
