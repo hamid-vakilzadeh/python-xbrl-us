@@ -2,6 +2,11 @@
 Changelog
 =========
 
+0.0.43 (2024-05-08)
+~~~~~~~~~~~~~~~~~~~
+
+* fixed and issue with the offset where the query would not return the correct results
+
 0.0.42 (2023-08-05)
 ~~~~~~~~~~~~~~~~~~~
 
