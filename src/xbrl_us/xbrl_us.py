@@ -289,7 +289,7 @@ def _build_query_params(
 
     # Handle offset
     if offset:
-        if offset_field is None:
+        if offset_field is not None:
             # name and add the field name followed by .offset(value)
             offset_arg = f"{offset_field}.offset({offset})"
             if offset_field in fields_copy:
@@ -657,12 +657,7 @@ class XBRL:
             # arbitrary large number
             limit = 999999999
 
-        query_params = _build_query_params(
-            method=method,
-            fields=fields,
-            parameters=parameters,
-            sort=sort,
-        )
+        query_params = _build_query_params(method=method, fields=fields, parameters=parameters, sort=sort, limit=100)
 
         # check if the account limit has been set
         if not self.account_limit:
@@ -690,7 +685,7 @@ class XBRL:
         )
 
         if print_query:
-            print(query_params)
+            print(f"\n{query_params}")
 
         try:
             response = self._make_request(
@@ -721,7 +716,7 @@ class XBRL:
                 return DataFrame.from_dict(data)
             else:
                 return data
-        elif chunk_limit >= len(data):
+        elif chunk_limit > len(data):
             # Return the items from the first response if the user limit is greater than the number of items
             if as_dataframe:
                 return DataFrame.from_dict(data)
@@ -733,8 +728,8 @@ class XBRL:
 
         # To store all the items from the API response
         all_data = data
-
         offset = len(data)
+        del data, response_data, response
 
         while remaining_limit > 0:
             # Determine the limit for the current request
