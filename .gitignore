@@ -34,6 +34,8 @@ sdist
 var
 venv*/
 wheelhouse
+make.bat
+Makefile
 
 # Installer logs
 pip-log.txt
@@ -75,3 +77,8 @@ docs/_build
 
 # secret files
 secrets.yml
+.pypirc
+
+# temp folders
+temp/
+old dist/
