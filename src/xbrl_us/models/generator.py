@@ -2,6 +2,7 @@
 import logging
 import re
 from datetime import datetime
+from datetime import timezone
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -71,7 +72,7 @@ def generate_model_file(endpoint_name: str, metadata: Dict[str, Any], output_dir
 
     # Generate the model file content
     content = f'''"""
-This module was automatically generated from XBRL.us API metadata on {datetime.now(tz=datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}
+This module was automatically generated from XBRL.us API metadata on {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}
 Do not edit manually.
 """
 
