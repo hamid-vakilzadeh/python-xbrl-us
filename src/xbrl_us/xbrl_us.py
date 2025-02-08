@@ -528,7 +528,7 @@ class XBRL:
 
         import yaml
 
-        from .models.generator import generate_typed_dict
+        from .utils.generator import generate_typed_dict
 
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
