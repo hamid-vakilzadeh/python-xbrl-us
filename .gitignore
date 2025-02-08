@@ -85,4 +85,5 @@ old dist/
 
 # temp ignore
 src/xbrl_us/meta
+src/xbrl_us/models
 src/xbrl_us/experimental
