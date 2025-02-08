@@ -512,6 +512,148 @@ class XBRL:
 
         return f"https://api.xbrl.us{url}?"
 
+    def get_meta_endpoints(self, force_refresh=False):
+        """
+        Get the endpoints from Meta API and cache them to meta/endpoints.yml.
+        Additionally caches each endpoint's metadata and generates multiple autocompletion helpers.
+        Only fetches from API if cache is older than 24h or force_refresh=True.
+
+        Args:
+            force_refresh (bool): If True, force a refresh of the cache regardless of age
+
+        Returns:
+            dict: The endpoints metadata and a dictionary of endpoint accessors
+        """
+        from datetime import datetime
+        from datetime import timedelta
+        from datetime import timezone
+
+        import yaml
+
+        from .models.generator import create_dynamic_endpoint
+        from .models.generator import generate_json_schema
+        from .models.generator import generate_model_file
+        from .models.generator import generate_typed_dict
+
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.INFO)
+
+        # Create required directories
+        meta_dir = _dir.parent / "meta"
+        meta_dir.mkdir(exist_ok=True)
+
+        methods_dir = meta_dir / "meta_endpoints"
+        methods_dir.mkdir(exist_ok=True)
+
+        # Create directories for different approaches
+        models_dir = _dir.parent / "models" / "generated"
+        models_dir.mkdir(exist_ok=True, parents=True)
+
+        types_dir = _dir.parent / "models" / "types"
+        types_dir.mkdir(exist_ok=True, parents=True)
+
+        schemas_dir = _dir.parent / "schemas"
+        schemas_dir.mkdir(exist_ok=True)
+
+        # Create necessary __init__.py files
+        for dir_path in [_dir.parent / "models", models_dir, types_dir]:
+            init_file = dir_path / "__init__.py"
+            if not init_file.exists():
+                init_file.touch()
+
+        cache_file = meta_dir / "endpoints.yml"
+
+        # Check if we should use cached data
+        if not force_refresh and cache_file.exists():
+            cache_stat = cache_file.stat()
+            cache_age = datetime.now(tz=timezone.utc) - datetime.fromtimestamp(cache_stat.st_mtime, tz=timezone.utc)
+
+            if cache_age < timedelta(hours=24):
+                logger.info("Using cached endpoints data (age: %s hours)", round(cache_age.total_seconds() / 3600, 1))
+                with cache_file.open("r") as f:
+                    return yaml.safe_load(f)
+
+        # Fetch fresh data from API
+        logger.info("Fetching fresh endpoints data from API...")
+        self._ensure_access_token()
+        response = requests.get("https://api.xbrl.us/api/v1/meta", headers={"Authorization": f"Bearer {self.access_token}"}, timeout=5)
+
+        if response.status_code != 200:
+            raise exceptions.XBRLError(f"Failed to fetch Meta endpoints: {response.text}")
+
+        # Convert to YAML and save main endpoints file
+        endpoints = response.json()
+        logger.info("Found %d endpoints", len(endpoints))
+
+        with cache_file.open("w") as f:
+            yaml.dump(endpoints, f, sort_keys=False)
+
+        # Dictionary to store dynamic accessors
+        dynamic_accessors = {}
+
+        # Generate types module content
+        types_content = [
+            '"""This module was automatically generated. Do not edit manually."""',
+            "from typing import TypedDict, Dict, Any",
+            "from typing_extensions import NotRequired",
+            "",
+        ]
+
+        logger.info("Fetching metadata and generating helpers for each endpoint...")
+        # Fetch and cache metadata for each endpoint
+        with tqdm(total=len(endpoints), desc="Processing endpoints", unit="endpoint") as pbar:
+            for endpoint_name, endpoint_data in endpoints.items():
+                if "link" not in endpoint_data:
+                    logger.warning("Skipping %s - no link found", endpoint_name)
+                    pbar.update(1)
+                    continue
+
+                # Get metadata for this endpoint
+                try:
+                    response = requests.get(endpoint_data["link"], headers={"Authorization": f"Bearer {self.access_token}"}, timeout=5)
+
+                    if response.status_code != 200:
+                        logger.warning("Failed to fetch metadata for %s: %s", endpoint_name, response.text)
+                        pbar.update(1)
+                        continue
+
+                    endpoint_meta = response.json()
+
+                    # Cache the metadata
+                    filename = endpoint_name.replace("https://api.xbrl.us/api/v1/meta/", "").replace("/", " ")
+                    if not filename.endswith(".yml"):
+                        filename += ".yml"
+
+                    method_file = methods_dir / filename
+                    with method_file.open("w") as f:
+                        yaml.dump(endpoint_meta, f, sort_keys=False)
+
+                    # Generate all helper types
+                    # 1. Pydantic models
+                    generate_model_file(endpoint_name, endpoint_meta, models_dir)
+
+                    # 2. TypedDict definitions
+                    types_content.append(generate_typed_dict(endpoint_name, endpoint_meta))
+                    types_content.append("")  # Add blank line between classes
+
+                    # 3. Dynamic accessor instance
+                    dynamic_accessors[endpoint_name] = create_dynamic_endpoint(endpoint_name, endpoint_meta)
+
+                    # 4. JSON Schema for IDE
+                    generate_json_schema(endpoint_name, endpoint_meta, schemas_dir)
+
+                except requests.exceptions.RequestException as e:
+                    logger.error("Error fetching metadata for %s: %s", endpoint_name, str(e))
+
+                pbar.update(1)
+
+        # Write combined types file
+        types_file = types_dir / "endpoint_types.py"
+        types_file.write_text("\n".join(types_content))
+
+        logger.info("Endpoints metadata and helpers generated successfully")
+        return {"endpoints": endpoints, "dynamic_accessors": dynamic_accessors}
+
     @_convert_params_to_dict_decorator()
     def query(
         self,
@@ -528,26 +670,32 @@ class XBRL:
     ) -> Union[dict, DataFrame]:
         """
 
-        Args:
-            method (str): The name of the method to query.
-            fields (list): The fields query parameter establishes the details of the data to return for the specific query.
-            parameters (dict | Parameters): The parameters for the query.
-            limit (int): A limit restricts the number of results returned by the query.
+                Args:
+                    method (str): The name of the method to query.
+                    fields (list): The fields query parameter establishes the details of the data to return for the specific query.
+                    parameters (dict | Parameters): The parameters for the query.
+                                    limit (int): A limit restricts the number of results returned by the query.
+        The limit attribute can only be added to an object type and not a property.
+        For example, to limit the number of facts in a query, {"fact": 10}.
                 The limit attribute can only be added to an object type and not a property.
-                For example, to limit the number of facts in a query, {"fact": 10}.
-            sort (dict): Any returned value can be sorted in ascending or descending order,
-                using ``ASC`` or ``DESC`` (i.e. {"report.document-type": "DESC"}.
-                Multiple sort criteria can be defined and the sort sequence is determined by
-                the order of the items in the dictionary.
-            unique (bool): If ``True`` returns only unique values.
-            as_dataframe (bool): If ``True`` returns the results as a ``DataFrame`` else returns the data
-                as ``json``.
-            print_query (bool=False): Whether to print the query.
-            timeout: The number of seconds to wait for a response from the server. Defaults to 5 seconds.
-                If ``None`` will wait indefinitely.
+                        For example, to limit the number of facts in a query, {"fact": 10}.
+        The limit attribute can only be added to an object type and not a property.
+                        For example, to limit the number of facts in a query, {"fact": 10}.
+                    sort (dict): Any returned value can be sorted in ascending or descending order,
+                        using ``ASC`` or ``DESC`` (i.e. {"report.document-type": "DESC"}.
+        Multiple sort criteria can be defined and the sort sequence is determined by
+                        the order of the items in the dictionary.
+                    unique (bool): If ``True`` returns only unique values.
+                    as_dataframe (bool): If ``True`` returns the results as a ``D`` else returns the data
+                        as ``jsonataFrame`` else returns the data
+                        as ``json``.
+                    print_que=Falsery (bool=False): Whether to print the query.
+                    ut: The number of seconds to wait for a  from the server. Defaults to 5 seconds.
+                        If ``None`` will wait indefinitelyresponse from the server. Defaults to 5 seconds.
+                        If ``None`` will wait indefinitely.
 
-        Returns:
-            dict | DataFrame: The results of the query.
+                Returns:
+                    dict | DataFrame: The results of the query.
         """
 
         method_url = self._get_method_url(method_name=method, parameters=parameters, unique=unique)
