@@ -70,6 +70,7 @@ setup(
         "retry>=0.9.2",
         "tqdm>=4.61.2",
         "stqdm>=0.0.5",
+        "aiohttp>=3.8.4, < 4",
     ],
     extras_require={
         # eg:
