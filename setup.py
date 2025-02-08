@@ -70,6 +70,7 @@ setup(
         "retry>=0.9.2",
         "tqdm>=4.61.2",
         "stqdm>=0.0.5",
+        "pydantic>=2.10.0",
     ],
     extras_require={
         # eg:
