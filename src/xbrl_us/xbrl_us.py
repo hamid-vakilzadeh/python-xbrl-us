@@ -305,6 +305,9 @@ class XBRL:
         self._access_token_expires_at = 0
         self._refresh_token_expires_at = 0
 
+        self.get_meta_endpoints()
+        self._ensure_access_token()
+
     @staticmethod
     def methods():
         """
@@ -423,6 +426,8 @@ class XBRL:
                 self._get_token(grant_type="refresh_token", refresh_token=self.refresh_token)
             else:
                 self._get_token()
+        if self.account_limit is None:
+            self._get_account_limit()
 
     @retry(exceptions=_query_exceptions, tries=3, delay=2, backoff=2, logger=None)
     def _make_request(self, method, url, **kwargs) -> requests.Response:
@@ -450,19 +455,12 @@ class XBRL:
 
     def _get_account_limit(
         self,
-        url: str,
-        params: dict,
     ):
         # Query the API with a limit of more than 5000.
-        fields = params["fields"]
-        new_fields = ",".join([fields, "fact.limit(5001)"])
-        params["fields"] = new_fields
+        params = "fields=fact.value,fact.limit(5001)"
+        url = "https://api.xbrl.us/api/v1/fact/search"
 
-        response = self._make_request(
-            method="get",
-            url=url,
-            params=params,
-        )
+        response = requests.get(url=url, params=params, headers={"Authorization": f"Bearer {self.access_token}"}, timeout=5)
 
         # Extract the limit from the response message.
         match = re.search(r"user limit amount is (\d+)", response.text)
@@ -530,9 +528,6 @@ class XBRL:
 
         import yaml
 
-        from .models.generator import create_dynamic_endpoint
-        from .models.generator import generate_json_schema
-        from .models.generator import generate_model_file
         from .models.generator import generate_typed_dict
 
         logger = logging.getLogger(__name__)
@@ -545,18 +540,11 @@ class XBRL:
         methods_dir = meta_dir / "meta_endpoints"
         methods_dir.mkdir(exist_ok=True)
 
-        # Create directories for different approaches
-        models_dir = _dir.parent / "models" / "generated"
-        models_dir.mkdir(exist_ok=True, parents=True)
-
         types_dir = _dir.parent / "models" / "types"
         types_dir.mkdir(exist_ok=True, parents=True)
 
-        schemas_dir = _dir.parent / "schemas"
-        schemas_dir.mkdir(exist_ok=True)
-
         # Create necessary __init__.py files
-        for dir_path in [_dir.parent / "models", models_dir, types_dir]:
+        for dir_path in [_dir.parent / "models", types_dir]:
             init_file = dir_path / "__init__.py"
             if not init_file.exists():
                 init_file.touch()
@@ -587,9 +575,6 @@ class XBRL:
 
         with cache_file.open("w") as f:
             yaml.dump(endpoints, f, sort_keys=False)
-
-        # Dictionary to store dynamic accessors
-        dynamic_accessors = {}
 
         # Generate types module content
         types_content = [
@@ -628,19 +613,9 @@ class XBRL:
                     with method_file.open("w") as f:
                         yaml.dump(endpoint_meta, f, sort_keys=False)
 
-                    # Generate all helper types
-                    # 1. Pydantic models
-                    generate_model_file(endpoint_name, endpoint_meta, models_dir)
-
                     # 2. TypedDict definitions
                     types_content.append(generate_typed_dict(endpoint_name, endpoint_meta))
                     types_content.append("")  # Add blank line between classes
-
-                    # 3. Dynamic accessor instance
-                    dynamic_accessors[endpoint_name] = create_dynamic_endpoint(endpoint_name, endpoint_meta)
-
-                    # 4. JSON Schema for IDE
-                    generate_json_schema(endpoint_name, endpoint_meta, schemas_dir)
 
                 except requests.exceptions.RequestException as e:
                     logger.error("Error fetching metadata for %s: %s", endpoint_name, str(e))
@@ -652,7 +627,7 @@ class XBRL:
         types_file.write_text("\n".join(types_content))
 
         logger.info("Endpoints metadata and helpers generated successfully")
-        return {"endpoints": endpoints, "dynamic_accessors": dynamic_accessors}
+        return {"endpoints": endpoints}
 
     @_convert_params_to_dict_decorator()
     def query(
@@ -714,10 +689,6 @@ class XBRL:
 
         if print_query:
             print(query_params)
-
-        # check if the account limit has been set
-        if not self.account_limit:
-            self._get_account_limit(url=method_url, params=query_params)
 
         # ensure the limit is not greater than the account limit
         account_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
@@ -850,9 +821,6 @@ class XBRL:
             limit=limit,
             sort=sort,
         )
-
-        if not self.account_limit:
-            self._get_account_limit(url=method_url, params=query_params)
 
         account_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
 
