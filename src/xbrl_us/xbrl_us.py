@@ -16,7 +16,6 @@ from retry import retry
 from tqdm import tqdm
 from yaml import safe_load
 
-from .utils import Parameters
 from .utils import exceptions
 
 logging.basicConfig()
@@ -178,7 +177,7 @@ def _convert_params_to_dict_decorator():
         @wraps(func)
         def wrapper(*args, **kwargs):
             """
-            Convert the Parameters object to a dictionary before building the query.
+            Check if the parameters passed to the query method are in dictionary format.
             This is a decorator for the ``query`` method in XBRL class.
 
             Args:
@@ -189,9 +188,7 @@ def _convert_params_to_dict_decorator():
                 The result of the wrapped function.
             """
             parameters = kwargs.get("parameters")
-            if isinstance(parameters, Parameters):
-                kwargs["parameters"] = parameters.get_parameters_dict()
-            elif parameters and not isinstance(parameters, dict):
+            if parameters and not isinstance(parameters, dict):
                 raise ValueError(f"Parameters must be a dict or Parameters object. " f"Got {type(parameters)} instead.")
             return func(*args, **kwargs)
 
@@ -634,7 +631,7 @@ class XBRL:
         self,
         method: str,
         fields: Optional[list] = None,
-        parameters: Optional[Union[Parameters, dict]] = None,
+        parameters: Optional[Union[dict]] = None,
         limit: Optional[int] = None,
         sort: Optional[dict] = None,
         unique: Optional[bool] = False,
@@ -803,7 +800,7 @@ class XBRL:
         self,
         method: str,
         fields: Optional[list] = None,
-        parameters: Optional[Union[Parameters, dict]] = None,
+        parameters: Optional[Union[dict]] = None,
         limit: Optional[int] = None,
         sort: Optional[dict] = None,
         unique: Optional[bool] = False,
