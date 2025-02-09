@@ -2,6 +2,14 @@
 Changelog
 =========
 
+0.0.44 (2025-02-09)
+~~~~~~~~~~~~~~~~~~~
+
+* added an experimental feaute for async requests
+* The Parameters and Fields are no longer available in the API
+* Bug fixes
+
+
 0.0.43 (2024-05-08)
 ~~~~~~~~~~~~~~~~~~~
 
