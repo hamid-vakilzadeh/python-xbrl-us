@@ -1,0 +1,163 @@
+endpoints:
+  '1': /assertion/search
+examples:
+  '1': https://api.xbrl.us/api/v1/assertion/search?assertion.code=xbrlus-cc.comp.nonneg.r14082&fields=assertion.*,report.accepted-timestamp.sort(DESC),assertion.limit(20)
+  '2': https://api.xbrl.us/api/v1/assertion/search?fields=assertion.*,report.accepted-timestamp.sort(DESC),assertion.limit(30)
+fields:
+  assertion.code:
+    searchable: 'true'
+    type: varchar
+    database_field: error_code
+    definition: 'Unique code associated with a specific error. For example: DQC.US.0073.7648'
+  assertion.detail:
+    searchable: 'false'
+    type: text
+    database_field: detail
+    definition: Message details for the error describing the error.
+  assertion.effective-date:
+    searchable: 'false'
+    type: date
+    database_field: effective_date
+    definition: Effective date of the rule. This is the date that the rule went into
+      effect and all companies were required to follow the rule.
+  assertion.rule-focus:
+    searchable: 'false'
+    type: xml
+    database_field: rule_focus
+    definition: Details of fact(s) impacted by the error, in an XML format.
+  assertion.run-date:
+    searchable: 'false'
+    type: date
+    database_field: run_date
+    definition: Date that the rule was run on the filing.
+  assertion.severity:
+    searchable: 'true'
+    type: varchar
+    database_field: severity
+    definition: Severity of the rule, indicated as error, warning or information.
+  assertion.source:
+    searchable: 'true'
+    type: varchar
+    database_field: split_part(xuscc.consistency_check_message.error_code::text, '.'::text,
+      1)
+    definition: The source of rule base that generated the rule, indicated as DQC,
+      EFM, or xbrlus-cc.
+  assertion.type:
+    searchable: 'true'
+    type: text
+    database_field: substring(xuscc.consistency_check_message.error_code::text, '[^.]*.[^.]*.([^.]*)'::text)
+    definition: The rule number of the rule. i.e. 0099
+  entity.cik:
+    searchable: 'true'
+    type: varchar
+    database_field: entity_code
+    definition: The CIK is the SEC identifier used to identify a reporting entity.
+      This is the CIK associated with a given fact, DTS or report.
+    format: cik,cid,lei,grip
+  entity.code:
+    searchable: 'true'
+    type: varchar
+    database_field: entity_code
+    definition: The entity identifier for whatever source it is associated with.  All
+      entity identifiers are in this field. This is the CIK associated with a given
+      fact, DTS or report.
+    format: cik,cid,lei,grip
+  entity.name:
+    searchable: 'true'
+    type: varchar
+    database_field: entity_name
+    definition: The name of the entity reporting.
+  entity.scheme:
+    searchable: 'true'
+    type: varchar
+    database_field: authority_scheme
+    definition: The scheme of the identifier associated with a fact, report or DTS.
+      A fact could have multiple entity identifiers and this indicates the identifier
+      that was used.
+    format: uri
+  report.accepted-timestamp:
+    searchable: 'false'
+    type: timestamp
+    database_field: accepted_timestamp
+    definition: Date that the report was accepted at the regulator.
+  report.accession:
+    searchable: 'true'
+    type: text
+    database_field: source_report_identifier
+    definition: The identifier used by the SEC to identify a report.
+    format: accession
+  report.base-taxonomy:
+    searchable: 'true'
+    type: varchar
+    database_field: base_taxonomy
+    definition: Base taxonomy used for the filing. e.g. US-GAAP 2020.
+  report.creation-software:
+    searchable: 'true'
+    type: varchar
+    database_field: creation_software
+    definition: The creation software that was used to create a report/
+  report.document-type:
+    searchable: 'true'
+    type: text
+    database_field: report.properties->>'document_type'
+    definition: The document type of the report e.g. 10-K, 10-Q.
+  report.entry-url:
+    searchable: 'true'
+    type: text
+    database_field: entry_url
+    definition: The url entry point of a discoverable taxonomy set. This is also referred
+      to as the entry point for a taxonomy. This represents the DTS entry point for
+      a specific report.
+    format: uri
+  report.filing-date:
+    searchable: 'false'
+    type: date
+    database_field: text2date(report.properties->>'filing_date')
+    definition: The date that the filing was published.
+  report.filing-year:
+    searchable: 'true'
+    type: int
+    database_field: DATE_PART('year', text2date(report.properties->>'filing_date'))
+    format: year
+  report.form-type:
+    searchable: 'true'
+    type: text
+    database_field: report.properties->>'document_type'
+    definition: The document type of the FERC report e.g. 1, 2-A.
+  report.id:
+    searchable: 'true'
+    type: int
+    database_field: accession_id
+    definition: The identifier used to identify a report.
+    format: integer
+  report.period-focus:
+    searchable: 'true'
+    type: text
+    database_field: (report.properties->>'report_period')
+    definition: The period the report was reported for.
+  report.sec-url:
+    searchable: 'true'
+    type: text
+    database_field: report.properties->>'sec_html_url'
+    definition: The url at which the details of a filing can be accessed from the
+      SEC Edgar system.
+    format: uri
+  report.sic-code:
+    searchable: 'true'
+    type: text
+    database_field: report.properties->>'standard_industrial_classification'
+    definition: Integer that represents the Standard Industrial Classification (SIC)
+      code used by the SEC in the United States.
+    format: integer
+  report.year-focus:
+    searchable: 'true'
+    type: text
+    database_field: report.properties->>'report_year'
+    definition: The year the report was reported for.
+  report.zip-url:
+    searchable: 'true'
+    type: text
+    database_field: report.properties->>'zip_url'
+    definition: The url where the zip containing all the files of a filing can be
+      accessed from the SEC Edgar system.
+    format: uri

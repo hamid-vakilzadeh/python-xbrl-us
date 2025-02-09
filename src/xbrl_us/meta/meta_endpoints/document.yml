@@ -1,0 +1,136 @@
+endpoints:
+  '1': /document/search
+examples:
+  '1': https://api.xbrl.us/api/v1/document/search?dts.id=265539&fields=document.*,document.tree-order.sort(ASC)
+  '2': https://api.xbrl.us/api/v1/document/search?document.uri=http://www.sec.gov/Archives/edgar/data/1138723/000104746917005403/aray-20170630.xsd&fields=document.uri,document.type
+fields:
+  document.content:
+    searchable: 'false'
+    type: varchar
+    database_field: content
+    definition: The content of the document.
+  document.documentset:
+    searchable: 'true'
+    type: bool
+    database_field: CASE WHEN report_document.document_set IS NULL THEN FALSE ELSE
+      (report_document.document_set)::bool END
+    definition: Boolean attribute that indicates if the document is part of the document
+      set, i.e. an instant document.
+    format: boolean
+  document.id:
+    searchable: 'true'
+    type: int
+    database_field: document_id
+    definition: An internal unique identifier of the document.
+    format: integer
+  document.text-search:
+    searchable: 'true'
+    type: text
+    definition: Cannot be used as a return field. Search for strings within document
+      object (ie. to locate a specific name, topic or reference within an entire document).
+      Fields returned include document.example and document.highlighted-value. The
+      XBRL API uses the Sphinx search engine to identify text. This powerful search
+      engine quickly identifies a given text string. Sphinx is enabled to support
+      stemming, which means it will also return plurals of a noun i.e. ipad will also
+      return ipads. It will also return the present, future and past form of a verb
+      for example the word kill will also return killed and killing. To match the
+      word exactly the character '=' can be placed in front of the word i.e. = ipad
+      will return the occurrence of the word ipad only.
+  document.top-level:
+    searchable: 'true'
+    type: boolean
+    database_field: top_level
+    definition: Boolean that indicates if the file in a dts is the entry point.
+    format: boolean
+  document.tree-level:
+    searchable: 'false'
+    type: int
+    database_field: level
+    definition: Level of the files in terms of which files import or reference child
+      files.
+  document.tree-order:
+    searchable: 'false'
+    type: int
+    database_field: tree_order
+    definition: Order of the files in terms of how the dts is compiled from the underlying
+      documents.
+  document.type:
+    searchable: 'false'
+    type: varchar
+    database_field: document_type
+    definition: Indicates if the document is a schema, linkbase or instance.
+  document.uri:
+    searchable: 'true'
+    type: varchar
+    database_field: document_uri
+    definition: The url at which the document comprising the dts is located.
+    format: uri
+  dts.content:
+    searchable: 'false'
+    type: text
+    database_field: content
+    definition: Contents of the document.
+  dts.id:
+    searchable: 'true'
+    type: int
+    database_field: dts_id
+    definition: The dts identifier for a given group of taxonomies. XBRL facts and
+      linkbases are typically associated with a given report that is associated with
+      a dts.
+    format: integer
+  entity.cik:
+    searchable: 'true'
+    type: varchar
+    database_field: entity_code
+    definition: The CIK is the SEC identifier used to identify a reporting entity.
+      This is the CIK associated with a given fact, DTS or report.
+    format: cik,cid,lei,grip
+  entity.code:
+    searchable: 'true'
+    type: varchar
+    database_field: entity_code
+    definition: The entity identifier for whatever source it is associated with.  All
+      entity identifiers are in this field. This is the CIK associated with a given
+      fact, DTS or report.
+    format: cik,cid,lei,grip
+  entity.name:
+    searchable: 'true'
+    type: varchar
+    database_field: entity_name
+    definition: The name of the entity reporting.
+  entity.scheme:
+    searchable: 'true'
+    type: varchar
+    database_field: authority_scheme
+    definition: The scheme of the identifier associated with a fact, report or DTS.
+      A fact could have multiple entity identifiers and this indicates the identifier
+      that was used.
+    format: uri
+  report.filing-date:
+    searchable: 'false'
+    type: date
+    database_field: properties->>'filing_date'
+    definition: The date that the filing was published.
+  report.hash:
+    searchable: 'true'
+    type: text
+    database_field: report_hash
+    definition: A hash of all the filings information, facts, footnotes, etc.  Unique
+      to each filing.
+    format: hex_hash
+  report.id:
+    searchable: 'true'
+    type: int
+    database_field: report_id
+    definition: The identifier used to identify a report.
+    format: integer
+  report.source-id:
+    searchable: 'true'
+    type: int
+    database_field: source_id
+    format: integer
+  report.source-name:
+    searchable: 'true'
+    type: text
+    database_field: source_name
+    definition: Name of the source of the data such as SEC.

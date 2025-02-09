@@ -1,0 +1,53 @@
+endpoints:
+  '1': /entity/{entity.id}
+  '2': /entity/search
+examples:
+  '1': https://api.xbrl.us/api/v1/entity/1721?&fields=entity.*
+fields:
+  entity.cik:
+    searchable: 'true'
+    type: varchar
+    database_field: entity_code
+    definition: The CIK is the SEC identifier used to identify a reporting entity.
+      This is the CIK associated with a given fact, DTS or report.
+    format: cik,cid,lei,grip
+  entity.code:
+    searchable: 'true'
+    type: varchar
+    database_field: entity_code
+    definition: The entity identifier for whatever source it is associated with.  All
+      entity identifiers are in this field. This is the CIK associated with a given
+      fact, DTS or report.
+    format: cik,cid,lei,grip
+  entity.id:
+    searchable: 'true'
+    type: int
+    database_field: entity_id
+    definition: The internal identifier used to identify an entity. This will be replaced
+      with the LEI when teh SEC supports the LEI standard.
+    format: integer
+  entity.name:
+    searchable: 'true'
+    type: varchar
+    database_field: entity_name
+    definition: The name of the entity reporting.
+  entity.scheme:
+    searchable: 'false'
+    type: varchar
+    database_field: authority_scheme
+    definition: The scheme of the identifier associated with a fact, report or DTS.
+      A fact could have multiple entity identifiers and this indicates the identifier
+      that was used.
+    format: uri
+  entity.ticker:
+    searchable: 'true'
+    type: varchar
+    database_field: entity_ticker
+    definition: The stock exchange ticker of the entity filing the report. Although
+      a company may have multiple tickers this returns a single value.
+    format: ticker
+  entity.ticker2:
+    searchable: 'true'
+    type: varchar
+    database_field: ticker2(entity.entity_id)
+    format: ticker

@@ -1,0 +1,142 @@
+endpoints:
+  '1': /network/{network.id}/relationship/search
+  '2': /network/relationship/search
+examples:
+  '1': https://api.xbrl.us/api/v1/network/27624452/relationship/search?fields=network.*,relationship.*,relationship.limit(4),relationship.tree-sequence.sort(ASC)
+  '2': https://api.xbrl.us/api/v1/network/relationship/search?network.id=27624452&fields=network.link-name,network.id,relationship,relationship.id.sort(ASC),relationship.*
+fields:
+  dts.entry-point:
+    searchable: 'true'
+    type: varchar
+    database_field: document_uri
+    definition: The url entry point of a discoverable taxonomy set. This is also referred
+      to as the entry point for a taxonomy. A taxonomy can have multiple entry points
+      and the resulting set of taxonomies of using an entry point is called a dts.
+    format: uri
+  dts.id:
+    searchable: 'true'
+    type: int
+    database_field: dts_id
+    definition: The dts identifier for a given group of taxonomies. XBRL facts and
+      linkbases are typically associated with a given report that is associated with
+      a dts.
+    format: integer
+  network.arcrole-uri:
+    searchable: 'true'
+    type: varchar
+    database_field: uri
+    definition: URI that identifies the link types, such as parent-child. However,
+      this is the full uri of http://www.xbrl.org/2003/arcrole/parent-child.
+  network.id:
+    searchable: 'true'
+    type: int
+    database_field: dts_network_id
+    definition: Unique identifier used to identify a specific network. A different
+      identifier is used for networks with the same role but different linkbase types.
+    format: integer
+  network.link-name:
+    searchable: 'true'
+    type: varchar
+    database_field: local_name
+    definition: Name that identifies the link type. This corresponds to a linkbase
+      i.e. presentationLink, calculationLink, definitionLink.
+    format: concept
+  network.role-description:
+    searchable: 'true'
+    type: varchar
+    database_field: description
+    definition: The human readable description of the network role. In some filing
+      regimes this is used to order the networks.
+  network.role-description-like:
+    searchable: 'true'
+    type: varchar
+    database_field: description
+    definition: The human readable description of the network role. In some filing
+      regimes this is used to order the networks. This is used to do a text search
+      on components of the text string.
+  network.role-uri:
+    searchable: 'true'
+    type: varchar
+    database_field: uri
+    definition: The URI of the network role. This would appear as a URI describing
+      the reporting group i.e. http://www.bc.com/role/DisclosureBalanceSheetComponentsDetails.
+    format: uri
+  relationship.id:
+    searchable: 'true'
+    type: int
+    database_field: dts_relationship_id
+    format: integer
+  relationship.order:
+    searchable: 'true'
+    type: decimal
+    database_field: reln_order
+    format: integer
+  relationship.preferred-label:
+    searchable: 'true'
+    type: varchar
+    database_field: uri
+    format: uri
+  relationship.source-concept-id:
+    searchable: 'true'
+    type: int
+    database_field: from_element_id
+    format: integer
+  relationship.source-is-abstract:
+    searchable: 'false'
+    type: boolean
+    database_field: abstract
+    format: boolean
+  relationship.source-name:
+    searchable: 'true'
+    type: varchar
+    database_field: local_name
+    format: concept
+  relationship.source-namespace:
+    searchable: 'true'
+    type: varchar
+    database_field: namespace
+    format: uri
+  relationship.target-concept-id:
+    searchable: 'true'
+    type: int
+    database_field: to_element_id
+    format: integer
+  relationship.target-datatype:
+    searchable: 'false'
+    type: varchar
+    database_field: local_name
+    format: concept
+  relationship.target-is-abstract:
+    searchable: 'true'
+    type: boolean
+    database_field: abstract
+    format: boolean
+  relationship.target-label:
+    searchable: 'true'
+    type: varchar
+    database_field: label
+    format: uri
+  relationship.target-name:
+    searchable: 'true'
+    type: varchar
+    database_field: local_name
+    format: concept
+  relationship.target-namespace:
+    searchable: 'true'
+    type: varchar
+    database_field: namespace
+    format: uri
+  relationship.tree-depth:
+    searchable: 'true'
+    type: int
+    database_field: tree_depth
+    format: integer
+  relationship.tree-sequence:
+    searchable: 'true'
+    type: int
+    database_field: tree_sequence
+    format: integer
+  relationship.weight:
+    searchable: 'false'
+    type: decimal
+    database_field: calculation_weight

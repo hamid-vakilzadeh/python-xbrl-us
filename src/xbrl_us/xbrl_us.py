@@ -14,7 +14,6 @@ from retry import retry
 from tqdm import tqdm
 from yaml import safe_load
 
-from .utils import Parameters
 from .utils import exceptions
 
 _dir = Path(__file__).resolve()
@@ -204,7 +203,7 @@ def _convert_params_to_dict_decorator():
         @wraps(func)
         def wrapper(*args, **kwargs):
             """
-            Convert the Parameters object to a dictionary before building the query.
+            Check if the parameters passed to the query method are in dictionary format.
             This is a decorator for the ``query`` method in XBRL class.
 
             Args:
@@ -215,9 +214,7 @@ def _convert_params_to_dict_decorator():
                 The result of the wrapped function.
             """
             parameters = kwargs.get("parameters")
-            if isinstance(parameters, Parameters):
-                kwargs["parameters"] = parameters.get_parameters_dict()
-            elif parameters and not isinstance(parameters, dict):
+            if parameters and not isinstance(parameters, dict):
                 raise ValueError(f"Parameters must be a dict or Parameters object. " f"Got {type(parameters)} instead.")
             return func(*args, **kwargs)
 
@@ -339,6 +336,9 @@ class XBRL:
         self._access_token_expires_at = 0
         self._refresh_token_expires_at = 0
 
+
+        self.get_meta_endpoints()
+        self._ensure_access_token()
         # If the class was initiated without any arguments, try finding the user info file
         if not (client_id and client_secret and username and password):
             self._get_user()
@@ -486,6 +486,8 @@ class XBRL:
                 self._get_token(grant_type="refresh_token", refresh_token=self.refresh_token)
             else:
                 self._get_token()
+        if self.account_limit is None:
+            self._get_account_limit()
 
     @retry(exceptions=_query_exceptions, tries=3, delay=2, backoff=2, logger=None)
     def _make_request(self, method, url, **kwargs) -> requests.Response:
@@ -526,19 +528,12 @@ class XBRL:
 
     def _get_account_limit(
         self,
-        url: str,
-        params: dict,
     ):
         # Query the API with a limit of more than 5000.
-        fields = params["fields"]
-        new_fields = ",".join([fields, "fact.limit(5001)"])
-        params["fields"] = new_fields
+        params = "fields=fact.value,fact.limit(5001)"
+        url = "https://api.xbrl.us/api/v1/fact/search"
 
-        response = self._make_request(
-            method="get",
-            url=url,
-            params=params,
-        )
+        response = requests.get(url=url, params=params, headers={"Authorization": f"Bearer {self.access_token}"}, timeout=5)
 
         # Extract the limit from the response message.
         match = re.search(r"user limit amount is (\d+)", response.text)
@@ -610,12 +605,130 @@ class XBRL:
 
         return f"https://api.xbrl.us{url}?"
 
+    def get_meta_endpoints(self, force_refresh=False):
+        """
+        Get the endpoints from Meta API and cache them to meta/endpoints.yml.
+        Additionally caches each endpoint's metadata and generates type definitions.
+        Only fetches from API if cache is older than 24h or force_refresh=True.
+
+        Args:
+            force_refresh (bool): If True, force a refresh of the cache regardless of age
+
+        Returns:
+            dict: The endpoints metadata
+        """
+        from datetime import datetime
+        from datetime import timedelta
+        from datetime import timezone
+
+        import yaml
+
+        from .utils.generator import generate_all_types
+
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.INFO)
+
+        # Create required directories
+        meta_dir = _dir.parent / "meta"
+        meta_dir.mkdir(exist_ok=True)
+
+        methods_dir = meta_dir / "meta_endpoints"
+        methods_dir.mkdir(exist_ok=True)
+
+        types_dir = _dir.parent / "models" / "types"
+        types_dir.mkdir(exist_ok=True, parents=True)
+
+        # Create necessary __init__.py files
+        for dir_path in [_dir.parent / "models", types_dir]:
+            init_file = dir_path / "__init__.py"
+            if not init_file.exists():
+                init_file.touch()
+
+        cache_file = meta_dir / "endpoints.yml"
+
+        # Check if we should use cached data
+        if not force_refresh and cache_file.exists():
+            cache_stat = cache_file.stat()
+            cache_age = datetime.now(tz=timezone.utc) - datetime.fromtimestamp(cache_stat.st_mtime, tz=timezone.utc)
+
+            if cache_age < timedelta(hours=24):
+                logger.info("Using cached endpoints data (age: %s hours)", round(cache_age.total_seconds() / 3600, 1))
+                with cache_file.open("r") as f:
+                    return yaml.safe_load(f)
+
+        # Fetch fresh data from API
+        logger.info("Fetching fresh endpoints data from API...")
+        self._ensure_access_token()
+        response = requests.get("https://api.xbrl.us/api/v1/meta", headers={"Authorization": f"Bearer {self.access_token}"}, timeout=5)
+
+        if response.status_code != 200:
+            raise exceptions.XBRLError(f"Failed to fetch Meta endpoints: {response.text}")
+
+        # Convert to YAML and save main endpoints file
+        endpoints = response.json()
+        logger.info("Found %d endpoints", len(endpoints))
+
+        with cache_file.open("w") as f:
+            yaml.dump(endpoints, f, sort_keys=False)
+
+        # Dictionary to store all endpoint metadata
+        all_endpoint_metadata = {}
+
+        logger.info("Fetching metadata for each endpoint...")
+        # Fetch and cache metadata for each endpoint
+        with tqdm(total=len(endpoints), desc="Processing endpoints", unit="endpoint") as pbar:
+            for endpoint_name, endpoint_data in endpoints.items():
+                if "link" not in endpoint_data:
+                    logger.warning("Skipping %s - no link found", endpoint_name)
+                    pbar.update(1)
+                    continue
+
+                # Get metadata for this endpoint
+                try:
+                    response = requests.get(endpoint_data["link"], headers={"Authorization": f"Bearer {self.access_token}"}, timeout=5)
+
+                    if response.status_code != 200:
+                        logger.warning("Failed to fetch metadata for %s: %s", endpoint_name, response.text)
+                        pbar.update(1)
+                        continue
+
+                    endpoint_meta = response.json()
+                    all_endpoint_metadata[endpoint_name] = endpoint_meta
+
+                    # Cache the metadata
+                    filename = endpoint_name.replace("https://api.xbrl.us/api/v1/meta/", "").replace("/", " ")
+                    if not filename.endswith(".yml"):
+                        filename += ".yml"
+
+                    method_file = methods_dir / filename
+                    with method_file.open("w") as f:
+                        yaml.dump(endpoint_meta, f, sort_keys=False)
+
+                except requests.exceptions.RequestException as e:
+                    logger.error("Error fetching metadata for %s: %s", endpoint_name, str(e))
+
+                pbar.update(1)
+
+        # Generate all type definitions
+        logger.info("Generating type definitions...")
+        generated_files = generate_all_types(all_endpoint_metadata)
+
+        # Write types files
+        types_file = types_dir / "endpoint_types.py"
+        types_file.write_text(generated_files["endpoint_types.py"])
+
+        init_file = types_dir / "__init__.py"
+        init_file.write_text(generated_files["__init__.py"])
+
+        logger.info("Endpoints metadata and type definitions generated successfully")
+        return {"endpoints": endpoints}
+
     @_convert_params_to_dict_decorator()
     def query(
         self,
         method: str,
         fields: Optional[list] = None,
-        parameters: Optional[Union[Parameters, dict]] = None,
+        parameters: Optional[Union[dict]] = None,
         limit: Optional[int] = None,
         sort: Optional[dict] = None,
         unique: Optional[bool] = False,
@@ -647,6 +760,7 @@ class XBRL:
             timeout (int=5): The number of seconds to wait for a response from the server. Defaults to 5 seconds.
                 If *None* will wait indefinitely.
 
+
         Returns:
             json | DataFrame: The results of the query.
         """
@@ -658,10 +772,6 @@ class XBRL:
             limit = 999999999
 
         query_params = _build_query_params(method=method, fields=fields, parameters=parameters, sort=sort, limit=100)
-
-        # check if the account limit has been set
-        if not self.account_limit:
-            self._get_account_limit(url=method_url, params=query_params)
 
         # ensure the limit is not greater than the account limit
         chunk_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
