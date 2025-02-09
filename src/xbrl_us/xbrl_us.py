@@ -510,14 +510,14 @@ class XBRL:
     def get_meta_endpoints(self, force_refresh=False):
         """
         Get the endpoints from Meta API and cache them to meta/endpoints.yml.
-        Additionally caches each endpoint's metadata and generates multiple autocompletion helpers.
+        Additionally caches each endpoint's metadata and generates type definitions.
         Only fetches from API if cache is older than 24h or force_refresh=True.
 
         Args:
             force_refresh (bool): If True, force a refresh of the cache regardless of age
 
         Returns:
-            dict: The endpoints metadata and a dictionary of endpoint accessors
+            dict: The endpoints metadata
         """
         from datetime import datetime
         from datetime import timedelta
@@ -525,7 +525,7 @@ class XBRL:
 
         import yaml
 
-        from .utils.generator import generate_typed_dict
+        from .utils.generator import generate_all_types
 
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
@@ -573,15 +573,10 @@ class XBRL:
         with cache_file.open("w") as f:
             yaml.dump(endpoints, f, sort_keys=False)
 
-        # Generate types module content
-        types_content = [
-            '"""This module was automatically generated. Do not edit manually."""',
-            "from typing import TypedDict, Dict, Any",
-            "from typing_extensions import NotRequired",
-            "",
-        ]
+        # Dictionary to store all endpoint metadata
+        all_endpoint_metadata = {}
 
-        logger.info("Fetching metadata and generating helpers for each endpoint...")
+        logger.info("Fetching metadata for each endpoint...")
         # Fetch and cache metadata for each endpoint
         with tqdm(total=len(endpoints), desc="Processing endpoints", unit="endpoint") as pbar:
             for endpoint_name, endpoint_data in endpoints.items():
@@ -600,6 +595,7 @@ class XBRL:
                         continue
 
                     endpoint_meta = response.json()
+                    all_endpoint_metadata[endpoint_name] = endpoint_meta
 
                     # Cache the metadata
                     filename = endpoint_name.replace("https://api.xbrl.us/api/v1/meta/", "").replace("/", " ")
@@ -610,20 +606,23 @@ class XBRL:
                     with method_file.open("w") as f:
                         yaml.dump(endpoint_meta, f, sort_keys=False)
 
-                    # 2. TypedDict definitions
-                    types_content.append(generate_typed_dict(endpoint_name, endpoint_meta))
-                    types_content.append("")  # Add blank line between classes
-
                 except requests.exceptions.RequestException as e:
                     logger.error("Error fetching metadata for %s: %s", endpoint_name, str(e))
 
                 pbar.update(1)
 
-        # Write combined types file
-        types_file = types_dir / "endpoint_types.py"
-        types_file.write_text("\n".join(types_content))
+        # Generate all type definitions
+        logger.info("Generating type definitions...")
+        generated_files = generate_all_types(all_endpoint_metadata)
 
-        logger.info("Endpoints metadata and helpers generated successfully")
+        # Write types files
+        types_file = types_dir / "endpoint_types.py"
+        types_file.write_text(generated_files["endpoint_types.py"])
+
+        init_file = types_dir / "__init__.py"
+        init_file.write_text(generated_files["__init__.py"])
+
+        logger.info("Endpoints metadata and type definitions generated successfully")
         return {"endpoints": endpoints}
 
     @_convert_params_to_dict_decorator()
