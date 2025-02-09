@@ -641,32 +641,26 @@ class XBRL:
     ) -> Union[dict, DataFrame]:
         """
 
-                Args:
-                    method (str): The name of the method to query.
-                    fields (list): The fields query parameter establishes the details of the data to return for the specific query.
-                    parameters (dict | Parameters): The parameters for the query.
-                                    limit (int): A limit restricts the number of results returned by the query.
-        The limit attribute can only be added to an object type and not a property.
-        For example, to limit the number of facts in a query, {"fact": 10}.
+        Args:
+            method (str): The name of the method to query.
+            fields (list): The fields query parameter establishes the details of the data to return for the specific query.
+            parameters (dict | Parameters): The parameters for the query.
+            limit (int): A limit restricts the number of results returned by the query.
                 The limit attribute can only be added to an object type and not a property.
-                        For example, to limit the number of facts in a query, {"fact": 10}.
-        The limit attribute can only be added to an object type and not a property.
-                        For example, to limit the number of facts in a query, {"fact": 10}.
-                    sort (dict): Any returned value can be sorted in ascending or descending order,
-                        using ``ASC`` or ``DESC`` (i.e. {"report.document-type": "DESC"}.
-        Multiple sort criteria can be defined and the sort sequence is determined by
-                        the order of the items in the dictionary.
-                    unique (bool): If ``True`` returns only unique values.
-                    as_dataframe (bool): If ``True`` returns the results as a ``D`` else returns the data
-                        as ``jsonataFrame`` else returns the data
-                        as ``json``.
-                    print_que=Falsery (bool=False): Whether to print the query.
-                    ut: The number of seconds to wait for a  from the server. Defaults to 5 seconds.
-                        If ``None`` will wait indefinitelyresponse from the server. Defaults to 5 seconds.
-                        If ``None`` will wait indefinitely.
+                For example, to limit the number of facts in a query, {"fact": 10}.
+            sort (dict): Any returned value can be sorted in ascending or descending order,
+                using ``ASC`` or ``DESC`` (i.e. {"report.document-type": "DESC"}).
+                Multiple sort criteria can be defined and the sort sequence is determined by
+                the order of the items in the dictionary.
+            unique (bool): If ``True`` returns only unique values.
+            as_dataframe (bool): If ``True`` returns the results as a ``DataFrame`` else returns the data
+                as ``json``.
+            print_query (bool): Whether to print the query.
+            timeout (int): The number of seconds to wait for a response from the server. Defaults to 5 seconds.
+                If ``None`` will wait indefinitely.
 
-                Returns:
-                    dict | DataFrame: The results of the query.
+        Returns:
+            dict | DataFrame: The results of the query.
         """
 
         method_url = self._get_method_url(method_name=method, parameters=parameters, unique=unique)
