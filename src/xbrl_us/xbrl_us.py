@@ -336,7 +336,6 @@ class XBRL:
         self._access_token_expires_at = 0
         self._refresh_token_expires_at = 0
 
-
         self.get_meta_endpoints()
         self._ensure_access_token()
         # If the class was initiated without any arguments, try finding the user info file
