@@ -186,50 +186,7 @@ We are also specifying the fields we want to retrieve
 in the response. The ``limit`` parameter restricts the
 number of facts returned to 100, and ``as_dataframe=True``
 ensures the response is returned as a ``Pandas DataFrame``.
-
-Alternatively, you can use the ``Parameters`` and ``Fields``
-classes provided by the library to make the query more
-readable, less prone to errors, and easier to maintain:
-
-.. code-block:: python
-
-    from xbrl_us.utils import Parameters, Fields
-
-    response = xbrl.query(
-        method='fact search',
-        parameters=Parameters(
-            concept_local_name=[
-                'OperatingIncomeLoss',
-                'GrossProfit',
-                'OperatingExpenses',
-                'OtherOperatingIncomeExpenseNet'
-            ],
-            period_fiscal_year=[2009, 2010],
-            report_sic_code=range(2800, 2899)
-        ),
-        fields=[
-            Fields.REPORT_ACCESSION,
-            Fields.PERIOD_FISCAL_YEAR,
-            Fields.PERIOD_END,
-            Fields.PERIOD_FISCAL_PERIOD,
-            Fields.FACT_ULTIMUS,
-            Fields.UNIT,
-            Fields.CONCEPT_LOCAL_NAME,
-            Fields.FACT_VALUE,
-            Fields.FACT_ID,
-            Fields.ENTITY_ID,
-            Fields.ENTITY_CIK,
-            Fields.ENTITY_NAME,
-            Fields.REPORT_SIC_CODE,
-        ],
-        limit=100,
-        as_dataframe=True
-    )
-
-
-This alternative approach also allows you to
-take advantage of the autocomplete feature of your IDE to
-easily find the parameters and fields.
+the parameters and fields.
 
 Perform Additional Queries
 ----------------------------------
