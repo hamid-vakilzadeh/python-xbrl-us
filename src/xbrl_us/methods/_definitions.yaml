@@ -1,0 +1,280 @@
+concept.id:
+  type: array[string]
+  description: A unique integer for a concept that can be searched. This is a faster way to retrieve the details of a fact, however it is namespace specific and will only search for the use of a concept for a specific schema.
+  placeholder: e.g., 1,3,65,...
+concept.is-base:
+  type: boolean
+  description: Indicates whether the concept is a base element in the reporting taxonomy or a company extension.
+concept.is-monetary:
+  type: boolean
+  description: Indicates whether the concept represents a monetary value.
+concept.local-name:
+  type: array[string]
+  description: The name of the concept in the base schema of a taxonomy, excluding the namespace. Use this to search across multiple taxonomies where the local name is known to be consistent over time.
+  placeholder: e.g., GrossProfit,OperatingExpenses,...
+concept.namespace:
+  type: array[string]
+  description: The namespace of the concept used to identify a fact.
+  placeholder: "http://www.nicholasfinancial.com/2011-06-30,http://xbrl.sec.gov/dei/2011-01-31,..."
+dimension.is-base:
+  type: boolean
+  description: Indicates whether the dimension (aspect) is a base element in the reporting taxonomy or a company extension.
+dimension.local-name:
+  type: array[string]
+  description: The local name of the dimension used with the fact.
+  placeholder: e.g., ProductLine,ProductLineAxis,...
+dimension.namespace:
+  type: array[string]
+  description: The namespace of the dimension used with the fact.
+  placeholder: ""
+dimensions.count:
+  type: array[integer]
+  description: The number of dimensional qualifiers associated with a given fact. A comma-delimited list will return facts with 0, 1, 2, etc., dimensions.
+  values: {"min":0, "max":1000} # TODO: check max
+dimensions.id:
+  type: string
+  description: The ID of the dimension.
+  placeholder: ""
+dts.entry-point:
+  type: string
+  description: The URL entry point of a discoverable taxonomy set. Also known as the entry point for a taxonomy.
+  placeholder: ""
+dts.id:
+  type: array[string]
+  description: A unique integer identifier for a given group of taxonomies, typically associated with XBRL facts and linkbases.
+  placeholder: "e.g., 1,3,650,745178..."
+dts.target-namespace:
+  type: string
+  description: The target namespace of a discoverable taxonomy set (DTS).
+  placeholder: "e.g., http://www.nicholasfinancial.com/2011-06-30,..."
+entity.cik:
+  type: array[string]
+  description: The SEC identifier used to identify a reporting entity. This is the CIK associated with a given fact, DTS, or report.
+  placeholder: "e.g., 0001375877,0000006281,..."
+entity.id:
+  type: array[string]
+  description: The internal identifier used to identify an entity. This will be replaced with the LEI when the SEC supports the LEI standard.
+  placeholder: "e.g., 1325,8700,..."
+fact.has-dimensions:
+  type: boolean
+  description: Indicates whether the fact has any dimensions associated with it.
+fact.hash:
+  type: string
+  description: The hash derived from the aspect properties of the fact. Each fact will have a different hash in a given report, but identical facts may have the same hash over time.
+  placeholder: "\x89f68ff9bf2a312dcb06d902c48d51502261f094d734c0c3d0e67038" # TODO: report bug
+fact.id:
+  type: array[string]
+  description: The internal identifier used to identify a fact.
+  placeholder: "e.g., 1,2,10,261846726,261846008,..."
+fact.is-extended:
+  type: boolean
+  description: Indicates if the fact is comprised of an extension concept, extension axis, or extension member.
+fact.text-search:
+  type: array[string]
+  description: Used to define text in a text search. Cannot be output as a field. Allows searching for strings within *fact.value* data to locate specific names, topics, or references within a text block.
+    Returned fields include *fact.example* and *fact.highlighted-value*.
+  placeholder: "e.g., Tsunami | Earthquake will return text that contain either Earthquake or Tsunami."
+fact.ultimus:
+  type: boolean
+  description: Indicates if the fact is the latest value reported. True represents the latest value, while false means the value has been superseded by a more recent fact.
+fact.ultimus-index:
+  type: array[integer]
+  description: Records the incarnation of the fact. Represents the reverse order of incarnation for the fact's reporting. A value of 1 indicates the latest value, while higher values indicate subsequent reports.
+  values: {"min": 1, "max": 500} # TODO: check max
+fact.value:
+  type: string
+  description: The value of the fact as a text value, including numerical and non-numerical values reported.
+  placeholder: ""
+fact.value-link:
+  type: string
+  description: A URL to the rendered fact.value data. For data encoded as HTML (text block disclosures), the URL displays the formatted data excerpted from the full report.
+  placeholder: ""
+member.is-base:
+  type: boolean
+  description: Indicates if the member is a base element in the reporting taxonomy or a company extension.
+member.local-name:
+  type: array[string]
+  description: The local name of the member.
+  placeholder: ""
+member.typed-value:
+  type: array[string]
+  description: Typed member value.
+  placeholder: ""
+member.member-value:
+  type: array[string]
+  description: Typed member or explicit member value.
+  placeholder: ""
+member.namespace:
+  type: string
+  description: The namespace of the member.
+  placeholder: ""
+period.calendar-period:
+  type: array[string]
+  description: The period identifier for the fact, such as year (Y), quarters (Q1, Q2, Q3, Q4), cumulative quarters (3QCUM),
+    and half years (H1, H2). The calendar period aligns the periods with a calendar year.
+  placeholder: Y,Q1,Q2,Q3,Q4,3QCUM,H1,H2
+period.fiscal-id:
+  type: string
+  description: The identifier of the fiscal period. Each period has an assigned hash that identifies the fiscal period.
+  placeholder: ""
+period.fiscal-period:
+  type: array[string]
+  description: The period identifier for the fact, such as year (Y), quarters (Q1, Q2, Q3, Q4), cumulative quarters (3QCUM), and half years (H1, H2). The fiscal period aligns the periods with a fiscal year.
+  placeholder: Y,Q1,Q2,Q3,Q4,3QCUM,H1,H2
+period.fiscal-year:
+  type: array[integer]
+  description: The fiscal year in which the fact is applicable in the format 'YYYY'.
+  values: {"min":1953, "max":2023}
+period.id:
+  type: string
+  description: The identifier of the calendar period. Each period has an assigned hash that identifies the period.
+  placeholder: ""
+period.year:
+  type: array[integer]
+  description: The calendar year in which the fact is applicable in the format 'YYYY'.
+  values: {"min":1953, "max":2023}
+report.accession:
+  type: string
+  description: The unique identifier (inclusive of the entity CIK) used by the SEC for a report.
+  placeholder: ""
+report.creation-software:
+  type: string
+  description: The creation software that was used to create a report.
+  placeholder: ""
+report.document-type:
+  type: array[string]
+  description: The document type of the report, such as 10-K, 10-Q, etc.
+  placeholder: ""
+report.document-index:
+  type: array[integer]
+  description: Allows retrieval of reports other than the most current. A value of 1 gets the latest report, 2 gets the second-to-last report, and so on.
+  values: {"min":1, "max":500}
+report.entry-url:
+  type: string
+  description: The URL entry point of a discoverable taxonomy set. Represents the DTS entry point for a specific report.
+  placeholder: ""
+report.id:
+  type: array[string]
+  description: The internal identifier assigned to a report.
+  placeholder: ""
+report.restated:
+  type: boolean
+  description: Indicates if the report has been subsequently restated. True represents that the
+report.restated-index:
+  type: array[integer]
+  description: A numerical indicator that identifies if a report has been restated. 1 indicates the latest report, while higher values indicate updated copies of the report.
+  values: {"min":1, "max":3} # TODO: check max
+report.sec-url:
+  type: string
+  description: The URL at which the details of a filing can be accessed from the SEC EDGAR system.
+  placeholder: ""
+report.sic-code:
+  type: array[integer]
+  description: The Standard Industrial Classification (SIC) code used by the SEC in the United States.
+  values: {"min":100, "max":9999}
+report.source-id:
+  type: integer
+  description: ID of the filing program.
+report.source-name:
+  type: string
+  description: Name of the source of the data, such as SEC.
+  placeholder: ""
+unit:
+  type: array[string]
+  description: The unit of measure associated with the fact, such as USD.
+  placeholder: e.g. USD
+concept.balance-type:
+  type: integer
+  description: The balance type of a concept. This can be either debit, credit or not defined.
+concept.datatype:
+  type: string
+  description: The datatype of the concept such as monetary or string.
+  placeholder: monetaryItemType
+concept.period-type:
+  type: integer
+  description: The period type of the concept. This can be either duration or instant.
+  placeholder: duration #TODO: check if this is correct
+dimensions:
+  description: Returns an array of dimensions associated with the given fact;
+    *dimension_namespace*, *dimension_local_name*, *member_namespace*, *member_local_name*
+entity.name:
+  type: string
+  description: The name of the entity reporting.
+  placeholder: ""
+entity.scheme:
+  type: string
+  description: The scheme of the identifier associated with a fact, report or DTS. A fact could have multiple entity identifiers and this indicates the identifier that was used.
+  placeholder: "https://www.sec.gov/CIK"
+fact.decimals:
+  type: string
+  description: The decimal value associated with a fact. This can be either a number representing decimal places or null. Infinite values are returned as null.
+  placeholder: ""
+fact.example:
+  type: string
+  description: Excerpt of the fact value where text string search using fact.text-search matched the request.
+  placeholder: ""
+fact.highlighted-value:
+  type: string
+  description: Full fact value containing highlighted indication of fact.text-search result (search result appears in bold blue font).
+  placeholder: ""
+fact.inline-display-value:
+  type: string
+  description: The original value that was shown in the inline filing prior to being transformed to an XBRL value.
+  placeholder: ""
+fact.inline-is-hidden:
+  type: boolean
+  description: Boolean that indicates if the fact was hidden in the inline document.
+fact.inline-negated:
+  type: boolean
+  description: Boolean that indicates if the fact was negated in the inline document.
+fact.inline-scale:
+  type: integer
+  description: Integer that indicates the scale used on the fact in the inline document.
+  placeholder: 3 # TODO: check if this is correct
+fact.numerical-value:
+  type: number
+  description: The numerical value of the fact that was reported.
+fact.xml-id:
+  type: string
+  description: The xml-id included in the filing. Many facts may not have this identifier as it is dependent on the filer adding it. In inline filings it can be used to go directly to the fact value in the filing.
+  placeholder: ""
+period.end:
+  type: string
+  description: Period end date of the fact if applicable.
+  placeholder: ""
+period.instant:
+  type: string
+  description: Instant in time at which the fact was measured, only applicable for facts with a period type of instant.
+  placeholder: ""
+period.start:
+  type: string
+  description: Period start date of the fact if applicable.
+  placeholder: "2018-01-01" # TODO: check if this is correct
+report.filing-date:
+  type: string
+  description: The date that the filing was published.
+  placeholder: "2011-08-09" # TODO: check if this is correct
+report.period-end:
+  type: string
+  description: The period end date or balance date associated with a given report.
+  placeholder: ""
+report.type:
+  type: string
+  description: The report type indicates if the report was filed in inline XBRL or XBRL format. The values can be either instance or inline.
+  placeholder: e.g., inline
+unit.denominator:
+  type: string
+  description: The unit of measure used as the denominator for a fact.
+  placeholder: ""
+unit.numerator:
+  type: string
+  description: The unit of measure used as the numerator for a fact.
+  placeholder: ""
+unit.qname:
+  type: string
+  description: The full qname of the unit of measure, includes the namespace of the unit in Clark notation.
+  placeholder: ""
+fact.*:
+  type: string
+  description: a notation to include all fact attributes
+  placeholder: ""

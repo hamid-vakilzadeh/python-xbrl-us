@@ -2,6 +2,30 @@
 Changelog
 =========
 
+0.0.43 (2024-05-08)
+~~~~~~~~~~~~~~~~~~~
+
+* fixed and issue with the offset where the query would not return the correct results
+
+0.0.42 (2023-08-05)
+~~~~~~~~~~~~~~~~~~~
+
+* Bug fixes
+* Improved Browser Interface
+* Added new methods to the API for Browser Interface
+
+0.0.41 (2023-08-04)
+~~~~~~~~~~~~~~~~~~~
+
+* Bug fixes
+
+0.0.40 (2023-08-03)
+~~~~~~~~~~~~~~~~~~~
+
+* Improved Browser Interface
+* improved error handling for requests
+* Bug fixes
+
 0.0.32 (2023-07-17)
 ~~~~~~~~~~~~~~~~~~~
 

@@ -1,3 +1,11 @@
+description: Search for XBRL facts or primary items based on the details of a hypercube.
+long_description: A multi-dimensional definition of related data synonymous with a
+  business intelligence or data warehousing "cube".
+  A cube is defined by combining a set of dimensions with a set of concepts.
+  Cubes are often referred to as "hypercubes", as unlike a physical, 3-dimensional cube,
+  a hypercube may have any number of dimensions. Approximate technical term "hypercube".
+  Cube here is used to mean the combination of hypercubes in a single base set
+reference: https://www.xbrl.org/guidance/xbrl-glossary/
 parameters:
   - cube.description
   - cube.drs-role-uri
@@ -44,21 +52,7 @@ fields:
   - unit
   - cube.*
 limit:
-  - assertion
-  - concept
   - cube
-  - dimension
-  - document
-  - dts
-  - entity
-  - fact
-  - label
-  - network
-  - reference
-  - relationship
-  - report
-sort:
-  -
 offset:
-  -
+  - cube
 url: /api/v1/cube/search

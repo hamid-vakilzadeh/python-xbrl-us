@@ -16,9 +16,33 @@ from yaml import safe_load
 
 from .utils import exceptions
 
-logging.basicConfig()
-
 _dir = Path(__file__).resolve()
+
+# Get the home directory path as a Path object
+_home_directory = Path.home()
+
+# Join the home directory path with the file name to get the full file path
+user_info_path = _home_directory / ".xbrl-us"
+
+
+# logging.basicConfig()
+class OneTimeWarningFilter(logging.Filter):
+    def __init__(self):
+        super().__init__()
+        self.msgs = set()
+
+    def filter(self, record):
+        if record.msg not in self.msgs:
+            self.msgs.add(record.msg)
+            return True
+        return False
+
+
+logger = logging.getLogger(__name__)
+handler = logging.StreamHandler()
+handler.addFilter(OneTimeWarningFilter())
+logger.addHandler(handler)
+logger.setLevel(logging.WARNING)
 
 
 def _remove_special_fields(fields):
@@ -86,7 +110,7 @@ def _validate_parameters():
             kwargs.get("print_query")
 
             # get the allowed parameters, fields, limit, sort, and offset from the yaml file
-            allowed_params = list(allowed_for_query.get("parameters", set()).keys())
+            allowed_params = allowed_for_query.get("parameters", set())
             allowed_fields = allowed_for_query.get("fields", set())
             allowed_limit_fields = allowed_for_query.get("limit", set())
             allowed_sort_fields = [field for field in allowed_fields if "*" not in field]
@@ -122,9 +146,9 @@ def _validate_parameters():
                     raise exceptions.XBRLInvalidTypeError(key=limit, expected_type=int, received_type=type(limit))
 
             else:
-                warnings.warn(
-                    "You have not set a limit; returning the first page only.",
-                    UserWarning,
+                logger.warning(
+                    "No limit set: this will automatically limit the number of results to your account limit."
+                    " if you want more results, set the limit.",
                     stacklevel=2,
                 )
 
@@ -141,9 +165,8 @@ def _validate_parameters():
                     if value.lower() not in ["asc", "desc"]:
                         raise exceptions.XBRLInvalidValueError(key=value, param="sort", expected_value=["asc", "desc"])
             else:
-                warnings.warn(
-                    "You have not passed a sort value; for reliable results, set a field to sort.",
-                    UserWarning,
+                logger.warning(
+                    "No sort field: It is recommended to sort by a field for reliable results.",
                     stacklevel=2,
                 )
 
@@ -152,8 +175,13 @@ def _validate_parameters():
                 if not isinstance(offset, int):
                     raise exceptions.XBRLInvalidTypeError(key=offset, expected_type=int, received_type=type(offset))
 
-            limit_field = next(iter(allowed_limit_fields))
-            offset_field = next(iter(allowed_offset_fields))
+            limit_field = None
+            offset_field = None
+
+            if allowed_limit_fields:
+                limit_field = next(iter(allowed_limit_fields), None)
+            if allowed_offset_fields:
+                offset_field = next(iter(allowed_offset_fields), None)
 
             return func(
                 fields=fields,
@@ -222,6 +250,7 @@ def _build_query_params(
         dict: The query parameters that will be submitted to the API.
     """
     query_params = {}
+    fields_copy = fields[:]
 
     if parameters:
         # convert the parameters to a string and add it to the query_params
@@ -231,33 +260,40 @@ def _build_query_params(
 
     # Handle sort
     if sort:
+        sort_copy = dict(sort)
+
         # check if the sort field is in the fields list
-        for field, direction in sort.items():
+        for field, direction in sort_copy.items():
             # name the field name followed by .sort(value)
             sorted_arg = f"{field}.sort({direction.upper()})"
-            if field in fields:
+            if field in fields_copy:
                 # if the field is in the fields list, remove the field
-                fields.remove(field)
-            fields.append(sorted_arg)
+                field_index = fields_copy.index(field)
+                fields_copy.remove(field)
+                fields_copy.insert(field_index, sorted_arg)
+            else:
+                fields_copy.append(sorted_arg)
 
     # Handle limit
     if limit:
-        # name and add the field name followed by .limit(value)
-        limit_arg = f"{limit_field}.limit({limit})"
-        if limit_field in fields:
-            # if the field is in the fields list, remove the field
-            fields.remove(limit_field)
-        fields.append(limit_arg)
+        if limit_field is not None:
+            # name and add the field name followed by .limit(value)
+            limit_arg = f"{limit_field}.limit({limit})"
+            if limit_field in fields_copy:
+                # if the field is in the fields list, remove the field
+                fields_copy.remove(limit_field)
+            fields_copy.append(limit_arg)
 
     # Handle offset
     if offset:
-        # name and add the field name followed by .offset(value)
-        offset_arg = f"{offset_field}.offset({offset})"
-        if offset_field in fields:
-            fields.remove(offset_field)
-        fields.append(offset_arg)
+        if offset_field is not None:
+            # name and add the field name followed by .offset(value)
+            offset_arg = f"{offset_field}.offset({offset})"
+            if offset_field in fields_copy:
+                fields_copy.remove(offset_field)
+            fields_copy.append(offset_arg)
 
-    query_params["fields"] = ",".join(fields)
+    query_params["fields"] = ",".join(fields_copy)
 
     return query_params
 
@@ -282,10 +318,10 @@ class XBRL:
 
     def __init__(
         self,
-        client_id: str,
-        client_secret: str,
-        username: str,
-        password: str,
+        client_id: Optional[str] = None,
+        client_secret: Optional[str] = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
         grant_type: str = "password",
     ):
         self._url = "https://api.xbrl.us/oauth2/token"
@@ -300,84 +336,107 @@ class XBRL:
         self._access_token_expires_at = 0
         self._refresh_token_expires_at = 0
 
+
         self.get_meta_endpoints()
         self._ensure_access_token()
+        # If the class was initiated without any arguments, try finding the user info file
+        if not (client_id and client_secret and username and password):
+            self._get_user()
 
     @staticmethod
     def methods():
         """
-        Get the names of the attributes that are allowed to be used for
-            the given method. A list of available methods are:
+        Get the names of the methods that are allowed to be used for
+            as a ``method`` name. A list of available methods along with
+            their corresponding API endpoints is shown below.
 
             ===================================  ==================================================
             Method                               API Endpoint
             ===================================  ==================================================
-            ``assertion search``                  ``/api/v1/assertion/search``
-            ``assertion validate``                ``/api/v1/assertion/validate``
-            ``concept name search``               ``/api/v1/concept/{concept.local-name}/search``
-            ``concept search``                    ``/api/v1/concept/search``
-            ``cube search``                       ``/api/v1/cube/search``
-            ``dimension search``                  ``/api/v1/dimension/search``
-            ``document search``                   ``/api/v1/document/search``
-            ``dts id concept label``              ``/api/v1/dts/{dts.id}/concept/{concept.local-name}/label``
-            ``dts id concept name``               ``/api/v1/dts/{dts.id}/concept/{concept.local-name}``
-            ``dts id concept reference``          ``/api/v1/dts/{dts.id}/concept/{concept.local-name}/reference``
-            ``dts id concept search``             ``/api/v1/dts/{dts.id}/concept/search``
-            ``dts id network``                    ``/api/v1/dts/{dts.id}/network``
-            ``dts id network search``             ``/api/v1/dts/{dts.id}/network/search``
-            ``dts search``                        ``/api/v1/dts/search``
-            ``entity id``                         ``/api/v1/entity/{entity.id}``
-            ``entity id report search``           ``/api/v1/entity/{entity.id}/report/search``
-            ``entity report search``              ``/api/v1/entity/report/search``
-            ``entity search``                     ``/api/v1/entity/search``
-            ``fact id``                           ``/api/v1/fact/{fact.id}``
-            ``fact search``                       ``/api/v1/fact/search``
-            ``fact search oim``                   ``/api/v1/fact/oim/search``
-            ``label dts id search``               ``/api/v1/label/{dts.id}/search``
-            ``label search``                      ``/api/v1/label/search``
-            ``network id``                        ``/api/v1/network/{network.id}``
-            ``network id relationship search``    ``/api/v1/network/{network.id}/relationship/search``
-            ``network relationship search``       ``/api/v1/network/relationship/search``
-            ``relationship search``               ``/api/v1/relationship/search``
-            ``relationship tree search``          ``/api/v1/relationship/tree/search``
-            ``report fact search``                ``/api/v1/report/fact/search``
-            ``report id``                         ``/api/v1/report/{report.id}``
-            ``report id delete``                  ``/api/v1/report/{report.id}/delete``
-            ``report id fact``                    ``/api/v1/report/{report.id}/fact/search``
-            ``report search``                     ``/api/v1/report/search``
+            ``assertion search``                  */api/v1/assertion/search*
+            ``concept name search``               */api/v1/concept/{concept.local-name}/search*
+            ``concept search``                    */api/v1/concept/search*
+            ``cube search``                       */api/v1/cube/search*
+            ``dimension search``                  */api/v1/dimension/search*
+            ``document search``                   */api/v1/document/search*
+            ``dts id concept label``              */api/v1/dts/{dts.id}/concept/{concept.local-name}/label*
+            ``dts id concept name``               */api/v1/dts/{dts.id}/concept/{concept.local-name}*
+            ``dts id concept reference``          */api/v1/dts/{dts.id}/concept/{concept.local-name}/reference*
+            ``dts id concept search``             */api/v1/dts/{dts.id}/concept/search*
+            ``dts id network``                    */api/v1/dts/{dts.id}/network*
+            ``dts id network search``             */api/v1/dts/{dts.id}/network/search*
+            ``dts search``                        */api/v1/dts/search*
+            ``entity id``                         */api/v1/entity/{entity.id}*
+            ``entity id report search``           */api/v1/entity/{entity.id}/report/search*
+            ``entity report search``              */api/v1/entity/report/search*
+            ``entity search``                     */api/v1/entity/search*
+            ``fact id``                           */api/v1/fact/{fact.id}*
+            ``fact search``                       */api/v1/fact/search*
+            ``fact search oim``                   */api/v1/fact/oim/search*
+            ``label dts id search``               */api/v1/label/{dts.id}/search*
+            ``label search``                      */api/v1/label/search*
+            ``network id``                        */api/v1/network/{network.id}*
+            ``network id relationship search``    */api/v1/network/{network.id}/relationship/search*
+            ``network relationship search``       */api/v1/network/relationship/search*
+            ``relationship search``               */api/v1/relationship/search*
+            ``relationship tree search``          */api/v1/relationship/tree/search*
+            ``report fact search``                */api/v1/report/fact/search*
+            ``report id``                         */api/v1/report/{report.id}*
+            ``report id fact search``             */api/v1/report/{report.id}/fact/search*
+            ``report search``                     */api/v1/report/search*
             ===================================  ==================================================
 
         """
+        # TODO: add support for report delete, assertion validate,
         return _methods()
 
     @staticmethod
-    def acceptable_params(method_name: str):
+    def acceptable_params(method: str):
         """
-        Get the names of the attributes that are allowed to be used for
-            the given method.
+        Get the names of the attributes (e.g. acceptable ``fields``, ``parameters``, ``sort``, ``limit``, etc.)
+            that are allowed to be used for a given ``method``.
 
         Args:
-            method_name (str): The name of the API method to get the acceptable parameters for (e.g. "search_fact").
+            method (str): The name of the API method to get the acceptable parameters for (e.g. "fact search").
 
         Returns:
+            A class where the attributes are the acceptable parameters for the given ``method``.
 
         """
-        file_path = _dir.parent / "methods" / f"{method_name.lower()}.yml"
+        file_path = _dir.parent / "methods" / f"{method.lower()}.yml"
 
         with file_path.open("r") as file:
             method_features = safe_load(file)
 
-        _attributes = {"method_name": method_name}
+        _attributes = {"method_name": method}
         for key, _value in method_features.items():
             _attributes[f"{key}"] = method_features.get(key)
 
         _attributes["sort"] = [value for value in _attributes["fields"] if "*" not in value]
 
         # Create the dynamic class using type()
-        _class = type(method_name, (), _attributes)
+        _class = type(method, (), _attributes)
         return _class()
 
-    def _get_token(self, grant_type: Optional[str] = None, refresh_token=None):
+    @staticmethod
+    def define(parameter: str):
+        """
+        Get the definition of any parameter.
+        Args:
+            parameter:
+
+        Returns:
+            dict: The definition of the parameter with the type, description, etc.
+        """
+        # load definitions file
+        file_path = _dir.parent / "methods" / "_definitions.yaml"
+
+        with file_path.open("r") as file:
+            definitions = safe_load(file)
+
+        return definitions.get(parameter)
+
+    def _get_token(self, grant_type: Optional[str] = None, refresh_token=None, **kwargs):
         """
         Retrieves an access token from the token URL.
 
@@ -406,6 +465,12 @@ class XBRL:
             self.refresh_token = token_info["refresh_token"]
             self._access_token_expires_at = time.time() + token_info["expires_in"]
             self._refresh_token_expires_at = time.time() + token_info["refresh_token_expires_in"]
+            if not user_info_path.exists():
+                store = kwargs.get("store", None)
+                if store is None:
+                    store = input("Do you want to store your credentials for future use on this computer? (y/n): ")
+                if store.lower() == "y":
+                    self._set_user()
         else:
             raise ValueError(f"Unable to retrieve token: {response.json()}. Please check your credentials.")
 
@@ -442,11 +507,24 @@ class XBRL:
         headers = kwargs.get("headers", {})
         headers.update({"Authorization": f"Bearer {self.access_token}"})
         kwargs["headers"] = headers
-        try:
-            response = requests.request(method, url, **kwargs)
-            return response
-        except Exception as e:
-            raise e
+        response = requests.request(method, url, **kwargs)
+        if response.status_code == 200:
+            if "error" not in response.json():
+                return response
+            else:
+                if "user limit amount" in response.text:
+                    return response
+                else:
+                    raise ValueError(
+                        f"Unable to retrieve data! {response.json()['error']}: {response.json()['error_description']}"
+                    ) from None
+
+        elif response.status_code == 503:
+            raise f"Error {response.status_code}: {response.text}"
+        elif response.status_code == 404:
+            raise ValueError(f"Error {response.status_code}: {response.json()['error_description']}") from None
+        else:
+            raise ValueError(f"Error {response.status_code}: {response.text}") from None
 
     def _get_account_limit(
         self,
@@ -464,6 +542,28 @@ class XBRL:
         else:
             print(f"Error: {response.status_code}")
             self.account_limit = None
+
+    def _set_user(self):
+        # Write info file
+        with user_info_path.open("w") as file:
+            file.write("\n".join([self.username, self.password, self.client_id, self.client_secret]))
+
+        print("Remember me enabled.")
+
+    def _get_user(self):
+        try:
+            with user_info_path.open("r") as file:
+                lines = file.readlines()
+
+            self.username = lines[0].strip()  # set username
+            self.password = lines[1].strip()  # set password
+            self.client_id = lines[2].strip()  # set client id
+            self.client_secret = lines[3].strip()  # set client secret
+
+        except FileNotFoundError:
+            raise FileNotFoundError("Credentials file not found. Please initialize the client with your credentials.") from None
+        except Exception as e:
+            raise ValueError("Error reading credentials from file:", str(e)) from None
 
     def _get_method_url(self, method_name: str, parameters: dict, unique: bool) -> str:
         """
@@ -642,23 +742,27 @@ class XBRL:
         Args:
             method (str): The name of the method to query.
             fields (list): The fields query parameter establishes the details of the data to return for the specific query.
-            parameters (dict | Parameters): The parameters for the query.
-            limit (int): A limit restricts the number of results returned by the query.
-                The limit attribute can only be added to an object type and not a property.
-                For example, to limit the number of facts in a query, {"fact": 10}.
-            sort (dict): Any returned value can be sorted in ascending or descending order,
-                using ``ASC`` or ``DESC`` (i.e. {"report.document-type": "DESC"}).
+            parameters (Optional[dict | Parameters]): The search parameters for the query.
+            limit (Optional[int]): A limit restricts the number of results returned by the query.
+                For example, in a *"fact search"* ``limit=10`` would return 10 observations.
+                You can also use ``limit="all"`` to return all results (which is not recommended unless
+                you know what you are doing!). The default is *None* which returns one response with
+                upto your account limit. For example, if your account limit is 5000, then the default
+                will return the smallest of 5000 or the number of results.
+            sort (Optional[dict]): Any returned value can be sorted in ascending or descending order,
+                using *ASC* or *DESC* (i.e. ``{"report.document-type": "DESC"}``.
                 Multiple sort criteria can be defined and the sort sequence is determined by
                 the order of the items in the dictionary.
-            unique (bool): If ``True`` returns only unique values.
-            as_dataframe (bool): If ``True`` returns the results as a ``DataFrame`` else returns the data
-                as ``json``.
-            print_query (bool): Whether to print the query.
-            timeout (int): The number of seconds to wait for a response from the server. Defaults to 5 seconds.
-                If ``None`` will wait indefinitely.
+            unique (Optional[bool]=False): If *True* returns only unique values. Default is *False*.
+            as_dataframe (Optional[bool]=False): If *True* returns the results as a *DataFrame* else returns the data
+                as *json*. The default is *False* which returns the results in *json* format
+            print_query (bool=False): Whether to print the query text.
+            timeout (int=5): The number of seconds to wait for a response from the server. Defaults to 5 seconds.
+                If *None* will wait indefinitely.
+
 
         Returns:
-            dict | DataFrame: The results of the query.
+            json | DataFrame: The results of the query.
         """
 
         method_url = self._get_method_url(method_name=method, parameters=parameters, unique=unique)
@@ -667,37 +771,31 @@ class XBRL:
             # arbitrary large number
             limit = 999999999
 
-        query_params = _build_query_params(
-            method=method,
-            fields=fields,
-            parameters=parameters,
-            limit=limit,
-            sort=sort,
-        )
-
-        if print_query:
-            print(query_params)
+        query_params = _build_query_params(method=method, fields=fields, parameters=parameters, sort=sort, limit=100)
 
         # ensure the limit is not greater than the account limit
-        account_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
+        chunk_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
 
         streamlit_indicator = kwargs.get("streamlit", False)
         if streamlit_indicator:
             from stqdm import stqdm
 
-            pbar = stqdm(total=None, desc="Matches Found", ncols=80)
+            pbar = stqdm(total=None, desc="Running Query, Please Wait", ncols=80)
         else:
             # create a progress bar
-            pbar = tqdm(total=None, desc="Matches Found", ncols=80, position=0, leave=True)
+            pbar = tqdm(total=None, desc="Running Query, Please Wait", ncols=80, position=0, leave=True)
 
         # update the limit in the query params with the new limit
         query_params = _build_query_params(
             method=method,
             fields=fields,
             parameters=parameters,
-            limit=account_limit,
+            limit=chunk_limit,
             sort=sort,
         )
+
+        if print_query:
+            print(f"\n{query_params}")
 
         try:
             response = self._make_request(
@@ -706,8 +804,8 @@ class XBRL:
                 params=query_params,
                 timeout=timeout,
             )
-        except requests.exceptions.ReadTimeout as e:
-            raise exceptions.XBRLTimeOutError(e) from e
+        except Exception as e:
+            raise e
 
         response_data = response.json()
 
@@ -728,19 +826,25 @@ class XBRL:
                 return DataFrame.from_dict(data)
             else:
                 return data
+        elif chunk_limit > len(data):
+            # Return the items from the first response if the user limit is greater than the number of items
+            if as_dataframe:
+                return DataFrame.from_dict(data)
+            else:
+                return data
 
         else:
             remaining_limit = limit - len(data)
 
         # To store all the items from the API response
         all_data = data
-
         offset = len(data)
+        del data, response_data, response
 
         while remaining_limit > 0:
             # Determine the limit for the current request
             try:
-                current_limit = min(account_limit, remaining_limit)
+                current_limit = min(chunk_limit, remaining_limit)
                 query_params = _build_query_params(
                     method=method,
                     fields=fields,

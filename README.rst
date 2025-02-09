@@ -81,6 +81,12 @@ You can install this package using pip:
 
     pip install xbrl-us
 
+If you are using Jupyter Notebook, you can install the package using the following command:
+
+.. code-block:: bash
+
+    !pip install xbrl-us
+
 .. caution::
 
         The XBRL US Python Wrapper is currently in beta and is subject to change.
@@ -265,12 +271,23 @@ First, ensure you have the latest version of ``xbrl-us`` installed by running th
 
     pip install xbrl-us --upgrade
 
+or if you are on a Jupyter Notebook:
+
+.. code-block:: bash
+
+    !pip install xbrl-us --upgrade
 
 Next, launch the new Browser Interface from the package menu:
 
 .. code-block:: bash
 
     python -m xbrl_us
+
+or if you are on a Jupyter Notebook:
+
+.. code-block:: bash
+
+    !python -m xbrl_us
 
 That is it!
 You should now see the new Browser Interface open in your default web browser.
