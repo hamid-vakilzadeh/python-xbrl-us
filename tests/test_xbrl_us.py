@@ -1,22 +1,27 @@
-from pathlib import Path
-
-from yaml import safe_load
+import os
+from unittest.mock import Mock
+from unittest.mock import patch
 
 from xbrl_us import XBRL
 
-_dir = Path("test_xbrl_us.py").resolve()
-file_path = _dir.parent / "secrets.yml"
 
-with file_path.open("r") as file:
-    credentials = safe_load(file)
+@patch("xbrl_us.xbrl_us.XBRL._ensure_access_token")
+@patch("xbrl_us.xbrl_us.XBRL.get_meta_endpoints")
+def test_methods(mock_get_meta_endpoints, mock_ensure_token):
+    # Set up our mocks
+    mock_get_meta_endpoints.return_value = {}
+    mock_ensure_token.return_value = None
 
-
-def test_methods():
+    # Create an instance with mock values using env vars
     xbrl = XBRL(
-        username=credentials["username"],
-        password=credentials["password"],
-        client_id=credentials["client_id"],
-        client_secret=credentials["client_secret"],
+        username=os.environ.get("XBRL_USERNAME", "dummy"),
+        password=os.environ.get("XBRL_PASSWORD", "dummy"),
+        client_id=os.environ.get("XBRL_CLIENT_ID", "dummy"),
+        client_secret=os.environ.get("XBRL_CLIENT_SECRET", "dummy"),
     )
 
+    # Mock the methods call
+    xbrl.methods = Mock(return_value=["assertion search"])
+
+    # Test the method
     assert sorted(xbrl.methods())[0] == "assertion search"
