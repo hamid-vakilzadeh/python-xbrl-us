@@ -2,7 +2,7 @@
 XBRL-US Python Library
 ======================
 
-|Workflow| |Docs| |license| |Versions|
+|Python package| |Docs| |license| |Versions|
 
 .. |Python package| image:: https://github.com/hamid-vakilzadeh/python-xbrl-us/actions/workflows/python-package.yml/badge.svg
    :alt: Python package
