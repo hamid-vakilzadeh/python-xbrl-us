@@ -4,10 +4,9 @@ XBRL-US Python Library
 
 |Workflow| |Docs| |license| |Versions|
 
-
-.. |Workflow| image:: https://img.shields.io/github/actions/workflow/status/hamid-vakilzadeh/python-xbrl-us/github-actions.yml?logo=github&logoColor=white
-   :alt: GitHub Workflow Status (main)
-   :target: https://github.com/hamid-vakilzadeh/python-xbrl-us/actions/workflows/github-actions.yml
+.. |Python package| image:: https://github.com/hamid-vakilzadeh/python-xbrl-us/actions/workflows/python-package.yml/badge.svg
+   :alt: Python package
+   :target: https://github.com/hamid-vakilzadeh/python-xbrl-us/actions/workflows/python-package.yml
 
 .. |Downloads| image:: https://img.shields.io/pypi/dm/xbrl-us?logo=pypi&logoColor=orange&color=blue
     :alt: PyPI - Downloads
