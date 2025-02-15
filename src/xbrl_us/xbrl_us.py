@@ -323,6 +323,7 @@ class XBRL:
         username: Optional[str] = None,
         password: Optional[str] = None,
         grant_type: str = "password",
+        store: Optional[str] = "n",
     ):
         self._url = "https://api.xbrl.us/oauth2/token"
         self.client_id = client_id
@@ -337,7 +338,7 @@ class XBRL:
         self._refresh_token_expires_at = 0
 
         self.get_meta_endpoints()
-        self._ensure_access_token()
+        self._ensure_access_token(store=store)
         # If the class was initiated without any arguments, try finding the user info file
         if not (client_id and client_secret and username and password):
             self._get_user()
@@ -479,12 +480,12 @@ class XBRL:
     def _is_refresh_token_expired(self):
         return time.time() >= self._refresh_token_expires_at
 
-    def _ensure_access_token(self):
+    def _ensure_access_token(self, **kwargs):
         if not self.access_token or self._is_access_token_expired():
             if self.refresh_token and not self._is_refresh_token_expired():
-                self._get_token(grant_type="refresh_token", refresh_token=self.refresh_token)
+                self._get_token(grant_type="password", refresh_token=self.refresh_token, **kwargs)
             else:
-                self._get_token()
+                self._get_token(**kwargs)
         if self.account_limit is None:
             self._get_account_limit()
 
