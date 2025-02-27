@@ -55,6 +55,7 @@ parameters:
   - report.source-name
   - unit
 fields:
+  - aspect
   - concept.balance-type
   - concept.datatype
   - concept.id
@@ -63,6 +64,7 @@ fields:
   - concept.local-name
   - concept.namespace
   - concept.period-type
+  - dimension-pair
   - dimension.is-base
   - dimension.local-name
   - dimension.namespace
@@ -73,14 +75,14 @@ fields:
   - dts.id
   - dts.target-namespace
   - entity.cik
+  - entity.code
   - entity.id
   - entity.name
   - entity.scheme
+  - fact.accuracy-index
   - fact.decimals
-  - fact.example
   - fact.has-dimensions
   - fact.hash
-  - fact.highlighted-value
   - fact.id
   - fact.inline-display-value
   - fact.inline-is-hidden
@@ -93,11 +95,15 @@ fields:
   - fact.value
   - fact.value-link
   - fact.xml-id
+  - footnote.id
+  - footnote.lang
+  - footnote.role
+  - footnote.text
   - member.is-base
   - member.local-name
-  - member.typed-value
   - member.member-value
   - member.namespace
+  - member.typed-value
   - period.calendar-period
   - period.end
   - period.fiscal-id
@@ -109,19 +115,28 @@ fields:
   - period.year
   - report.accession
   - report.creation-software
-  - report.document-type
   - report.document-index
+  - report.document-type
+  - report.documentset-num
   - report.entry-url
+  - report.event-items
   - report.filing-date
+  - report.form-type
+  - report.hash
+  - report.html-url
   - report.id
+  - report.is-most-current
   - report.period-end
+  - report.period-focus
   - report.restated
   - report.restated-index
   - report.sec-url
   - report.sic-code
   - report.source-id
   - report.source-name
+  - report.submission-type
   - report.type
+  - report.year-focus
   - unit
   - unit.denominator
   - unit.numerator

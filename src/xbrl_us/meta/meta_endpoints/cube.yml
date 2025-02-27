@@ -176,6 +176,11 @@ fields:
     type: text
     database_field: source_report_identifier
     definition: The identifier used by the SEC to identify a report.
+  report.base-taxonomy:
+    searchable: 'true'
+    type: varchar
+    database_field: base_taxonomy
+    definition: Base taxonomy used for the filing. e.g. US-GAAP 2020.
   report.document-type:
     searchable: 'true'
     type: text
