@@ -6,6 +6,7 @@ import warnings
 from collections.abc import Iterable
 from functools import wraps
 from pathlib import Path
+from typing import Literal
 from typing import Optional
 from typing import Union
 
@@ -16,6 +17,10 @@ from retry import retry
 from tqdm import tqdm
 from yaml import safe_load
 
+from .types import FACT_FIELDS
+from .types import FACT_PARAMETERS
+from .types import FACT_SORT
+from .types import AcceptableMethods
 from .utils import exceptions
 
 _dir = Path(__file__).resolve()
@@ -728,7 +733,7 @@ class XBRL:
     @_convert_params_to_dict_decorator()
     def query(
         self,
-        method: str,
+        method: AcceptableMethods,
         fields: Optional[list] = None,
         parameters: Optional[Union[dict]] = None,
         limit: Optional[int] = None,
@@ -972,3 +977,64 @@ class XBRL:
             return DataFrame.from_dict(data)
         else:
             return data
+
+    def fact(
+        self,
+        endpoint: Literal["/fact/search", "/fact/{fact.id}", "/fact/search/oim"],
+        fields: Optional[FACT_FIELDS] = None,
+        parameters: Optional[FACT_PARAMETERS] = None,
+        limit: Optional[int] = None,
+        sort: Optional[FACT_SORT] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 5,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+                method (str): The name of the method to query.
+                fields (Optional[FACT_FIELDS]): The fields query parameter establishes the details of the data to return for the specific query.
+                parameters (Optional[FACT_PARAMETERS]): The search parameters for the query.
+                limit (Optional[int]): A limit restricts the number of results returned by the query.
+                    For example, in a *"fact search"* ``limit=10`` would return 10 observations.
+                    You can also use ``limit="all"`` to return all results (which is not recommended unless
+                    you know what you are doing!). The default is *None* which returns one response with
+                    upto your account limit. For example, if your account limit is 5000, then the default
+                    will return the smallest of 5000 or the number of results.
+                sort (Optional[FACT_SORT]): Any returned value can be sorted in ascending or descending order,
+                    using *ASC* or *DESC* (i.e. ``{"report.document-type": "DESC"}``.
+                    Multiple sort criteria can be defined and the sort sequence is determined by
+                    the order of the items in the dictionary.
+                unique (Optional[bool]=False): If *True* returns only unique values. Default is *False*.
+                as_dataframe (Optional[bool]=False): If *True* returns the results as a *DataFrame* else returns the data
+                    as *json*. The default is *False* which returns the results in *json* format
+                print_query (bool=False): Whether to print the query text.
+                timeout (int=5): The number of seconds to wait for a response from the server. Defaults to 5 seconds.
+                    If *None* will wait indefinitely.
+
+
+            Returns:
+                json | DataFrame: The results of the query.
+        """
+        if endpoint == "/fact/search/oim":
+            method = "fact search oim"
+        elif endpoint == "/fact/{fact.id}":
+            method = "fact id"
+        elif endpoint == "/fact/search":
+            method = "fact search"
+        else:
+            raise ValueError("Invalid endpoint. Please use one of the following: /fact/search, /fact/{fact.id}, /fact/search/oim")
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
