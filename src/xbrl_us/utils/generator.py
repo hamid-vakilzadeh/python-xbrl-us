@@ -141,11 +141,6 @@ def generate_endpoint_literal(endpoint_name: str, metadata: Dict[str, Any]) -> s
     content = f'''{class_name}Endpoint = Literal[{", ".join(sorted(endpoint_literals))}]
 """Valid endpoint identifiers for the {endpoint_name} endpoint.
 Can be either the endpoint key or the full path."""
-
-{class_name}EndpointMap: Dict[str, str] = {{
-{chr(10).join(endpoint_mapping)}
-}}
-"""Mapping of endpoint keys to their paths"""
 '''
     return content
 
@@ -168,7 +163,6 @@ def generate_init_content(metadata: Dict[str, Dict[str, Any]]) -> str:
         imports.append(f"from .endpoint_types import {class_name}Parameters")
         imports.append(f"from .endpoint_types import {class_name}Fields")
         imports.append(f"from .endpoint_types import {class_name}Endpoint")
-        imports.append(f"from .endpoint_types import {class_name}EndpointMap")
 
         # Add to exports
         exports.extend(
@@ -176,7 +170,6 @@ def generate_init_content(metadata: Dict[str, Dict[str, Any]]) -> str:
                 f"{class_name}Parameters",
                 f"{class_name}Fields",
                 f"{class_name}Endpoint",
-                f"{class_name}EndpointMap",
             ]
         )
 
