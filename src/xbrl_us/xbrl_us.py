@@ -898,7 +898,7 @@ class XBRL:
     @_convert_params_to_dict_decorator()
     def aquery(
         self,
-        method: str,
+        method: AcceptableMethods,
         fields: Optional[list] = None,
         parameters: Optional[Union[dict]] = None,
         limit: Optional[int] = None,

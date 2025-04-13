@@ -5,7 +5,7 @@ from typing import Union
 
 from typing_extensions import NotRequired
 
-PERIOD_FISCAL_PERIOD = Literal["Y", "Q1", "Q2", "Q3", "Q4" "3QCUM", "H1", "H2"]
+PERIOD_FISCAL_PERIOD = Literal["Y", "Q1", "Q2", "Q3", "Q4", "3QCUM", "H1", "H2"]
 
 # Define allowed values for method
 AcceptableMethods = Literal[

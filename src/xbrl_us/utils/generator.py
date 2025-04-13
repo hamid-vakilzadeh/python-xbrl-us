@@ -223,4 +223,4 @@ def generate_all_types(metadata: Dict[str, Dict[str, Any]]) -> Dict[str, str]:
 
 
 # Expose all generation methods
-__all__ = ["generated_parameters", "generate_fields_literal", "generated_parameters", "generate_endpoint_literal", "generate_all_types"]
+__all__ = ["generated_parameters", "generate_fields_literal", "generate_endpoint_literal", "generate_all_types"]
