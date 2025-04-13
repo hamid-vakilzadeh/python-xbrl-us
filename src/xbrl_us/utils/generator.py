@@ -129,13 +129,10 @@ def generate_endpoint_literal(endpoint_name: str, metadata: Dict[str, Any]) -> s
 
     # Create literals for both keys and paths
     endpoint_literals = []
-    endpoint_mapping = []
 
-    for key, path in endpoints.items():
+    for _key, path in endpoints.items():
         # Add both key and path to literals
-        endpoint_literals.extend([f'"{key}"', f'"{path}"'])
-        # Create mapping entry
-        endpoint_mapping.append(f'    "{key}": "{path}",')
+        endpoint_literals.extend([f'"{path}"'])
 
     # Generate the types and mapping
     content = f'''{class_name}Endpoint = Literal[{", ".join(sorted(endpoint_literals))}]
