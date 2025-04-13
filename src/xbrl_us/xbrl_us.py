@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 import time
@@ -5,15 +6,21 @@ import warnings
 from collections.abc import Iterable
 from functools import wraps
 from pathlib import Path
+from typing import Literal
 from typing import Optional
 from typing import Union
 
+import aiohttp
 import requests
 from pandas import DataFrame
 from retry import retry
 from tqdm import tqdm
 from yaml import safe_load
 
+from .types import AcceptableMethods
+from .types import FactFields
+from .types import FactParameters
+from .types import UniversalFieldMap
 from .utils import exceptions
 
 _dir = Path(__file__).resolve()
@@ -336,8 +343,6 @@ class XBRL:
         self.account_limit = None
         self._access_token_expires_at = 0
         self._refresh_token_expires_at = 0
-
-        self.get_meta_endpoints()
         self._ensure_access_token(store=store)
         # If the class was initiated without any arguments, try finding the user info file
         if not (client_id and client_secret and username and password):
@@ -629,22 +634,22 @@ class XBRL:
         logger.setLevel(logging.INFO)
 
         # Create required directories
-        meta_dir = _dir.parent / "meta"
+        meta_dir = Path("meta")
         meta_dir.mkdir(exist_ok=True)
 
-        methods_dir = meta_dir / "meta_endpoints"
+        methods_dir = Path(meta_dir, "meta_endpoints")
         methods_dir.mkdir(exist_ok=True)
 
-        types_dir = _dir.parent / "models" / "types"
+        types_dir = Path("models", "types")
         types_dir.mkdir(exist_ok=True, parents=True)
 
         # Create necessary __init__.py files
-        for dir_path in [_dir.parent / "models", types_dir]:
-            init_file = dir_path / "__init__.py"
+        for dir_path in [Path("models"), types_dir]:
+            init_file = Path(dir_path, "__init__.py")
             if not init_file.exists():
                 init_file.touch()
 
-        cache_file = meta_dir / "endpoints.yml"
+        cache_file = Path(meta_dir, "endpoints.yml")
 
         # Check if we should use cached data
         if not force_refresh and cache_file.exists():
@@ -726,7 +731,7 @@ class XBRL:
     @_convert_params_to_dict_decorator()
     def query(
         self,
-        method: str,
+        method: AcceptableMethods,
         fields: Optional[list] = None,
         parameters: Optional[Union[dict]] = None,
         limit: Optional[int] = None,
@@ -889,3 +894,144 @@ class XBRL:
             return DataFrame.from_dict(all_data)
         else:
             return all_data
+
+    @_convert_params_to_dict_decorator()
+    def aquery(
+        self,
+        method: AcceptableMethods,
+        fields: Optional[list] = None,
+        parameters: Optional[Union[dict]] = None,
+        limit: Optional[int] = None,
+        sort: Optional[dict] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = None,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """Asynchronous version of the query method"""
+        method_url = self._get_method_url(method_name=method, parameters=parameters, unique=unique)
+
+        query_params = _build_query_params(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+        )
+
+        account_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
+
+        query_params = _build_query_params(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=account_limit,
+            sort=sort,
+        )
+
+        if print_query:
+            print(query_params)
+
+        remaining_limit = limit
+        all_data = []
+        offset = len(all_data)
+
+        async def execute_remaining_queries():
+            nonlocal all_data, remaining_limit, offset
+            self._ensure_access_token()
+            headers = {"Authorization": f"Bearer {self.access_token}"}
+
+            async with aiohttp.ClientSession() as session:
+                tasks = []
+                while remaining_limit > 0:
+                    current_limit = min(self.account_limit, remaining_limit)
+                    query_params = _build_query_params(
+                        method=method,
+                        fields=fields,
+                        parameters=parameters,
+                        limit=current_limit,
+                        sort=sort,
+                        offset=offset,
+                    )
+
+                    tasks.append(session.get(url=method_url, params=query_params, headers=headers, timeout=timeout))
+                    remaining_limit -= current_limit
+                    offset += current_limit
+
+                with tqdm(total=len(tasks)) as pbar:
+                    for task in asyncio.as_completed(tasks):
+                        response_data = await task
+                        all_data.append(await response_data.json())
+                        pbar.update(1)
+
+        asyncio.run(execute_remaining_queries())
+        data = []
+        for item in all_data:
+            if "data" in item:
+                data.extend(item["data"])
+
+        if as_dataframe:
+            return DataFrame.from_dict(data)
+        else:
+            return data
+
+    def fact(
+        self,
+        endpoint: Literal["/fact/search", "/fact/{fact.id}", "/fact/search/oim"],
+        fields: FactFields,
+        parameters: FactParameters,
+        limit: Optional[int] = None,
+        sort: Optional[dict] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 5,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+            endpoint (str): The API endpoint to query.
+                Options are "/fact/search", "/fact/{fact.id}", or "/fact/search/oim".
+            fields (FactFields): The fields to include in the query.
+            parameters (FactParameters): The search parameters for the query.
+            limit (Optional[int]): The maximum number of results to return.
+                If *None*, the default limit is used.
+            sort (Optional[dict]): The sort parameters for the query.
+                Example: {"fact.value": "DESC"}.
+            unique (Optional[bool]): If *True*, returns only unique values.
+                Default is *False*.
+            as_dataframe (bool): If *True*, returns the results as a DataFrame.
+                Default is *False*, which returns the results as JSON.
+            print_query (bool): If *True*, prints the query text.
+                Default is *False*.
+            timeout (int): The number of seconds to wait for a response from the server.
+                Default is 5 seconds. If *None*, waits indefinitely.
+            **kwargs: Additional keyword arguments to be passed to the request.
+
+            Returns:
+                json | DataFrame: The results of the query.
+        """
+        if endpoint == "/fact/search/oim":
+            method = "fact search oim"
+        elif endpoint == "/fact/{fact.id}":
+            method = "fact id"
+        elif endpoint == "/fact/search":
+            method = "fact search"
+        else:
+            raise ValueError("Invalid endpoint. Please use one of the following: /fact/search, /fact/{fact.id}, /fact/search/oim")
+
+        parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )

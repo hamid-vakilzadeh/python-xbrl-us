@@ -18,7 +18,11 @@ TYPE_MAPPINGS = {
 
 def generate_field_map() -> str:
     """Generate a universal field mapping class for all endpoints"""
-    return '''class UniversalFieldMap:
+    return '''from typing import TypedDict, Dict, Any, Literal, Set, List
+from typing_extensions import NotRequired
+
+
+class UniversalFieldMap:
     """Universal mapping between snake_case field names and original API format.
 
     This class provides conversion methods between snake_case field names used in Python
@@ -33,24 +37,12 @@ def generate_field_map() -> str:
         if len(parts) == 1:
             return snake_name
 
-        # Group by prefix (e.g. 'fact', 'concept', etc)
-        current_group = []
-        result_parts = []
+        if len(parts) == 2:
+            return f"{parts[0]}.{parts[1]}"
 
-        for part in parts:
-            if part in {"fact", "concept", "entity", "report", "dts", "network",
-                       "dimension", "period", "unit", "label", "footnote", "member",
-                       "relationship", "assertion", "cube"}:
-                if current_group:
-                    result_parts.append(".".join(current_group))
-                current_group = [part]
-            else:
-                current_group.append(part)
+        if len(parts) > 2:
+            return f"{parts[0]}.{'-'.join(parts[1:])}"
 
-        if current_group:
-            result_parts.append(".".join(current_group))
-
-        return "-".join(result_parts)
 
     @classmethod
     def to_snake(cls, original_name: str) -> str:
@@ -59,8 +51,8 @@ def generate_field_map() -> str:
 '''
 
 
-def generate_typed_dict(endpoint_name: str, metadata: Dict[str, Any]) -> str:
-    """Generate a TypedDict class for an endpoint response data"""
+def generated_parameters(endpoint_name: str, metadata: Dict[str, Any]) -> str:
+    """Generate a Parameters class for an endpoint response data"""
     name = endpoint_name.replace("https://api.xbrl.us/api/v1/meta/", "").replace("/", "_")
     class_name = "".join(word.capitalize() for word in name.split("_"))
 
@@ -71,7 +63,10 @@ def generate_typed_dict(endpoint_name: str, metadata: Dict[str, Any]) -> str:
     field_docs = []
 
     for field_name, field_info in fields.items():
-        python_type = TYPE_MAPPINGS.get(field_info.get("type", "str"), "str")
+        if "type" in field_info.keys():
+            python_type = TYPE_MAPPINGS.get(field_info.get("type", "str"), "str")
+        else:
+            continue
 
         # Create snake_case version of the field name
         snake_name = field_name.replace(".", "_").replace("-", "_")
@@ -80,65 +75,47 @@ def generate_typed_dict(endpoint_name: str, metadata: Dict[str, Any]) -> str:
         field_defs.append(f"    {snake_name}: NotRequired[{python_type}]")
 
         # Add docstring with original field name
-        if field_info.get("definition"):
-            definition = field_info["definition"].replace("\n", " ").strip()
-            definition = " ".join(definition.split())
-            field_docs.append(f"    # {field_name}: {definition}")
+        definition = field_info.get("definition", "No definition provided")
+        field_docs.append(f'    """{definition}"""')
 
-    # Generate the TypedDict class
-    content = f'''from typing import TypedDict, Dict, Any, Literal, Set
-from typing_extensions import NotRequired
-
-class {class_name}TypedDict(TypedDict, total=False):
-    """TypedDict for {endpoint_name} endpoint response data
+    # Generate the Parameters class
+    content = f'''class {class_name}Parameters(TypedDict, total=False):
+    """Parameters for {endpoint_name} endpoint response data
 
     Field names use snake_case format. Use UniversalFieldMap to convert between
     snake_case and original API format (with dots/hyphens).
 
     Example:
-        >>> data: {class_name}TypedDict = {{
+        >>> data: {class_name}Parameters = {{
         ...     "fact_value": "1000000",  # API field: fact.value
         ...     "concept_balance_type": "debit",  # API field: concept.balance-type
         ... }}
         >>> api_field = UniversalFieldMap.to_original("fact_value")  # Returns "fact.value"
         >>> snake_field = UniversalFieldMap.to_snake("concept.balance-type")  # Returns "concept_balance_type"
     """
-{chr(10).join(field_docs) if field_docs else ""}
-{chr(10).join(field_defs)}
 '''
+    # append each field definition and its docstring
+    for field_def, field_doc in zip(field_defs, field_docs):
+        content += f"{field_def}\n{field_doc}\n"
     return content
 
 
-def generate_parameters(endpoint_name: str, metadata: Dict[str, Any]) -> str:
-    """Generate parameter types for query fields"""
+def generate_fields_literal(endpoint_name: str, metadata: Dict[str, Any]) -> str:
+    """Generate a Literal type containing all fields with a type attribute"""
     name = endpoint_name.replace("https://api.xbrl.us/api/v1/meta/", "").replace("/", "_")
     class_name = "".join(word.capitalize() for word in name.split("_"))
 
-    # Get all searchable fields and their prefixes
-    searchable_fields = []
-    field_prefixes = set()
-
+    # Get all fields with a type attribute
+    typed_fields = []
     for field_name, field_info in metadata.get("fields", {}).items():
-        if field_info.get("searchable") == "true":
-            searchable_fields.append(field_name)
-            prefix = field_name.split(".")[0] if "." in field_name else field_name
-            field_prefixes.add(prefix)
+        if "type" in field_info.keys():
+            typed_fields.append(field_name)
 
     # Generate the field literals
-    field_literals = ", ".join(f'"{field}"' for field in sorted(searchable_fields))
-    prefix_literals = ", ".join(f'"{prefix}.*"' for prefix in sorted(field_prefixes))
+    field_literals = ", ".join(f'"{field}"' for field in sorted(typed_fields))
 
-    # Combine individual fields and wildcards
-    all_literals = f"{field_literals}, {prefix_literals}" if prefix_literals else field_literals
-
-    content = f'''from typing import Literal, Set, Union
-
-{class_name}Parameter = Literal[{all_literals}]
-"""{class_name} parameter fields that can be used in queries.
-Includes both individual fields and wildcard patterns (e.g. fact.*)"""
-
-{class_name}Parameters = Set[{class_name}Parameter]
-"""Set of {class_name} parameters for use in queries"""
+    content = f'''{class_name}Fields = List[Literal[{field_literals}]]
+"""All fields with type information for the {endpoint_name} endpoint."""
 '''
     return content
 
@@ -161,9 +138,7 @@ def generate_endpoint_literal(endpoint_name: str, metadata: Dict[str, Any]) -> s
         endpoint_mapping.append(f'    "{key}": "{path}",')
 
     # Generate the types and mapping
-    content = f'''from typing import Literal, Dict
-
-{class_name}Endpoint = Literal[{", ".join(sorted(endpoint_literals))}]
+    content = f'''{class_name}Endpoint = Literal[{", ".join(sorted(endpoint_literals))}]
 """Valid endpoint identifiers for the {endpoint_name} endpoint.
 Can be either the endpoint key or the full path."""
 
@@ -184,24 +159,22 @@ def generate_init_content(metadata: Dict[str, Dict[str, Any]]) -> str:
     imports.append("from .endpoint_types import UniversalFieldMap")
     exports.append("UniversalFieldMap")
 
-    # Add all TypedDicts, Parameters and Endpoints
+    # Add all TypedDicts, Fields, Parameters and Endpoints
     for endpoint_name in metadata.keys():
         name = endpoint_name.replace("https://api.xbrl.us/api/v1/meta/", "").replace("/", "_")
         class_name = "".join(word.capitalize() for word in name.split("_"))
 
         # Add imports for each type
-        imports.append(f"from .endpoint_types import {class_name}TypedDict")
-        imports.append(f"from .endpoint_types import {class_name}Parameter")
         imports.append(f"from .endpoint_types import {class_name}Parameters")
+        imports.append(f"from .endpoint_types import {class_name}Fields")
         imports.append(f"from .endpoint_types import {class_name}Endpoint")
         imports.append(f"from .endpoint_types import {class_name}EndpointMap")
 
         # Add to exports
         exports.extend(
             [
-                f"{class_name}TypedDict",
-                f"{class_name}Parameter",
                 f"{class_name}Parameters",
+                f"{class_name}Fields",
                 f"{class_name}Endpoint",
                 f"{class_name}EndpointMap",
             ]
@@ -237,8 +210,8 @@ def generate_all_types(metadata: Dict[str, Dict[str, Any]]) -> Dict[str, str]:
     for endpoint_name, endpoint_meta in metadata.items():
         content.extend(
             [
-                generate_typed_dict(endpoint_name, endpoint_meta),
-                generate_parameters(endpoint_name, endpoint_meta),
+                generated_parameters(endpoint_name, endpoint_meta),
+                generate_fields_literal(endpoint_name, endpoint_meta),
                 generate_endpoint_literal(endpoint_name, endpoint_meta),
             ]
         )
@@ -250,4 +223,4 @@ def generate_all_types(metadata: Dict[str, Dict[str, Any]]) -> Dict[str, str]:
 
 
 # Expose all generation methods
-__all__ = ["generate_typed_dict", "generate_parameters", "generate_endpoint_literal", "generate_all_types"]
+__all__ = ["generated_parameters", "generate_fields_literal", "generate_endpoint_literal", "generate_all_types"]
