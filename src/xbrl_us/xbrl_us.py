@@ -17,10 +17,10 @@ from retry import retry
 from tqdm import tqdm
 from yaml import safe_load
 
-from .types import FACT_FIELDS
-from .types import FACT_PARAMETERS
-from .types import FACT_SORT
 from .types import AcceptableMethods
+from .types import FactFields
+from .types import FactParameters
+from .types import UniversalFieldMap
 from .utils import exceptions
 
 _dir = Path(__file__).resolve()
@@ -343,8 +343,6 @@ class XBRL:
         self.account_limit = None
         self._access_token_expires_at = 0
         self._refresh_token_expires_at = 0
-
-        self.get_meta_endpoints()
         self._ensure_access_token(store=store)
         # If the class was initiated without any arguments, try finding the user info file
         if not (client_id and client_secret and username and password):
@@ -636,22 +634,22 @@ class XBRL:
         logger.setLevel(logging.INFO)
 
         # Create required directories
-        meta_dir = _dir.parent / "meta"
+        meta_dir = Path("meta")
         meta_dir.mkdir(exist_ok=True)
 
-        methods_dir = meta_dir / "meta_endpoints"
+        methods_dir = Path(meta_dir, "meta_endpoints")
         methods_dir.mkdir(exist_ok=True)
 
-        types_dir = _dir.parent / "models" / "types"
+        types_dir = Path("models", "types")
         types_dir.mkdir(exist_ok=True, parents=True)
 
         # Create necessary __init__.py files
-        for dir_path in [_dir.parent / "models", types_dir]:
-            init_file = dir_path / "__init__.py"
+        for dir_path in [Path("models"), types_dir]:
+            init_file = Path(dir_path, "__init__.py")
             if not init_file.exists():
                 init_file.touch()
 
-        cache_file = meta_dir / "endpoints.yml"
+        cache_file = Path(meta_dir, "endpoints.yml")
 
         # Check if we should use cached data
         if not force_refresh and cache_file.exists():
@@ -981,10 +979,10 @@ class XBRL:
     def fact(
         self,
         endpoint: Literal["/fact/search", "/fact/{fact.id}", "/fact/search/oim"],
-        fields: Optional[FACT_FIELDS] = None,
-        parameters: Optional[FACT_PARAMETERS] = None,
+        fields: FactFields,
+        parameters: FactParameters,
         limit: Optional[int] = None,
-        sort: Optional[FACT_SORT] = None,
+        sort: Optional[dict] = None,
         unique: Optional[bool] = False,
         as_dataframe: bool = False,
         print_query: Optional[bool] = False,
@@ -993,26 +991,23 @@ class XBRL:
     ) -> Union[dict, DataFrame]:
         """
         Args:
-                method (str): The name of the method to query.
-                fields (Optional[FACT_FIELDS]): The fields query parameter establishes the details of the data to return for the specific query.
-                parameters (Optional[FACT_PARAMETERS]): The search parameters for the query.
-                limit (Optional[int]): A limit restricts the number of results returned by the query.
-                    For example, in a *"fact search"* ``limit=10`` would return 10 observations.
-                    You can also use ``limit="all"`` to return all results (which is not recommended unless
-                    you know what you are doing!). The default is *None* which returns one response with
-                    upto your account limit. For example, if your account limit is 5000, then the default
-                    will return the smallest of 5000 or the number of results.
-                sort (Optional[FACT_SORT]): Any returned value can be sorted in ascending or descending order,
-                    using *ASC* or *DESC* (i.e. ``{"report.document-type": "DESC"}``.
-                    Multiple sort criteria can be defined and the sort sequence is determined by
-                    the order of the items in the dictionary.
-                unique (Optional[bool]=False): If *True* returns only unique values. Default is *False*.
-                as_dataframe (Optional[bool]=False): If *True* returns the results as a *DataFrame* else returns the data
-                    as *json*. The default is *False* which returns the results in *json* format
-                print_query (bool=False): Whether to print the query text.
-                timeout (int=5): The number of seconds to wait for a response from the server. Defaults to 5 seconds.
-                    If *None* will wait indefinitely.
-
+            endpoint (str): The API endpoint to query.
+                Options are "/fact/search", "/fact/{fact.id}", or "/fact/search/oim".
+            fields (FactFields): The fields to include in the query.
+            parameters (FactParameters): The search parameters for the query.
+            limit (Optional[int]): The maximum number of results to return.
+                If *None*, the default limit is used.
+            sort (Optional[dict]): The sort parameters for the query.
+                Example: {"fact.value": "DESC"}.
+            unique (Optional[bool]): If *True*, returns only unique values.
+                Default is *False*.
+            as_dataframe (bool): If *True*, returns the results as a DataFrame.
+                Default is *False*, which returns the results as JSON.
+            print_query (bool): If *True*, prints the query text.
+                Default is *False*.
+            timeout (int): The number of seconds to wait for a response from the server.
+                Default is 5 seconds. If *None*, waits indefinitely.
+            **kwargs: Additional keyword arguments to be passed to the request.
 
             Returns:
                 json | DataFrame: The results of the query.
@@ -1025,6 +1020,8 @@ class XBRL:
             method = "fact search"
         else:
             raise ValueError("Invalid endpoint. Please use one of the following: /fact/search, /fact/{fact.id}, /fact/search/oim")
+
+        parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
 
         return self.query(
             method=method,

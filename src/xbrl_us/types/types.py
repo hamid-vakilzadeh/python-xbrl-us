@@ -1,12 +1,9 @@
-from pathlib import Path
 from typing import List
 from typing import Literal
 from typing import TypedDict
 from typing import Union
 
 from typing_extensions import NotRequired
-
-_dir = Path(__file__).resolve().parent
 
 PERIOD_FISCAL_PERIOD = Literal["Y", "Q1", "Q2", "Q3", "Q4" "3QCUM", "H1", "H2"]
 
@@ -44,6 +41,7 @@ AcceptableMethods = Literal[
     "report id fact search",
     "report search",
 ]
+"""All fields with type information for the fact endpoint."""
 
 
 # Fact
