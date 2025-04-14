@@ -252,7 +252,7 @@ Congratulations! You have learned how to use the XBRL-US Python library to inter
 In this example you will receive the data in json format as the ``as_dataframe`` parameter is set to ``False``.
 
 Using Specialized Methods
-------------------------
+--------------------------
 
 The XBRL-US library now includes two specialized methods, ``xbrl.fact`` and ``xbrl.report``, which are tailored versions of the ``query`` method. These methods provide detailed type suggestions and definitions for their parameters, making it easier to construct valid API requests and reducing the chance of errors.
 
