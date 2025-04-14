@@ -6,7 +6,6 @@ import warnings
 from collections.abc import Iterable
 from functools import wraps
 from pathlib import Path
-from typing import Literal
 from typing import Optional
 from typing import Union
 
@@ -18,6 +17,7 @@ from tqdm import tqdm
 from yaml import safe_load
 
 from .types import AcceptableMethods
+from .types import FactEndpoint
 from .types import FactFields
 from .types import FactParameters
 from .types import UniversalFieldMap
@@ -978,7 +978,7 @@ class XBRL:
 
     def fact(
         self,
-        endpoint: Literal["/fact/search", "/fact/{fact.id}", "/fact/search/oim"],
+        endpoint: FactEndpoint,
         fields: FactFields,
         parameters: FactParameters,
         limit: Optional[int] = None,
