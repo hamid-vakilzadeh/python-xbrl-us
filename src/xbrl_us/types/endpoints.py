@@ -139,14 +139,9 @@ AssertionFields = List[
 """All fields with type information for the assertion endpoint."""
 
 
-AssertionEndpoint = Literal["/assertion/search", "1"]
+AssertionEndpoint = Literal["/assertion/search"]
 """Valid endpoint identifiers for the assertion endpoint.
 Can be either the endpoint key or the full path."""
-
-AssertionEndpointMap: Dict[str, str] = {
-    "1": "/assertion/search",
-}
-"""Mapping of endpoint keys to their paths"""
 
 
 class ConceptParameters(TypedDict, total=False):
@@ -257,15 +252,9 @@ ConceptFields = List[
 """All fields with type information for the concept endpoint."""
 
 
-ConceptEndpoint = Literal["/concept/search", "/concept/{concept.local-name}/search", "1", "2"]
+ConceptEndpoint = Literal["/concept/search", "/concept/{concept.local-name}/search"]
 """Valid endpoint identifiers for the concept endpoint.
 Can be either the endpoint key or the full path."""
-
-ConceptEndpointMap: Dict[str, str] = {
-    "1": "/concept/{concept.local-name}/search",
-    "2": "/concept/search",
-}
-"""Mapping of endpoint keys to their paths"""
 
 
 class CubeParameters(TypedDict, total=False):
@@ -403,14 +392,9 @@ CubeFields = List[
 """All fields with type information for the cube endpoint."""
 
 
-CubeEndpoint = Literal["/cube/search", "1"]
+CubeEndpoint = Literal["/cube/search"]
 """Valid endpoint identifiers for the cube endpoint.
 Can be either the endpoint key or the full path."""
-
-CubeEndpointMap: Dict[str, str] = {
-    "1": "/cube/search",
-}
-"""Mapping of endpoint keys to their paths"""
 
 
 class DocumentParameters(TypedDict, total=False):
@@ -497,14 +481,9 @@ DocumentFields = List[
 """All fields with type information for the document endpoint."""
 
 
-DocumentEndpoint = Literal["/document/search", "1"]
+DocumentEndpoint = Literal["/document/search"]
 """Valid endpoint identifiers for the document endpoint.
 Can be either the endpoint key or the full path."""
-
-DocumentEndpointMap: Dict[str, str] = {
-    "1": "/document/search",
-}
-"""Mapping of endpoint keys to their paths"""
 
 
 class DtsParameters(TypedDict, total=False):
@@ -561,14 +540,9 @@ DtsFields = List[
 """All fields with type information for the dts endpoint."""
 
 
-DtsEndpoint = Literal["/dts/search", "1"]
+DtsEndpoint = Literal["/dts/search"]
 """Valid endpoint identifiers for the dts endpoint.
 Can be either the endpoint key or the full path."""
-
-DtsEndpointMap: Dict[str, str] = {
-    "1": "/dts/search",
-}
-"""Mapping of endpoint keys to their paths"""
 
 
 class DtsConceptParameters(TypedDict, total=False):
@@ -630,21 +604,9 @@ DtsConceptEndpoint = Literal[
     "/dts/{dts.id}/concept/search",
     "/dts/{dts.id}/concept/{concept.local-name}/label",
     "/dts/{dts.id}/concept/{concept.local-name}/reference",
-    "1",
-    "2",
-    "3",
-    "4",
 ]
 """Valid endpoint identifiers for the dts/concept endpoint.
 Can be either the endpoint key or the full path."""
-
-DtsConceptEndpointMap: Dict[str, str] = {
-    "1": "/dts/{dts.id}/concept/search",
-    "2": "/dts/{dts-id}/concept/{concept.local-name}",
-    "3": "/dts/{dts.id}/concept/{concept.local-name}/label",
-    "4": "/dts/{dts.id}/concept/{concept.local-name}/reference",
-}
-"""Mapping of endpoint keys to their paths"""
 
 
 class DtsNetworkParameters(TypedDict, total=False):
@@ -701,15 +663,9 @@ DtsNetworkFields = List[
 """All fields with type information for the dts/network endpoint."""
 
 
-DtsNetworkEndpoint = Literal["/dts/{dts.id}/network", "/dts/{dts.id}/network/search", "1", "2"]
+DtsNetworkEndpoint = Literal["/dts/{dts.id}/network", "/dts/{dts.id}/network/search"]
 """Valid endpoint identifiers for the dts/network endpoint.
 Can be either the endpoint key or the full path."""
-
-DtsNetworkEndpointMap: Dict[str, str] = {
-    "1": "/dts/{dts.id}/network",
-    "2": "/dts/{dts.id}/network/search",
-}
-"""Mapping of endpoint keys to their paths"""
 
 
 class EntityParameters(TypedDict, total=False):
@@ -747,15 +703,9 @@ EntityFields = List[Literal["entity.cik", "entity.code", "entity.id", "entity.na
 """All fields with type information for the entity endpoint."""
 
 
-EntityEndpoint = Literal["/entity/search", "/entity/{entity.id}", "1", "2"]
+EntityEndpoint = Literal["/entity/search", "/entity/{entity.id}"]
 """Valid endpoint identifiers for the entity endpoint.
 Can be either the endpoint key or the full path."""
-
-EntityEndpointMap: Dict[str, str] = {
-    "1": "/entity/{entity.id}",
-    "2": "/entity/search",
-}
-"""Mapping of endpoint keys to their paths"""
 
 
 class EntityReportParameters(TypedDict, total=False):
@@ -1148,15 +1098,9 @@ EntityReportFields = List[
 """All fields with type information for the entity/report endpoint."""
 
 
-EntityReportEndpoint = Literal["/entity/report/search", "/entity/{entity.id}/report/search", "1", "2"]
+EntityReportEndpoint = Literal["/entity/report/search", "/entity/{entity.id}/report/search"]
 """Valid endpoint identifiers for the entity/report endpoint.
 Can be either the endpoint key or the full path."""
-
-EntityReportEndpointMap: Dict[str, str] = {
-    "1": "/entity/{entity.id}/report/search",
-    "2": "/entity/report/search",
-}
-"""Mapping of endpoint keys to their paths"""
 
 
 class FactParameters(TypedDict, total=False):
@@ -1441,16 +1385,9 @@ FactFields = List[
 """All fields with type information for the fact endpoint."""
 
 
-FactEndpoint = Literal["/fact/oim/search", "/fact/search", "/fact/{fact.id}", "1", "2", "3"]
+FactEndpoint = Literal["/fact/oim/search", "/fact/search", "/fact/{fact.id}"]
 """Valid endpoint identifiers for the fact endpoint.
 Can be either the endpoint key or the full path."""
-
-FactEndpointMap: Dict[str, str] = {
-    "1": "/fact/search",
-    "2": "/fact/{fact.id}",
-    "3": "/fact/oim/search",
-}
-"""Mapping of endpoint keys to their paths"""
 
 
 class LabelParameters(TypedDict, total=False):
@@ -1510,15 +1447,9 @@ LabelFields = List[
 """All fields with type information for the label endpoint."""
 
 
-LabelEndpoint = Literal["/label/search", "/label/{label.id}/search", "1", "2"]
+LabelEndpoint = Literal["/label/search", "/label/{label.id}/search"]
 """Valid endpoint identifiers for the label endpoint.
 Can be either the endpoint key or the full path."""
-
-LabelEndpointMap: Dict[str, str] = {
-    "1": "/label/search",
-    "2": "/label/{label.id}/search",
-}
-"""Mapping of endpoint keys to their paths"""
 
 
 class NetworkParameters(TypedDict, total=False):
@@ -1569,14 +1500,9 @@ NetworkFields = List[
 """All fields with type information for the network endpoint."""
 
 
-NetworkEndpoint = Literal["/network/{network.id}", "1"]
+NetworkEndpoint = Literal["/network/{network.id}"]
 """Valid endpoint identifiers for the network endpoint.
 Can be either the endpoint key or the full path."""
-
-NetworkEndpointMap: Dict[str, str] = {
-    "1": "/network/{network.id}",
-}
-"""Mapping of endpoint keys to their paths"""
 
 
 class NetworkRelationshipParameters(TypedDict, total=False):
@@ -1675,15 +1601,9 @@ NetworkRelationshipFields = List[
 """All fields with type information for the network/relationship endpoint."""
 
 
-NetworkRelationshipEndpoint = Literal["/network/relationship/search", "/network/{network.id}/relationship/search", "1", "2"]
+NetworkRelationshipEndpoint = Literal["/network/relationship/search", "/network/{network.id}/relationship/search"]
 """Valid endpoint identifiers for the network/relationship endpoint.
 Can be either the endpoint key or the full path."""
-
-NetworkRelationshipEndpointMap: Dict[str, str] = {
-    "1": "/network/{network.id}/relationship/search",
-    "2": "/network/relationship/search",
-}
-"""Mapping of endpoint keys to their paths"""
 
 
 class RelationshipParameters(TypedDict, total=False):
@@ -1779,15 +1699,9 @@ RelationshipFields = List[
 """All fields with type information for the relationship endpoint."""
 
 
-RelationshipEndpoint = Literal["/relationship/search", "/relationship/tree/search", "1", "2"]
+RelationshipEndpoint = Literal["/relationship/search", "/relationship/tree/search"]
 """Valid endpoint identifiers for the relationship endpoint.
 Can be either the endpoint key or the full path."""
-
-RelationshipEndpointMap: Dict[str, str] = {
-    "1": "/relationship/search",
-    "2": "/relationship/tree/search",
-}
-"""Mapping of endpoint keys to their paths"""
 
 
 class ReportParameters(TypedDict, total=False):
@@ -1940,15 +1854,9 @@ ReportFields = List[
 """All fields with type information for the report endpoint."""
 
 
-ReportEndpoint = Literal["/report/search", "/report/{report.id}", "1", "2"]
+ReportEndpoint = Literal["/report/search", "/report/{report.id}"]
 """Valid endpoint identifiers for the report endpoint.
 Can be either the endpoint key or the full path."""
-
-ReportEndpointMap: Dict[str, str] = {
-    "1": "/report/search",
-    "2": "/report/{report.id}",
-}
-"""Mapping of endpoint keys to their paths"""
 
 
 class ReportFactParameters(TypedDict, total=False):
@@ -2275,15 +2183,9 @@ ReportFactFields = List[
 """All fields with type information for the report/fact endpoint."""
 
 
-ReportFactEndpoint = Literal["/report/fact/search", "/report/{report.id}/fact/search", "1", "2"]
+ReportFactEndpoint = Literal["/report/fact/search", "/report/{report.id}/fact/search"]
 """Valid endpoint identifiers for the report/fact endpoint.
 Can be either the endpoint key or the full path."""
-
-ReportFactEndpointMap: Dict[str, str] = {
-    "1": "/report/{report.id}/fact/search",
-    "2": "/report/fact/search",
-}
-"""Mapping of endpoint keys to their paths"""
 
 
 class ReportNetworkParameters(TypedDict, total=False):
@@ -2457,11 +2359,6 @@ ReportNetworkFields = List[
 """All fields with type information for the report/network endpoint."""
 
 
-ReportNetworkEndpoint = Literal["/report/network/search", "1"]
+ReportNetworkEndpoint = Literal["/report/network/search"]
 """Valid endpoint identifiers for the report/network endpoint.
 Can be either the endpoint key or the full path."""
-
-ReportNetworkEndpointMap: Dict[str, str] = {
-    "1": "/report/network/search",
-}
-"""Mapping of endpoint keys to their paths"""
