@@ -62,6 +62,10 @@ Key Features
 - **Pandas Integration**: Return results as JSON or Pandas DataFrames for easy analysis.
 - **Browser Interface**: Explore and analyze XBRL data directly in your browser.
 
+.. image:: images/your-gif.gif
+   :alt: Description of what the GIF shows
+   :width: 600px
+
 
 Tutorial ✏️📖📚
 ================
