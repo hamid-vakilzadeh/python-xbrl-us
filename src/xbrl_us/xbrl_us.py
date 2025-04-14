@@ -278,7 +278,7 @@ def _validate_parameters():
     return decorator
 
 
-def _convert_params_to_dict_decorator():
+def _type_check_decorator():
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -800,7 +800,7 @@ class XBRL:
 
         logger.info("Endpoints metadata and type definitions generated successfully")
 
-    @_convert_params_to_dict_decorator()
+    @_type_check_decorator()
     def query(
         self,
         method: AcceptableMethods,
@@ -967,7 +967,7 @@ class XBRL:
         else:
             return all_data
 
-    @_convert_params_to_dict_decorator()
+    @_type_check_decorator()
     def aquery(
         self,
         method: AcceptableMethods,
