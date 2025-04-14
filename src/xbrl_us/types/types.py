@@ -9,37 +9,37 @@ PERIOD_FISCAL_PERIOD = Literal["Y", "Q1", "Q2", "Q3", "Q4", "3QCUM", "H1", "H2"]
 
 # Define allowed values for method
 AcceptableMethods = Literal[
-    "assertion search",
-    "concept name search",
-    "concept search",
-    "cube search",
+    "assertion search",  # /assertion/search
+    "concept name search",  # /concept/{concept.local-name}/search
+    "concept search",  # /concept/search
+    "cube search",  # /cube/search
     "dimension search",
-    "document search",
-    "dts id concept label",
-    "dts id concept name",
-    "dts id concept reference",
-    "dts id concept search",
-    "dts id network",
-    "dts id network search",
-    "dts search",
-    "entity id",
-    "entity id report search",
-    "entity report search",
-    "entity search",
-    "fact id",
-    "fact search",
-    "fact search oim",
+    "document search",  # /document/search
+    "dts id concept label",  # /dts/{dts.id}/concept/{concept.local-name}/label
+    "dts id concept name",  # /dts/{dts-id}/concept/{concept.local-name}
+    "dts id concept reference",  # /dts/{dts.id}/concept/{concept.local-name}/reference
+    "dts id concept search",  # /dts/{dts.id}/concept/search
+    "dts id network",  # /dts/{dts.id}/network
+    "dts id network search",  # /dts/{dts.id}/network/search
+    "dts search",  # /dts/search
+    "entity id",  # /entity/{entity.id}
+    "entity id report search",  # /entity/{entity.id}/report/search
+    "entity report search",  # /entity/report/search
+    "entity search",  # /entity/search
+    "fact id",  # /fact/{fact.id}
+    "fact search",  # /fact/search
+    "fact search oim",  # /fact/search/oim
     "label dts id search",
-    "label search",
-    "network id",
-    "network id relationship search",
-    "network relationship search",
-    "relationship search",
-    "relationship tree search",
-    "report fact search",
-    "report id",
-    "report id fact search",
-    "report search",
+    "label search",  # /label/search
+    "network id",  # /network/{network.id}
+    "network id relationship search",  # /network/{network.id}/relationship/search
+    "network relationship search",  # /network/relationship/search
+    "relationship search",  # /relationship/search
+    "relationship tree search",  # /relationship/tree/search
+    "report fact search",  # /report/fact/search
+    "report id",  # /report/{report.id}
+    "report id fact search",  # /report/{report.id}/fact/search
+    "report search",  # /report/search
 ]
 """All fields with type information for the fact endpoint."""
 
