@@ -64,7 +64,7 @@ Key Features
 
 .. image:: images/autocompletion-demo.gif
    :alt: A demonstration of the Autocomplete
-   :width: 600px
+   :width: 800px
 
 
 Tutorial ✏️📖📚
