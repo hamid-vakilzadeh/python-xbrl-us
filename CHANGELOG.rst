@@ -2,6 +2,15 @@
 Changelog
 =========
 
+0.1.0 (2025-04-14)
+~~~~~~~~~~~~~~~~~~~
+
+* **New Specialized Methods**: Added specialized methods for all endpoint types (assertion, concept, cube, dimension, document, dts, entity, label, network, relationship) such as ``xbrl.fact`` and ``xbrl.report`` to replace the generic ``query`` method with more specialized, type-safe alternatives
+* **Enhanced Type Hints**: Implemented detailed type suggestions for fields, parameters, and sorting options in specialized methods
+* **IDE Integration**: Added comprehensive parameter definitions and documentation that appear directly in your IDE
+* **Async Support**: Added ``async_mode`` parameter to all specialized methods for parallel execution of large queries
+
+
 0.0.44 (2025-02-15)
 ~~~~~~~~~~~~~~~~~~~
 
