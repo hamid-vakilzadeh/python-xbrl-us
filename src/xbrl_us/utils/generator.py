@@ -133,7 +133,7 @@ def generated_sort_fields(endpoint_name: str, metadata: Dict[str, Any]) -> str:
     Example:
         >>> data: {class_name}Sorts = {{
         ...     "fact_value": "asc",  # API field: fact.value
-        ...     "concept_balance_type": "dec",  # API field: concept.balance-type
+        ...     "concept_balance_type": "desc",  # API field: concept.balance-type
         ... }}
 
     The API will automatically convert between snake_case and original API format.
@@ -252,6 +252,7 @@ def generate_all_types(metadata: Dict[str, Dict[str, Any]]) -> Dict[str, str]:
                 generated_parameters(endpoint_name, endpoint_meta),
                 generate_fields_literal(endpoint_name, endpoint_meta),
                 generate_endpoint_literal(endpoint_name, endpoint_meta),
+                generated_sort_fields(endpoint_name, endpoint_meta),
             ]
         )
 
@@ -262,4 +263,4 @@ def generate_all_types(metadata: Dict[str, Dict[str, Any]]) -> Dict[str, str]:
 
 
 # Expose all generation methods
-__all__ = ["generated_parameters", "generate_fields_literal", "generate_endpoint_literal", "generate_all_types"]
+__all__ = ["generated_parameters", "generate_fields_literal", "generate_endpoint_literal", "generated_sort_fields", "generate_all_types"]
