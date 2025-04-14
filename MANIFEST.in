@@ -20,4 +20,5 @@ include CONTRIBUTING.rst
 include LICENSE
 include README.rst
 
+recursive-include images *.gif
 global-exclude *.py[cod] __pycache__/* *.so *.dylib .DS_Store
