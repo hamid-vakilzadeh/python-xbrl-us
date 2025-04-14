@@ -57,6 +57,8 @@ def generated_parameters(endpoint_name: str, metadata: Dict[str, Any]) -> str:
     class_name = "".join(word.capitalize() for word in name.split("_"))
 
     fields = metadata.get("fields", {})
+    # only keep fields where searchable is true
+    fields = {k: v for k, v in fields.items() if v.get("searchable", "false") == "true"}
 
     # Generate field definitions and docstrings
     field_defs = []
@@ -82,16 +84,61 @@ def generated_parameters(endpoint_name: str, metadata: Dict[str, Any]) -> str:
     content = f'''class {class_name}Parameters(TypedDict, total=False):
     """Parameters for {endpoint_name} endpoint response data
 
-    Field names use snake_case format. Use UniversalFieldMap to convert between
-    snake_case and original API format (with dots/hyphens).
-
     Example:
         >>> data: {class_name}Parameters = {{
         ...     "fact_value": "1000000",  # API field: fact.value
         ...     "concept_balance_type": "debit",  # API field: concept.balance-type
         ... }}
-        >>> api_field = UniversalFieldMap.to_original("fact_value")  # Returns "fact.value"
-        >>> snake_field = UniversalFieldMap.to_snake("concept.balance-type")  # Returns "concept_balance_type"
+
+    The API will automatically convert between snake_case and original API format.
+    For example, the field "fact_value" will be converted to "fact.value" in the API request.
+
+    """
+'''
+    # append each field definition and its docstring
+    for field_def, field_doc in zip(field_defs, field_docs):
+        content += f"{field_def}\n{field_doc}\n"
+    return content
+
+
+def generated_sort_fields(endpoint_name: str, metadata: Dict[str, Any]) -> str:
+    """Generate a Sort class for an endpoint response data"""
+    name = endpoint_name.replace("https://api.xbrl.us/api/v1/meta/", "").replace("/", "_")
+    class_name = "".join(word.capitalize() for word in name.split("_"))
+
+    fields = metadata.get("fields", {})
+
+    # Generate field definitions and docstrings
+    field_defs = []
+    field_docs = []
+
+    for field_name, field_info in fields.items():
+        if "type" not in field_info.keys():
+            continue
+
+        # Create snake_case version of the field name
+        snake_name = field_name.replace(".", "_").replace("-", "_")
+
+        # Add snake_case version to TypedDict
+        field_defs.append(f"    {snake_name}: NotRequired[Literal['asc', 'desc']]")
+
+        # Add docstring with original field name
+        definition = field_info.get("definition", "No definition provided")
+        field_docs.append(f'    """{definition}"""')
+
+    # Generate the Parameters class
+    content = f'''class {class_name}Sorts(TypedDict, total=False):
+    """Sort Fields for {endpoint_name} endpoint response data
+
+    Example:
+        >>> data: {class_name}Sorts = {{
+        ...     "fact_value": "asc",  # API field: fact.value
+        ...     "concept_balance_type": "dec",  # API field: concept.balance-type
+        ... }}
+
+    The API will automatically convert between snake_case and original API format.
+    For example, the field "fact_value" will be converted to "fact.value" in the API request.
+
     """
 '''
     # append each field definition and its docstring
@@ -160,6 +207,7 @@ def generate_init_content(metadata: Dict[str, Dict[str, Any]]) -> str:
         imports.append(f"from .endpoint_types import {class_name}Parameters")
         imports.append(f"from .endpoint_types import {class_name}Fields")
         imports.append(f"from .endpoint_types import {class_name}Endpoint")
+        imports.append(f"from .endpoint_types import {class_name}Sorts")
 
         # Add to exports
         exports.extend(
@@ -167,6 +215,7 @@ def generate_init_content(metadata: Dict[str, Dict[str, Any]]) -> str:
                 f"{class_name}Parameters",
                 f"{class_name}Fields",
                 f"{class_name}Endpoint",
+                f"{class_name}Sorts",
             ]
         )
 
