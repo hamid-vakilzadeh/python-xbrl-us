@@ -54,6 +54,15 @@ usage of the API and adherence to any applicable licensing terms.
     [FILL: Publication Details]
 
 
+Key Features
+============
+
+- **Specialized Methods**: Use `xbrl.fact` and `xbrl.report` for detailed type suggestions and parameter definitions.
+- **Flexible Querying**: Retrieve data with customizable fields, parameters, and sorting options.
+- **Pandas Integration**: Return results as JSON or Pandas DataFrames for easy analysis.
+- **Browser Interface**: Explore and analyze XBRL data directly in your browser.
+
+
 Tutorial ✏️📖📚
 ================
 
@@ -237,6 +246,24 @@ search for a specific fact by its ID:
 
 Congratulations! You have learned how to use the XBRL-US Python library to interact with the XBRL API.
 In this example you will receive the data in json format as the ``as_dataframe`` parameter is set to ``False``.
+
+Using Specialized Methods
+------------------------
+
+The XBRL-US library now includes two specialized methods, ``xbrl.fact`` and ``xbrl.report``, which are tailored versions of the ``query`` method. These methods provide detailed type suggestions and definitions for their parameters, making it easier to construct valid API requests and reducing the chance of errors.
+
+**Why Use Specialized Methods?**
+
+Unlike the generic ``query`` method, these specialized methods:
+
+* Offer precise type hints for fields, parameters, and sorting options
+* Include definitions for each parameter
+* Simplify the process of building queries by guiding you with valid options directly in your IDE
+
+These specialized methods work similarly to ``query`` but are specific to their respective data types and provide better IDE support through type hints.
+
+.. note::
+    While the ``query`` method is still available, we recommend using ``xbrl.fact`` and ``xbrl.report`` for a more guided and error-resistant experience.
 
 .. _browser interface:
 
