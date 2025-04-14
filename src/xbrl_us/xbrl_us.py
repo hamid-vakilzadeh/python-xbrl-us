@@ -752,7 +752,7 @@ class XBRL:
             method (str): The name of the method to query.
             fields (list): The fields query parameter establishes the details of the data to return for the specific query.
             parameters (Optional[dict | Parameters]): The search parameters for the query.
-            limit (Optional[int]): A limit restricts the number of results returned by the query.
+            limit (Optional[Union[int, "all"]]): A limit restricts the number of results returned by the query.
                 For example, in a *"fact search"* ``limit=10`` would return 10 observations.
                 You can also use ``limit="all"`` to return all results (which is not recommended unless
                 you know what you are doing!). The default is *None* which returns one response with
@@ -999,7 +999,7 @@ class XBRL:
                 Options are "/fact/search", "/fact/{fact.id}", or "/fact/search/oim".
             fields (FactFields): The fields to include in the query.
             parameters (FactParameters): The search parameters for the query.
-            limit (Optional[int]): The maximum number of results to return.
+            limit (Optional[Union[int, "all"]]): The maximum number of results to return.
                 If *None*, the default limit is used.
             sort (Optional[FactSorts]): The sort parameters for the query.
                 Example: {"report_document_type": "desc"}.
@@ -1062,7 +1062,7 @@ class XBRL:
                 Options are "/report/search", "/report/{report.id}".
             fields (ReportFields): The fields to include in the query.
             parameters (ReportParameters): The search parameters for the query.
-            limit (Optional[int]): The maximum number of results to return.
+            limit (Optional[Union[int, "all"]]): The maximum number of results to return.
                 If *None*, the default limit is used.
             sort (Optional[ReportSorts]): The sort parameters for the query.
                 Example: {"report_document_type": "desc"}.
