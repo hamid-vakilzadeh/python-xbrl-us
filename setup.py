@@ -71,6 +71,7 @@ setup(
         "tqdm>=4.61.2",
         "stqdm>=0.0.5",
         "aiohttp>=3.8.4, < 4",
+        "nest-asyncio==1.5.6",
     ],
     extras_require={
         # eg:
