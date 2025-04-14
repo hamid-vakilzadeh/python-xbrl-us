@@ -10,7 +10,7 @@ TYPE_MAPPINGS = {
     "varchar": "str",
     "bigint": "int",
     "int": "int",
-    "boolean": "bool",
+    "boolean": 'Literal["true", "false"]',
     "numeric": "float",
     "jsonb": "Dict[str, Any]",
 }

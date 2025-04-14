@@ -615,7 +615,7 @@ class XBRL:
 
         return f"https://api.xbrl.us{url}?"
 
-    def get_meta_endpoints(self, force_refresh=False):
+    def _get_meta_endpoints(self, force_refresh=False):
         """
         Get the endpoints from Meta API and cache them to meta/endpoints.yml.
         Additionally caches each endpoint's metadata and generates type definitions.
@@ -731,7 +731,6 @@ class XBRL:
         init_file.write_text(generated_files["__init__.py"])
 
         logger.info("Endpoints metadata and type definitions generated successfully")
-        return {"endpoints": endpoints}
 
     @_convert_params_to_dict_decorator()
     def query(
