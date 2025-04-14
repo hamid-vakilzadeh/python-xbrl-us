@@ -256,11 +256,48 @@ Using Specialized Methods
 
 The XBRL-US library now includes two specialized methods, ``xbrl.fact`` and ``xbrl.report``, which are tailored versions of the ``query`` method. These methods provide detailed type suggestions and definitions for their parameters, making it easier to construct valid API requests and reducing the chance of errors.
 
+The example below demonstrates how to retrieve exactly the same data as the query shown above. The key advantage is the enhanced autocompletion and IDE suggestions, which significantly improve your development experience:
+
+.. code-block:: python
+
+    response = xbrl.fact(
+        endpoint='/fact/search',
+        fields=[
+            'report.accession',
+            'period.fiscal-year',
+            'period.end',
+            'period.fiscal-period',
+            'fact.ultimus',
+            'unit',
+            'concept.local-name',
+            'fact.value',
+            'fact.id',
+            'entity.id',
+            'entity.cik',
+            'entity.name',
+            'report.sic-code',
+        ],
+        parameters={
+            "concept_local_name": [
+                'OperatingIncomeLoss',
+                'GrossProfit',
+                'OperatingExpenses',
+                'OtherOperatingIncomeExpenseNet'
+            ],
+            "period_fiscal_year": [2009, 2010],
+            "report_sic_code": range(2800, 2899)
+        },
+        limit=100,
+        as_dataframe=True
+    )
+
 **Why Use Specialized Methods?**
 
 Unlike the generic ``query`` method, these specialized methods:
 
 * Offer precise type hints for fields, parameters, and sorting options
+* Align with the XBRL US API structure, using proper endpoint naming conventions
+* Simplify query construction with IDE-guided valid options
 * Include definitions for each parameter
 * Simplify the process of building queries by guiding you with valid options directly in your IDE
 
