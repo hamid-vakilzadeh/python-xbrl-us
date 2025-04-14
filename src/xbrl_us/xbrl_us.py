@@ -10,6 +10,7 @@ from typing import Optional
 from typing import Union
 
 import aiohttp
+import nest_asyncio
 import requests
 from pandas import DataFrame
 from retry import retry
@@ -17,12 +18,72 @@ from tqdm import tqdm
 from yaml import safe_load
 
 from .types import AcceptableMethods
+from .types import AssertionEndpoint
+from .types import AssertionFields
+from .types import AssertionParameters
+from .types import AssertionSorts
+from .types import ConceptEndpoint
+from .types import ConceptFields
+from .types import ConceptParameters
+from .types import ConceptSorts
+from .types import CubeEndpoint
+from .types import CubeFields
+from .types import CubeParameters
+from .types import CubeSorts
+from .types import DocumentEndpoint
+from .types import DocumentFields
+from .types import DocumentParameters
+from .types import DocumentSorts
+from .types import DtsConceptEndpoint
+from .types import DtsConceptFields
+from .types import DtsConceptParameters
+from .types import DtsConceptSorts
+from .types import DtsEndpoint
+from .types import DtsFields
+from .types import DtsNetworkEndpoint
+from .types import DtsNetworkFields
+from .types import DtsNetworkParameters
+from .types import DtsNetworkSorts
+from .types import DtsParameters
+from .types import DtsSorts
+from .types import EntityEndpoint
+from .types import EntityFields
+from .types import EntityParameters
+from .types import EntityReportEndpoint
+from .types import EntityReportFields
+from .types import EntityReportParameters
+from .types import EntityReportSorts
+from .types import EntitySorts
 from .types import FactEndpoint
 from .types import FactFields
 from .types import FactParameters
 from .types import FactSorts
+from .types import LabelEndpoint
+from .types import LabelFields
+from .types import LabelParameters
+from .types import LabelSorts
+from .types import NetworkEndpoint
+from .types import NetworkFields
+from .types import NetworkParameters
+from .types import NetworkRelationshipEndpoint
+from .types import NetworkRelationshipFields
+from .types import NetworkRelationshipParameters
+from .types import NetworkRelationshipSorts
+from .types import NetworkSorts
+from .types import RelationshipEndpoint
+from .types import RelationshipFields
+from .types import RelationshipParameters
+from .types import RelationshipSorts
 from .types import ReportEndpoint
+from .types import ReportFactEndpoint
+from .types import ReportFactFields
+from .types import ReportFactParameters
+from .types import ReportFactSorts
 from .types import ReportFields
+from .types import ReportNetworkEndpoint
+from .types import ReportNetworkFields
+from .types import ReportNetworkParameters
+from .types import ReportNetworkSorts
 from .types import ReportParameters
 from .types import ReportSorts
 from .types import UniversalFieldMap
@@ -55,6 +116,13 @@ handler = logging.StreamHandler()
 handler.addFilter(OneTimeWarningFilter())
 logger.addHandler(handler)
 logger.setLevel(logging.WARNING)
+
+
+# Apply patch when the module is imported
+try:
+    nest_asyncio.apply()
+except Exception as e:
+    logger.warning(f"An exception occurred: {e}")  # Or debug/info/error as appropriate
 
 
 def _remove_special_fields(fields):
@@ -991,30 +1059,33 @@ class XBRL:
         as_dataframe: bool = False,
         print_query: Optional[bool] = False,
         timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
         **kwargs,
     ) -> Union[dict, DataFrame]:
         """
         Args:
-            endpoint (str): The API endpoint to query.
+            endpoint (str, required): The API endpoint to query.
                 Options are "/fact/search", "/fact/{fact.id}", or "/fact/search/oim".
-            fields (FactFields): The fields to include in the query.
-            parameters (FactParameters): The search parameters for the query.
-            limit (Optional[Union[int, "all"]]): The maximum number of results to return.
-                If *None*, the default limit is used.
-            sort (Optional[FactSorts]): The sort parameters for the query.
-                Example: {"report_document_type": "desc"}.
-            unique (Optional[bool]): If *True*, returns only unique values.
-                Default is *False*.
-            as_dataframe (bool): If *True*, returns the results as a DataFrame.
-                Default is *False*, which returns the results as JSON.
-            print_query (bool): If *True*, prints the query text.
-                Default is *False*.
-            timeout (int): The number of seconds to wait for a response from the server.
-                Default is 100 seconds. If *None*, waits indefinitely.
+            fields (FactFields, required): The fields to include in the query.
+            parameters (FactParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (FactSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
             **kwargs: Additional keyword arguments to be passed to the request.
-
-            Returns:
-                json | DataFrame: The results of the query.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
         """
         if endpoint == "/fact/search/oim":
             method = "fact search oim"
@@ -1029,6 +1100,20 @@ class XBRL:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
             sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        if async_mode:
+            return self.aquery(
+                method=method,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
 
         return self.query(
             method=method,
@@ -1054,30 +1139,33 @@ class XBRL:
         as_dataframe: bool = False,
         print_query: Optional[bool] = False,
         timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
         **kwargs,
     ) -> Union[dict, DataFrame]:
         """
         Args:
-            endpoint (str): The API endpoint to query.
-                Options are "/report/search", "/report/{report.id}".
-            fields (ReportFields): The fields to include in the query.
-            parameters (ReportParameters): The search parameters for the query.
-            limit (Optional[Union[int, "all"]]): The maximum number of results to return.
-                If *None*, the default limit is used.
-            sort (Optional[ReportSorts]): The sort parameters for the query.
-                Example: {"report_document_type": "desc"}.
-            unique (Optional[bool]): If *True*, returns only unique values.
-                Default is *False*.
-            as_dataframe (bool): If *True*, returns the results as a DataFrame.
-                Default is *False*, which returns the results as JSON.
-            print_query (bool): If *True*, prints the query text.
-                Default is *False*.
-            timeout (int): The number of seconds to wait for a response from the server.
-                Default is 100 seconds. If *None*, waits indefinitely.
+            endpoint (str, required): The API endpoint to query.
+                Options are "/report/search" or "/report/{report.id}".
+            fields (ReportFields, required): The fields to include in the query.
+            parameters (ReportParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (ReportSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
             **kwargs: Additional keyword arguments to be passed to the request.
-
-            Returns:
-                json | DataFrame: The results of the query.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
         """
         if endpoint == "/report/{report.id}":
             method = "report id"
@@ -1091,6 +1179,20 @@ class XBRL:
         if sort:
             sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
 
+        if async_mode:
+            return self.aquery(
+                method=method,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
+
         return self.query(
             method=method,
             fields=fields,
@@ -1103,3 +1205,1152 @@ class XBRL:
             timeout=timeout,
             **kwargs,
         )
+
+    def assertion(
+        self,
+        endpoint: AssertionEndpoint,
+        fields: Optional[AssertionFields] = None,
+        parameters: Optional[AssertionParameters] = None,
+        limit: Optional[Union[int, "all"]] = None,
+        sort: Optional[AssertionSorts] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+            endpoint (str, required): The API endpoint to query.
+                Options are "/assertion/search".
+            fields (AssertionFields, required): The fields to include in the query.
+            parameters (AssertionParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (AssertionSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
+            **kwargs: Additional keyword arguments to be passed to the request.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
+        """
+        if endpoint == "/assertion/search":
+            method = "assertion search"
+        else:
+            raise ValueError("Invalid endpoint. Please use one of the following: /assertion/search.")
+
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        if async_mode:
+            return self.aquery(
+                method=method,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    def concept(
+        self,
+        endpoint: ConceptEndpoint,
+        fields: Optional[ConceptFields] = None,
+        parameters: Optional[ConceptParameters] = None,
+        limit: Optional[Union[int, "all"]] = None,
+        sort: Optional[ConceptSorts] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+            endpoint (str, required): The API endpoint to query.
+                Options are "/concept/{concept.local-name}/search" or "/concept/search".
+            fields (ConceptFields, required): The fields to include in the query.
+            parameters (ConceptParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (ConceptSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
+            **kwargs: Additional keyword arguments to be passed to the request.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
+        """
+        if endpoint == "/concept/{concept.local-name}/search":
+            method = "concept name search"
+        elif endpoint == "/concept/search":
+            method = "concept search"
+        else:
+            raise ValueError("Invalid endpoint. Please use one of the following: /concept/{concept.local-name}/search, /concept/search.")
+
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        if async_mode:
+            return self.aquery(
+                method=method,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    def cube(
+        self,
+        endpoint: CubeEndpoint,
+        fields: Optional[CubeFields] = None,
+        parameters: Optional[CubeParameters] = None,
+        limit: Optional[Union[int, "all"]] = None,
+        sort: Optional[CubeSorts] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+            endpoint (str, required): The API endpoint to query.
+                Options are "/cube/search".
+            fields (CubeFields, required): The fields to include in the query.
+            parameters (CubeParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (CubeSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
+            **kwargs: Additional keyword arguments to be passed to the request.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
+        """
+        if endpoint == "/cube/search":
+            method = "cube search"
+        else:
+            raise ValueError("Invalid endpoint. Please use one of the following: /cube/search")
+
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        if async_mode:
+            return self.aquery(
+                method=method,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    def document(
+        self,
+        endpoint: DocumentEndpoint,
+        fields: Optional[DocumentFields] = None,
+        parameters: Optional[DocumentParameters] = None,
+        limit: Optional[Union[int, "all"]] = None,
+        sort: Optional[DocumentSorts] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+            endpoint (str, required): The API endpoint to query.
+                Options are "/document/search".
+            fields (DocumentFields, required): The fields to include in the query.
+            parameters (DocumentParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (DocumentSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
+            **kwargs: Additional keyword arguments to be passed to the request.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
+        """
+        if endpoint == "/document/search":
+            method = "document search"
+        else:
+            raise ValueError("Invalid endpoint. Please use one of the following: /document/search")
+
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        if async_mode:
+            return self.aquery(
+                method=method,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    def dts_concept(
+        self,
+        endpoint: DtsConceptEndpoint,
+        fields: Optional[DtsConceptFields] = None,
+        parameters: Optional[DtsConceptParameters] = None,
+        limit: Optional[Union[int, "all"]] = None,
+        sort: Optional[DtsConceptSorts] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+            endpoint (str, required): The API endpoint to query.
+                Options are "/dts/{dts.id}/concept/search", "/dts/{dts-id}/concept/{concept.local-name}", "/dts/{dts.id}/concept/{concept.local-name}/label", "/dts/{dts.id}/concept/{concept.local-name}/reference".
+            fields (DtsConceptFields, required): The fields to include in the query.
+            parameters (DtsConceptParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (DtsConceptSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
+            **kwargs: Additional keyword arguments to be passed to the request.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
+        """
+        if endpoint == "/dts/{dts.id}/concept/search":
+            method = "dts id concept search"
+        elif endpoint == "/dts/{dts-id}/concept/{concept.local-name}":
+            method = "dts id concept name"
+        elif endpoint == "/dts/{dts.id}/concept/{concept.local-name}/label":
+            method = "dts id concept label"
+        elif endpoint == "/dts/{dts.id}/concept/{concept.local-name}/reference":
+            method = "dts id concept reference"
+        else:
+            raise ValueError(
+                "Invalid endpoint. Please use one of the following: /dts/{dts.id}/concept/search, /dts/{dts-id}/concept/{concept.local-name}, /dts/{dts.id}/concept/{concept.local-name}/label, /dts/{dts.id}/concept/{concept.local-name}/reference."
+            )
+
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        if async_mode:
+            return self.aquery(
+                method=method,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    def dts_network(
+        self,
+        endpoint: DtsNetworkEndpoint,
+        fields: Optional[DtsNetworkFields] = None,
+        parameters: Optional[DtsNetworkParameters] = None,
+        limit: Optional[Union[int, "all"]] = None,
+        sort: Optional[DtsNetworkSorts] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+            endpoint (str, required): The API endpoint to query.
+                Options are "/dts/{dts.id}/network", "/dts/{dts.id}/network/search".
+            fields (DtsNetworkFields, required): The fields to include in the query.
+            parameters (DtsNetworkParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (DtsNetworkSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
+            **kwargs: Additional keyword arguments to be passed to the request.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
+        """
+        if endpoint == "/dts/{dts.id}/network":
+            method = "dts id network"
+        elif endpoint == "/dts/{dts.id}/network/search":
+            method = "dts id network search"
+        else:
+            raise ValueError("Invalid endpoint. Please use one of the following: /dts/{dts.id}/network, /dts/{dts.id}/network/search")
+
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        if async_mode:
+            return self.aquery(
+                method=method,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    def dts(
+        self,
+        endpoint: DtsEndpoint,
+        fields: Optional[DtsFields] = None,
+        parameters: Optional[DtsParameters] = None,
+        limit: Optional[Union[int, "all"]] = None,
+        sort: Optional[DtsSorts] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+            endpoint (str, required): The API endpoint to query.
+                Options are "/dts/search".
+            fields (DtsFields, required): The fields to include in the query.
+            parameters (DtsParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (DtsSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
+            **kwargs: Additional keyword arguments to be passed to the request.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
+        """
+        if endpoint == "/dts/search":
+            method = "dts search"
+        else:
+            raise ValueError("Invalid endpoint. Please use one of the following: /dts/search")
+
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        if async_mode:
+            return self.aquery(
+                method=method,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    def entity_report(
+        self,
+        endpoint: EntityReportEndpoint,
+        fields: Optional[EntityReportFields] = None,
+        parameters: Optional[EntityReportParameters] = None,
+        limit: Optional[Union[int, "all"]] = None,
+        sort: Optional[EntityReportSorts] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+            endpoint (str, required): The API endpoint to query.
+                Options are "/entity/{entity.id}/report/search" or "/entity/report/search".
+            fields (EntityReportFields, required): The fields to include in the query.
+            parameters (EntityReportParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (EntityReportSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
+            **kwargs: Additional keyword arguments to be passed to the request.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
+        """
+        if endpoint == "/entity/{entity.id}/report/search":
+            method = "entity id report search"
+        elif endpoint == "/entity/report/search":
+            method = "entity report search"
+        else:
+            raise ValueError("Invalid endpoint. Please use one of the following: /entity/{entity.id}/report/search, /entity/report/search")
+
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        if async_mode:
+            return self.aquery(
+                method=method,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    def entity(
+        self,
+        endpoint: EntityEndpoint,
+        fields: Optional[EntityFields] = None,
+        parameters: Optional[EntityParameters] = None,
+        limit: Optional[Union[int, "all"]] = None,
+        sort: Optional[EntitySorts] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+            endpoint (str, required): The API endpoint to query.
+                Options are "/entity/{entity.id}" or "/entity/search".
+            fields (EntityFields, required): The fields to include in the query.
+            parameters (EntityParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (EntitySorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
+            **kwargs: Additional keyword arguments to be passed to the request.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
+        """
+        if endpoint == "/entity/{entity.id}":
+            method = "entity id"
+        elif endpoint == "/entity/search":
+            method = "entity search"
+        else:
+            raise ValueError("Invalid endpoint. Please use one of the following: /entity/{entity.id}, /entity/search")
+
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        if async_mode:
+            return self.aquery(
+                method=method,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    def label(
+        self,
+        endpoint: LabelEndpoint,
+        fields: Optional[LabelFields] = None,
+        parameters: Optional[LabelParameters] = None,
+        limit: Optional[Union[int, "all"]] = None,
+        sort: Optional[LabelSorts] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+            endpoint (str, required): The API endpoint to query.
+                Options are "/label/search" or "/label/{label.id}/search".
+            fields (LabelFields, required): The fields to include in the query.
+            parameters (LabelParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (LabelSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
+            **kwargs: Additional keyword arguments to be passed to the request.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
+        """
+        if endpoint == "/label/search":
+            method = "label search"
+        elif endpoint == "/label/{label.id}/search":
+            raise ValueError("This endpoint is not supported yet.")  # TODO: support this endpoint
+        else:
+            raise ValueError("Invalid endpoint. Please use one of the following: /label/search, /label/{label.id}/search")
+
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        if async_mode:
+            return self.aquery(
+                method=method,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    def network_relationship(
+        self,
+        endpoint: NetworkRelationshipEndpoint,
+        fields: Optional[NetworkRelationshipFields] = None,
+        parameters: Optional[NetworkRelationshipParameters] = None,
+        limit: Optional[Union[int, "all"]] = None,
+        sort: Optional[NetworkRelationshipSorts] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+            endpoint (str, required): The API endpoint to query.
+                Options are "/network/{network.id}/relationship/search" or "/network/relationship/search".
+            fields (NetworkRelationshipFields, required): The fields to include in the query.
+            parameters (NetworkRelationshipParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (NetworkRelationshipSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
+            **kwargs: Additional keyword arguments to be passed to the request.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
+        """
+        if endpoint == "/network/{network.id}/relationship/search":
+            method = "network id relationship search"
+        elif endpoint == "/network/relationship/search":
+            method = "network relationship search"
+        else:
+            raise ValueError(
+                "Invalid endpoint. Please use one of the following: /network/{network.id}/relationship/search, /network/relationship/search"
+            )
+
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        if async_mode:
+            return self.aquery(
+                method=method,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    def network(
+        self,
+        endpoint: NetworkEndpoint,
+        fields: Optional[NetworkFields] = None,
+        parameters: Optional[NetworkParameters] = None,
+        limit: Optional[Union[int, "all"]] = None,
+        sort: Optional[NetworkSorts] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+            endpoint (str, required): The API endpoint to query.
+                Options are "/network/{network.id}".
+            fields (NetworkFields, required): The fields to include in the query.
+            parameters (NetworkParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (NetworkSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
+            **kwargs: Additional keyword arguments to be passed to the request.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
+        """
+        if endpoint == "/network/{network.id}":
+            method = "network id"
+        else:
+            raise ValueError("Invalid endpoint. Please use one of the following: /network/{network.id}")
+
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        if async_mode:
+            return self.aquery(
+                method=method,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    def relationship(
+        self,
+        endpoint: RelationshipEndpoint,
+        fields: Optional[RelationshipFields] = None,
+        parameters: Optional[RelationshipParameters] = None,
+        limit: Optional[Union[int, "all"]] = None,
+        sort: Optional[RelationshipSorts] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+            endpoint (str, required): The API endpoint to query.
+                Options are "/relationship/search" or "/relationship/tree/search".
+            fields (RelationshipFields, required): The fields to include in the query.
+            parameters (RelationshipParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (RelationshipSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
+            **kwargs: Additional keyword arguments to be passed to the request.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
+        """
+        if endpoint == "/relationship/search":
+            method = "relationship search"
+        elif endpoint == "/relationship/tree/search":
+            method = "relationship tree search"
+        else:
+            raise ValueError("Invalid endpoint. Please use one of the following: /relationship/search, /relationship/tree/search")
+
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        if async_mode:
+            return self.aquery(
+                method=method,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    def report_fact(
+        self,
+        endpoint: ReportFactEndpoint,
+        fields: Optional[ReportFactFields] = None,
+        parameters: Optional[ReportFactParameters] = None,
+        limit: Optional[Union[int, "all"]] = None,
+        sort: Optional[ReportFactSorts] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+            endpoint (str, required): The API endpoint to query.
+                Options are "/report/{report.id}/fact/search" or "/report/fact/search".
+            fields (ReportFactFields, required): The fields to include in the query.
+            parameters (ReportFactParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (ReportFactSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
+            **kwargs: Additional keyword arguments to be passed to the request.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
+        """
+        if endpoint == "/report/{report.id}/fact/search":
+            method = "report id fact search"
+        elif endpoint == "/report/fact/search":
+            method = "report fact search"
+        else:
+            raise ValueError("Invalid endpoint. Please use one of the following: /report/{report.id}/fact/search, /report/fact/search")
+
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        if async_mode:
+            return self.aquery(
+                method=method,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    def report_network(
+        self,
+        endpoint: ReportNetworkEndpoint,
+        fields: Optional[ReportNetworkFields] = None,
+        parameters: Optional[ReportNetworkParameters] = None,
+        limit: Optional[Union[int, "all"]] = None,
+        sort: Optional[ReportNetworkSorts] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 100,
+        async_mode: Optional[bool] = False,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+
+            Returns:
+                json | DataFrame: The results of the query.
+        """
+        if endpoint == "/report/network/search":
+            raise ValueError("This endpoint is not supported yet.")  # TODO: support this endpoint
+        else:
+            raise ValueError("Invalid endpoint. Please use one of the following: /report/network/search")
+
+        """
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        if async_mode:
+            return self.aquery(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+        """
