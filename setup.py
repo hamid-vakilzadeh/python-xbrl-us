@@ -66,7 +66,7 @@ setup(
         "requests>=2.25.1",
         "pandas>= 1.3.0, < 3",
         "PyYAML>=5.3",
-        "streamlit>=1.32.2",
+        "streamlit>=1.44.1",
         "retry>=0.9.2",
         "tqdm>=4.61.2",
         "stqdm>=0.0.5",
