@@ -62,8 +62,8 @@ Key Features
 - **Pandas Integration**: Return results as JSON or Pandas DataFrames for easy analysis.
 - **Browser Interface**: Explore and analyze XBRL data directly in your browser.
 
-.. image:: images/your-gif.gif
-   :alt: Description of what the GIF shows
+.. image:: images/autocompletion-demo.gif
+   :alt: A demonstration of the Autocomplete
    :width: 600px
 
 
