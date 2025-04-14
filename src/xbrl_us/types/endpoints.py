@@ -1,6 +1,9 @@
+from typing import Dict
 from typing import List
 from typing import Literal
 from typing import TypedDict
+from typing import get_args
+from typing import get_type_hints
 
 from typing_extensions import NotRequired
 
@@ -30,6 +33,16 @@ class UniversalFieldMap:
     def to_snake(cls, original_name: str) -> str:
         """Convert an original API field name to snake_case"""
         return original_name.replace(".", "_").replace("-", "_")
+
+    @classmethod
+    def typed_dict_to_list(cls, typed_dict: Dict) -> List[str]:
+        """Get all allowed fields for a TypedDict class"""
+        return list(get_type_hints(typed_dict).keys())
+
+    @classmethod
+    def list_literal_to_list(cls, field_list: List) -> List[str]:
+        """Get all fields for a List Literal"""
+        return list(get_args(field_list)[0].__args__)
 
 
 class AssertionParameters(TypedDict, total=False):
