@@ -217,9 +217,9 @@ class ConceptParameters(TypedDict, total=False):
     """The balance type of a concept. This can be either debit, credit or not defined."""
     concept_id: NotRequired[int]
     """A unique identification id of the concept that can be searched on. This is a faster way to retrieve the details of a fact, however it is namespace specific and will only search for the use of a concept for a specific schema. """
-    concept_is_abstract: NotRequired[bool]
+    concept_is_abstract: NotRequired[Literal["true", "false"]]
     """Identifies if the concept is an abstract concept. If a primary concept (Not an axis or dimension) is an abstract it cannot have a value associated with it."""
-    concept_is_monetary: NotRequired[bool]
+    concept_is_monetary: NotRequired[Literal["true", "false"]]
     """Identifies if the concept is a monetary value. If yes the value is shown as true. A monetary value is distinguished from a numeric concept in that it has a currency associated with it."""
     concept_local_name: NotRequired[str]
     """The concept name in the base schema of a taxonomy excluding the namespace, such as Assets or Liabilities. Use this to search across multiple taxonomies where the local name is known to be consistent over time."""
@@ -399,11 +399,11 @@ class CubeParameters(TypedDict, total=False):
     """No definition provided"""
     fact_id: NotRequired[int]
     """The unique identifier used to identify a fact."""
-    fact_is_extended: NotRequired[bool]
+    fact_is_extended: NotRequired[Literal["true", "false"]]
     """This indicates if the fact is comprised of either an extension concept, extension axis or extension member."""
     fact_numerical_value: NotRequired[float]
     """The numerical value of the fact that was reported. """
-    fact_ultimus: NotRequired[bool]
+    fact_ultimus: NotRequired[Literal["true", "false"]]
     """A boolean that indicates if the fact is the latest value reported.  A value of true represents that it's the latest value reported.  A value of false represents that the value has been superseded with a more recent fact."""
     fact_value: NotRequired[str]
     """The value of the fact as a text value. This included numerical as well as non numerical values reported."""
@@ -590,7 +590,7 @@ class DocumentParameters(TypedDict, total=False):
     """An internal unique identifier of the document."""
     document_text_search: NotRequired[str]
     """Cannot be used as a return field. Search for strings within document object (ie. to locate a specific name, topic or reference within an entire document). Fields returned include document.example and document.highlighted-value. The XBRL API uses the Sphinx search engine to identify text. This powerful search engine quickly identifies a given text string. Sphinx is enabled to support stemming, which means it will also return plurals of a noun i.e. ipad will also return ipads. It will also return the present, future and past form of a verb for example the word kill will also return killed and killing. To match the word exactly the character '=' can be placed in front of the word i.e. = ipad will return the occurrence of the word ipad only."""
-    document_top_level: NotRequired[bool]
+    document_top_level: NotRequired[Literal["true", "false"]]
     """Boolean that indicates if the file in a dts is the entry point."""
     document_uri: NotRequired[str]
     """The url at which the document comprising the dts is located."""
@@ -1074,15 +1074,15 @@ class EntityReportParameters(TypedDict, total=False):
     """The balance type of a concept. This can be either debit, credit or not defined."""
     concept_id: NotRequired[int]
     """A unique identification id of the concept that can be searched on. This is a faster way to retrieve the details of a fact, however it is namespace specific and will only search for the use of a concept for a specific schema. """
-    concept_is_base: NotRequired[bool]
+    concept_is_base: NotRequired[Literal["true", "false"]]
     """Identifies if the concept is from a base published taxonomy or from a company extension. Avalue of true indicates that it is a base taxonomy element. This attribute can be used for example to search for extension elements in a filing."""
-    concept_is_monetary: NotRequired[bool]
+    concept_is_monetary: NotRequired[Literal["true", "false"]]
     """Identifies if the concept is a monetary value. If yes the value is shown as true. A monetary value is distinguished from a numeric concept in that it has a currency associated with it."""
     concept_local_name: NotRequired[str]
     """The concept name in the base schema of a taxonomy excluding the namespace, such as Assets or Liabilities. Use this to search across multiple taxonomies where the local name is known to be consistent over time."""
     concept_namespace: NotRequired[str]
     """No definition provided"""
-    dimension_is_base: NotRequired[bool]
+    dimension_is_base: NotRequired[Literal["true", "false"]]
     """A boolean that indicates if the dimension concept is a base taxonomy element (true) or an extensions dimension concept (false)."""
     dimension_local_name: NotRequired[str]
     """The dimension concept name in the taxonomy excluding the namespace, that is defined as dimension type."""
@@ -1110,23 +1110,23 @@ class EntityReportParameters(TypedDict, total=False):
     """No definition provided"""
     fact_accuracy_index: NotRequired[int]
     """No definition provided"""
-    fact_has_dimensions: NotRequired[bool]
+    fact_has_dimensions: NotRequired[Literal["true", "false"]]
     """This boolean field indicates if the fact has any dimensions associated with it."""
     fact_hash: NotRequired[str]
     """The fact hash is derived from the aspect properties of the fact. Each fact will have a different hash in a given report. Over time however different facts may have the same hash if they are identical. The hash does not take into account the value reported for the fact. the fact hash is used to determine the ultimus index. By searching on the hash you can identify all identical facts that were reported."""
     fact_id: NotRequired[int]
     """The unique identifier used to identify a fact."""
-    fact_is_extended: NotRequired[bool]
+    fact_is_extended: NotRequired[Literal["true", "false"]]
     """This indicates if the fact is comprised of either an extension concept, extension axis or extension member."""
     fact_text_search: NotRequired[str]
     """Used to define text in a text search. Cannot be output as a field."""
-    fact_ultimus: NotRequired[bool]
+    fact_ultimus: NotRequired[Literal["true", "false"]]
     """A boolean that indicates if the fact is the latest value reported.  A value of true represents that it's the latest value reported.  A value of false represents that the value has been superseded with a more recent fact."""
     fact_ultimus_index: NotRequired[int]
     """An integer that records the incarnation of the fact. The same fact is reported many times and the ultimus field captures the incarnation that was reported. A value of 1 indicates that this is the latest value of the fact. A value of 6 for example would indicate that the value has been reported 6 times subsequently to this fact being reported. If requesting values from a specific report the ultimus filed would not be used as a search parameter as you will not get all the fact values if there has been a subsequent report filed, as the ultimus value on these facts in a specific report will be updated as additional reports come in."""
     fact_value: NotRequired[str]
     """The value of the fact as a text value. This included numerical as well as non numerical values reported."""
-    member_is_base: NotRequired[bool]
+    member_is_base: NotRequired[Literal["true", "false"]]
     """A boolean value that indicates if the member is a base element in the reporting taxonomy or a company extension."""
     member_local_name: NotRequired[str]
     """Local name of the member."""
@@ -1176,7 +1176,7 @@ class EntityReportParameters(TypedDict, total=False):
     """No definition provided"""
     relationship_target_concept_id: NotRequired[int]
     """No definition provided"""
-    relationship_target_is_abstract: NotRequired[bool]
+    relationship_target_is_abstract: NotRequired[Literal["true", "false"]]
     """No definition provided"""
     relationship_target_label: NotRequired[str]
     """No definition provided"""
@@ -1192,7 +1192,7 @@ class EntityReportParameters(TypedDict, total=False):
     """The identifier used by the SEC to identify a report."""
     report_base_taxonomy: NotRequired[str]
     """Base taxonomy used for the filing. e.g. US-GAAP 2020."""
-    report_checks_run: NotRequired[bool]
+    report_checks_run: NotRequired[Literal["true", "false"]]
     """Boolean flag that indicates if the Data Quality Committee checks (see assertion object details - dqcfiling) have run for this report."""
     report_creation_software: NotRequired[str]
     """The creation software that was used to create a report/"""
@@ -1223,13 +1223,13 @@ class EntityReportParameters(TypedDict, total=False):
     """No definition provided"""
     report_id: NotRequired[int]
     """The identifier used to identify a report."""
-    report_is_most_current: NotRequired[bool]
+    report_is_most_current: NotRequired[Literal["true", "false"]]
     """A boolean indicator for whether the report is the most current (true)."""
     report_period_focus: NotRequired[str]
     """The period the report was reported for."""
     report_period_index: NotRequired[int]
     """Allows the retrieval of reports other than most current. A value of 1 gets the latest report. A value of 2 gets the second to last report etc."""
-    report_restated: NotRequired[bool]
+    report_restated: NotRequired[Literal["true", "false"]]
     """A boolean that indicates if the report has been subsequently restated.  A value of true represents that the report has been subsequently restated by another report.  A value of false means that this report has not been subsequently restated by another report."""
     report_restated_index: NotRequired[str]
     """A numerical indicator that can be used to identify if a report has been restated. If the value is 1 it indicates that this is the latest report. If the value is 2 it means that an updated copy of the report has been filed."""
@@ -1663,15 +1663,15 @@ class FactParameters(TypedDict, total=False):
     """The balance type of a concept. This can be either debit, credit or not defined."""
     concept_id: NotRequired[int]
     """A unique identification id of the concept that can be searched on. This is a faster way to retrieve the details of a fact, however it is namespace specific and will only search for the use of a concept for a specific schema. """
-    concept_is_base: NotRequired[bool]
+    concept_is_base: NotRequired[Literal["true", "false"]]
     """Identifies if the concept is from a base published taxonomy or from a company extension. Avalue of true indicates that it is a base taxonomy element. This attribute can be used for example to search for extension elements in a filing."""
-    concept_is_monetary: NotRequired[bool]
+    concept_is_monetary: NotRequired[Literal["true", "false"]]
     """Identifies if the concept is a monetary value. If yes the value is shown as true. A monetary value is distinguished from a numeric concept in that it has a currency associated with it."""
     concept_local_name: NotRequired[str]
     """The concept name in the base schema of a taxonomy excluding the namespace, such as Assets or Liabilities. Use this to search across multiple taxonomies where the local name is known to be consistent over time."""
     concept_namespace: NotRequired[str]
     """No definition provided"""
-    dimension_is_base: NotRequired[bool]
+    dimension_is_base: NotRequired[Literal["true", "false"]]
     """A boolean that indicates if the dimension concept is a base taxonomy element (true) or an extensions dimension concept (false)."""
     dimension_local_name: NotRequired[str]
     """The dimension concept name in the taxonomy excluding the namespace, that is defined as dimension type."""
@@ -1695,23 +1695,23 @@ class FactParameters(TypedDict, total=False):
     """The internal identifier used to identify an entity. This will be replaced with the LEI when teh SEC supports the LEI standard."""
     fact_accuracy_index: NotRequired[int]
     """No definition provided"""
-    fact_has_dimensions: NotRequired[bool]
+    fact_has_dimensions: NotRequired[Literal["true", "false"]]
     """This boolean field indicates if the fact has any dimensions associated with it."""
     fact_hash: NotRequired[str]
     """The fact hash is derived from the aspect properties of the fact. Each fact will have a different hash in a given report. Over time however different facts may have the same hash if they are identical. The hash does not take into account the value reported for the fact. the fact hash is used to determine the ultimus index. By searching on the hash you can identify all identical facts that were reported."""
     fact_id: NotRequired[int]
     """The unique identifier used to identify a fact."""
-    fact_is_extended: NotRequired[bool]
+    fact_is_extended: NotRequired[Literal["true", "false"]]
     """This indicates if the fact is comprised of either an extension concept, extension axis or extension member."""
     fact_text_search: NotRequired[str]
     """Used to define text in a text search. Cannot be output as a field."""
-    fact_ultimus: NotRequired[bool]
+    fact_ultimus: NotRequired[Literal["true", "false"]]
     """A boolean that indicates if the fact is the latest value reported.  A value of true represents that it's the latest value reported.  A value of false represents that the value has been superseded with a more recent fact."""
     fact_ultimus_index: NotRequired[int]
     """An integer that records the incarnation of the fact. The same fact is reported many times and the ultimus field captures the incarnation that was reported. A value of 1 indicates that this is the latest value of the fact. A value of 6 for example would indicate that the value has been reported 6 times subsequently to this fact being reported. If requesting values from a specific report the ultimus filed would not be used as a search parameter as you will not get all the fact values if there has been a subsequent report filed, as the ultimus value on these facts in a specific report will be updated as additional reports come in."""
     fact_value: NotRequired[str]
     """The value of the fact as a text value. This included numerical as well as non numerical values reported."""
-    member_is_base: NotRequired[bool]
+    member_is_base: NotRequired[Literal["true", "false"]]
     """A boolean value that indicates if the member is a base element in the reporting taxonomy or a company extension."""
     member_local_name: NotRequired[str]
     """Local name of the member."""
@@ -1757,11 +1757,11 @@ class FactParameters(TypedDict, total=False):
     """No definition provided"""
     report_id: NotRequired[int]
     """The identifier used to identify a report."""
-    report_is_most_current: NotRequired[bool]
+    report_is_most_current: NotRequired[Literal["true", "false"]]
     """A boolean indicator for whether the report is the most current (true)."""
     report_period_focus: NotRequired[str]
     """The period the report was reported for."""
-    report_restated: NotRequired[bool]
+    report_restated: NotRequired[Literal["true", "false"]]
     """A boolean that indicates if the report has been subsequently restated.  A value of true represents that the report has been subsequently restated by another report.  A value of false means that this report has not been subsequently restated by another report."""
     report_restated_index: NotRequired[str]
     """A numerical indicator that can be used to identify if a report has been restated. If the value is 1 it indicates that this is the latest report. If the value is 2 it means that an updated copy of the report has been filed."""
@@ -2083,7 +2083,7 @@ class LabelParameters(TypedDict, total=False):
 
     concept_id: NotRequired[int]
     """A unique identification id of the concept that can be searched on. This is a faster way to retrieve the details of a fact, however it is namespace specific and will only search for the use of a concept for a specific schema. """
-    concept_is_abstract: NotRequired[bool]
+    concept_is_abstract: NotRequired[Literal["true", "false"]]
     """Identifies if the concept is an abstract concept. If a primary concept (Not an axis or dimension) is an abstract it cannot have a value associated with it."""
     concept_local_name: NotRequired[str]
     """The concept name in the base schema of a taxonomy excluding the namespace, such as Assets or Liabilities. Use this to search across multiple taxonomies where the local name is known to be consistent over time."""
@@ -2286,7 +2286,7 @@ class NetworkRelationshipParameters(TypedDict, total=False):
     """No definition provided"""
     relationship_target_concept_id: NotRequired[int]
     """No definition provided"""
-    relationship_target_is_abstract: NotRequired[bool]
+    relationship_target_is_abstract: NotRequired[Literal["true", "false"]]
     """No definition provided"""
     relationship_target_label: NotRequired[str]
     """No definition provided"""
@@ -2442,7 +2442,7 @@ class RelationshipParameters(TypedDict, total=False):
     """No definition provided"""
     relationship_target_concept_id: NotRequired[int]
     """No definition provided"""
-    relationship_target_is_abstract: NotRequired[bool]
+    relationship_target_is_abstract: NotRequired[Literal["true", "false"]]
     """No definition provided"""
     relationship_target_label: NotRequired[str]
     """No definition provided"""
@@ -2585,7 +2585,7 @@ class ReportParameters(TypedDict, total=False):
     """The identifier used by the SEC to identify a report."""
     report_base_taxonomy: NotRequired[str]
     """Base taxonomy used for the filing. e.g. US-GAAP 2020."""
-    report_checks_run: NotRequired[bool]
+    report_checks_run: NotRequired[Literal["true", "false"]]
     """Boolean flag that indicates if the Data Quality Committee checks (see assertion object details - dqcfiling) have run for this report."""
     report_creation_software: NotRequired[str]
     """The creation software that was used to create a report/"""
@@ -2616,13 +2616,13 @@ class ReportParameters(TypedDict, total=False):
     """No definition provided"""
     report_id: NotRequired[int]
     """The identifier used to identify a report."""
-    report_is_most_current: NotRequired[bool]
+    report_is_most_current: NotRequired[Literal["true", "false"]]
     """A boolean indicator for whether the report is the most current (true)."""
     report_period_focus: NotRequired[str]
     """The period the report was reported for."""
     report_period_index: NotRequired[int]
     """Allows the retrieval of reports other than most current. A value of 1 gets the latest report. A value of 2 gets the second to last report etc."""
-    report_restated: NotRequired[bool]
+    report_restated: NotRequired[Literal["true", "false"]]
     """A boolean that indicates if the report has been subsequently restated.  A value of true represents that the report has been subsequently restated by another report.  A value of false means that this report has not been subsequently restated by another report."""
     report_restated_index: NotRequired[int]
     """A numerical indicator that can be used to identify if a report has been restated. If the value is 1 it indicates that this is the latest report. If the value is 2 it means that an updated copy of the report has been filed."""
@@ -2814,15 +2814,15 @@ class ReportFactParameters(TypedDict, total=False):
     """The balance type of a concept. This can be either debit, credit or not defined."""
     concept_id: NotRequired[int]
     """A unique identification id of the concept that can be searched on. This is a faster way to retrieve the details of a fact, however it is namespace specific and will only search for the use of a concept for a specific schema. """
-    concept_is_base: NotRequired[bool]
+    concept_is_base: NotRequired[Literal["true", "false"]]
     """Identifies if the concept is from a base published taxonomy or from a company extension. Avalue of true indicates that it is a base taxonomy element. This attribute can be used for example to search for extension elements in a filing."""
-    concept_is_monetary: NotRequired[bool]
+    concept_is_monetary: NotRequired[Literal["true", "false"]]
     """Identifies if the concept is a monetary value. If yes the value is shown as true. A monetary value is distinguished from a numeric concept in that it has a currency associated with it."""
     concept_local_name: NotRequired[str]
     """The concept name in the base schema of a taxonomy excluding the namespace, such as Assets or Liabilities. Use this to search across multiple taxonomies where the local name is known to be consistent over time."""
     concept_namespace: NotRequired[str]
     """No definition provided"""
-    dimension_is_base: NotRequired[bool]
+    dimension_is_base: NotRequired[Literal["true", "false"]]
     """A boolean that indicates if the dimension concept is a base taxonomy element (true) or an extensions dimension concept (false)."""
     dimension_local_name: NotRequired[str]
     """The dimension concept name in the taxonomy excluding the namespace, that is defined as dimension type."""
@@ -2850,23 +2850,23 @@ class ReportFactParameters(TypedDict, total=False):
     """No definition provided"""
     fact_accuracy_index: NotRequired[int]
     """No definition provided"""
-    fact_has_dimensions: NotRequired[bool]
+    fact_has_dimensions: NotRequired[Literal["true", "false"]]
     """This boolean field indicates if the fact has any dimensions associated with it."""
     fact_hash: NotRequired[str]
     """The fact hash is derived from the aspect properties of the fact. Each fact will have a different hash in a given report. Over time however different facts may have the same hash if they are identical. The hash does not take into account the value reported for the fact. the fact hash is used to determine the ultimus index. By searching on the hash you can identify all identical facts that were reported."""
     fact_id: NotRequired[int]
     """The unique identifier used to identify a fact."""
-    fact_is_extended: NotRequired[bool]
+    fact_is_extended: NotRequired[Literal["true", "false"]]
     """This indicates if the fact is comprised of either an extension concept, extension axis or extension member."""
     fact_text_search: NotRequired[str]
     """Used to define text in a text search. Cannot be output as a field."""
-    fact_ultimus: NotRequired[bool]
+    fact_ultimus: NotRequired[Literal["true", "false"]]
     """A boolean that indicates if the fact is the latest value reported.  A value of true represents that it's the latest value reported.  A value of false represents that the value has been superseded with a more recent fact."""
     fact_ultimus_index: NotRequired[int]
     """An integer that records the incarnation of the fact. The same fact is reported many times and the ultimus field captures the incarnation that was reported. A value of 1 indicates that this is the latest value of the fact. A value of 6 for example would indicate that the value has been reported 6 times subsequently to this fact being reported. If requesting values from a specific report the ultimus filed would not be used as a search parameter as you will not get all the fact values if there has been a subsequent report filed, as the ultimus value on these facts in a specific report will be updated as additional reports come in."""
     fact_value: NotRequired[str]
     """The value of the fact as a text value. This included numerical as well as non numerical values reported."""
-    member_is_base: NotRequired[bool]
+    member_is_base: NotRequired[Literal["true", "false"]]
     """A boolean value that indicates if the member is a base element in the reporting taxonomy or a company extension."""
     member_local_name: NotRequired[str]
     """Local name of the member."""
@@ -2894,7 +2894,7 @@ class ReportFactParameters(TypedDict, total=False):
     """The identifier used by the SEC to identify a report."""
     report_base_taxonomy: NotRequired[str]
     """Base taxonomy used for the filing. e.g. US-GAAP 2020."""
-    report_checks_run: NotRequired[bool]
+    report_checks_run: NotRequired[Literal["true", "false"]]
     """Boolean flag that indicates if the Data Quality Committee checks (see assertion object details - dqcfiling) have run for this report."""
     report_creation_software: NotRequired[str]
     """The creation software that was used to create a report/"""
@@ -2925,13 +2925,13 @@ class ReportFactParameters(TypedDict, total=False):
     """No definition provided"""
     report_id: NotRequired[int]
     """The identifier used to identify a report."""
-    report_is_most_current: NotRequired[bool]
+    report_is_most_current: NotRequired[Literal["true", "false"]]
     """A boolean indicator for whether the report is the most current (true)."""
     report_period_focus: NotRequired[str]
     """The period the report was reported for."""
     report_period_index: NotRequired[int]
     """Allows the retrieval of reports other than most current. A value of 1 gets the latest report. A value of 2 gets the second to last report etc."""
-    report_restated: NotRequired[bool]
+    report_restated: NotRequired[Literal["true", "false"]]
     """A boolean that indicates if the report has been subsequently restated.  A value of true represents that the report has been subsequently restated by another report.  A value of false means that this report has not been subsequently restated by another report."""
     report_restated_index: NotRequired[str]
     """A numerical indicator that can be used to identify if a report has been restated. If the value is 1 it indicates that this is the latest report. If the value is 2 it means that an updated copy of the report has been filed."""
@@ -3327,7 +3327,7 @@ class ReportNetworkParameters(TypedDict, total=False):
     """The identifier used by the SEC to identify a report."""
     report_base_taxonomy: NotRequired[str]
     """Base taxonomy used for the filing. e.g. US-GAAP 2020."""
-    report_checks_run: NotRequired[bool]
+    report_checks_run: NotRequired[Literal["true", "false"]]
     """Boolean flag that indicates if the Data Quality Committee checks (see assertion object details - dqcfiling) have run for this report."""
     report_creation_software: NotRequired[str]
     """The creation software that was used to create a report/"""
@@ -3358,13 +3358,13 @@ class ReportNetworkParameters(TypedDict, total=False):
     """No definition provided"""
     report_id: NotRequired[int]
     """The identifier used to identify a report."""
-    report_is_most_current: NotRequired[bool]
+    report_is_most_current: NotRequired[Literal["true", "false"]]
     """A boolean indicator for whether the report is the most current (true)."""
     report_period_focus: NotRequired[str]
     """The period the report was reported for."""
     report_period_index: NotRequired[int]
     """Allows the retrieval of reports other than most current. A value of 1 gets the latest report. A value of 2 gets the second to last report etc."""
-    report_restated: NotRequired[bool]
+    report_restated: NotRequired[Literal["true", "false"]]
     """A boolean that indicates if the report has been subsequently restated.  A value of true represents that the report has been subsequently restated by another report.  A value of false means that this report has not been subsequently restated by another report."""
     report_restated_index: NotRequired[int]
     """A numerical indicator that can be used to identify if a report has been restated. If the value is 1 it indicates that this is the latest report. If the value is 2 it means that an updated copy of the report has been filed."""
