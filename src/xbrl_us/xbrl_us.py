@@ -983,14 +983,14 @@ class XBRL:
     def fact(
         self,
         endpoint: FactEndpoint,
-        fields: FactFields,
+        fields: Optional[FactFields] = None,
         parameters: Optional[FactParameters] = None,
         limit: Optional[int] = None,
         sort: Optional[FactSorts] = None,
         unique: Optional[bool] = False,
         as_dataframe: bool = False,
         print_query: Optional[bool] = False,
-        timeout: Optional[int] = 5,
+        timeout: Optional[int] = 100,
         **kwargs,
     ) -> Union[dict, DataFrame]:
         """
@@ -1010,7 +1010,7 @@ class XBRL:
             print_query (bool): If *True*, prints the query text.
                 Default is *False*.
             timeout (int): The number of seconds to wait for a response from the server.
-                Default is 5 seconds. If *None*, waits indefinitely.
+                Default is 100 seconds. If *None*, waits indefinitely.
             **kwargs: Additional keyword arguments to be passed to the request.
 
             Returns:
@@ -1046,14 +1046,14 @@ class XBRL:
     def report(
         self,
         endpoint: ReportEndpoint,
-        fields: ReportFields,
+        fields: Optional[ReportFields] = None,
         parameters: Optional[ReportParameters] = None,
         limit: Optional[int] = None,
         sort: Optional[ReportSorts] = None,
         unique: Optional[bool] = False,
         as_dataframe: bool = False,
         print_query: Optional[bool] = False,
-        timeout: Optional[int] = 5,
+        timeout: Optional[int] = 100,
         **kwargs,
     ) -> Union[dict, DataFrame]:
         """
@@ -1073,7 +1073,7 @@ class XBRL:
             print_query (bool): If *True*, prints the query text.
                 Default is *False*.
             timeout (int): The number of seconds to wait for a response from the server.
-                Default is 5 seconds. If *None*, waits indefinitely.
+                Default is 100 seconds. If *None*, waits indefinitely.
             **kwargs: Additional keyword arguments to be passed to the request.
 
             Returns:
