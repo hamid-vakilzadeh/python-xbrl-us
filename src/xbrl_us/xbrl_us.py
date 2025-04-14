@@ -20,6 +20,11 @@ from .types import AcceptableMethods
 from .types import FactEndpoint
 from .types import FactFields
 from .types import FactParameters
+from .types import FactSorts
+from .types import ReportEndpoint
+from .types import ReportFields
+from .types import ReportParameters
+from .types import ReportSorts
 from .types import UniversalFieldMap
 from .utils import exceptions
 
@@ -980,9 +985,9 @@ class XBRL:
         self,
         endpoint: FactEndpoint,
         fields: FactFields,
-        parameters: FactParameters,
+        parameters: Optional[FactParameters] = None,
         limit: Optional[int] = None,
-        sort: Optional[dict] = None,
+        sort: Optional[FactSorts] = None,
         unique: Optional[bool] = False,
         as_dataframe: bool = False,
         print_query: Optional[bool] = False,
@@ -997,8 +1002,8 @@ class XBRL:
             parameters (FactParameters): The search parameters for the query.
             limit (Optional[int]): The maximum number of results to return.
                 If *None*, the default limit is used.
-            sort (Optional[dict]): The sort parameters for the query.
-                Example: {"fact.value": "DESC"}.
+            sort (Optional[FactSorts]): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}.
             unique (Optional[bool]): If *True*, returns only unique values.
                 Default is *False*.
             as_dataframe (bool): If *True*, returns the results as a DataFrame.
@@ -1019,9 +1024,73 @@ class XBRL:
         elif endpoint == "/fact/search":
             method = "fact search"
         else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /fact/search, /fact/{fact.id}, /fact/search/oim")
+            raise ValueError("Invalid endpoint. Please use one of the following: /fact/search, /fact/{fact.id}, /fact/search/oim.")
 
-        parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
+        return self.query(
+            method=method,
+            fields=fields,
+            parameters=parameters,
+            limit=limit,
+            sort=sort,
+            unique=unique,
+            as_dataframe=as_dataframe,
+            print_query=print_query,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    def report(
+        self,
+        endpoint: ReportEndpoint,
+        fields: ReportFields,
+        parameters: Optional[ReportParameters] = None,
+        limit: Optional[int] = None,
+        sort: Optional[ReportSorts] = None,
+        unique: Optional[bool] = False,
+        as_dataframe: bool = False,
+        print_query: Optional[bool] = False,
+        timeout: Optional[int] = 5,
+        **kwargs,
+    ) -> Union[dict, DataFrame]:
+        """
+        Args:
+            endpoint (str): The API endpoint to query.
+                Options are "/report/search", "/report/{report.id}".
+            fields (ReportFields): The fields to include in the query.
+            parameters (ReportParameters): The search parameters for the query.
+            limit (Optional[int]): The maximum number of results to return.
+                If *None*, the default limit is used.
+            sort (Optional[ReportSorts]): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}.
+            unique (Optional[bool]): If *True*, returns only unique values.
+                Default is *False*.
+            as_dataframe (bool): If *True*, returns the results as a DataFrame.
+                Default is *False*, which returns the results as JSON.
+            print_query (bool): If *True*, prints the query text.
+                Default is *False*.
+            timeout (int): The number of seconds to wait for a response from the server.
+                Default is 5 seconds. If *None*, waits indefinitely.
+            **kwargs: Additional keyword arguments to be passed to the request.
+
+            Returns:
+                json | DataFrame: The results of the query.
+        """
+        if endpoint == "/report/{report.id}":
+            method = "report id"
+        elif endpoint == "/report/search":
+            method = "report search"
+        else:
+            raise ValueError("Invalid endpoint. Please use one of the following: /report/search, /report/{report.id}.")
+
+        if parameters:
+            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+        if sort:
+            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
 
         return self.query(
             method=method,
