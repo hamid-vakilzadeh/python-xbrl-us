@@ -461,6 +461,13 @@ class XBRL:
         headers = kwargs.get("headers", {})
         headers.update({"Authorization": f"Bearer {self.access_token}"})
         kwargs["headers"] = headers
+        if kwargs.get("print_query"):
+            print(f"Query Endpoint:{url}")
+            print(f"Query Parameters: {kwargs.get('params')}")
+
+        # Remove the print_query argument from kwargs
+        kwargs.pop("print_query", None)
+
         response = requests.request(method, url, **kwargs)
         if response.status_code == 200:
             if "error" not in response.json():
@@ -708,15 +715,13 @@ class XBRL:
             sort=sort,
         )
 
-        if print_query:
-            print(f"\n{query_params}")
-
         try:
             response = self._make_request(
                 method="get",
                 url=endpoint_url,
                 params=query_params,
                 timeout=timeout,
+                print_query=print_query,
             )
         except Exception as e:
             raise e
@@ -773,6 +778,7 @@ class XBRL:
                     url=endpoint_url,
                     params=query_params,
                     timeout=timeout,
+                    print_query=print_query,
                 )
 
                 response_data = response.json()
