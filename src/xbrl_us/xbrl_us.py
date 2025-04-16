@@ -825,9 +825,36 @@ class XBRL:
         as_dataframe: bool = False,
         print_query: Optional[bool] = False,
         timeout: Optional[int] = None,
+        batch_size: Optional[int] = 5,
         **kwargs,
     ) -> Union[dict, DataFrame]:
-        """Asynchronous version of the query method"""
+        """Asynchronous version of the query method
+
+        Args:
+            endpoint (str): The name of the endpoint to query.
+            fields (list): The fields query parameter establishes the details of the data to return for the specific query.
+            parameters (Optional[dict]): The search parameters for the query.
+            limit (Optional[Union[int, "all"]]): A limit restricts the number of results returned by the query.
+                For example, in a *"fact search"* ``limit=10`` would return 10 observations.
+                You can also use ``limit="all"`` to return all results (which is not recommended unless
+                you know what you are doing!). The default is *None* which returns one response with
+                upto your account limit. For example, if your account limit is 5000, then the default
+                will return the smallest of 5000 or the number of results.
+            sort (Optional[dict]): Any returned value can be sorted in ascending or descending order,
+                using *ASC* or *DESC* (i.e. ``{"report.document-type": "DESC"}``.
+                Multiple sort criteria can be defined and the sort sequence is determined by
+                the order of the items in the dictionary.
+            unique (Optional[bool]=False): If *True* returns only unique values. Default is *False*.
+            as_dataframe (Optional[bool]=False): If *True* returns the results as a *DataFrame* else returns the data
+                as *json*. The default is *False* which returns the results in *json* format
+            print_query (bool=False): Whether to print the query text.
+            timeout (int=5): The number of seconds to wait for a response from the server. Defaults to 5 seconds.
+                If *None* will wait indefinitely.
+            batch_size (int=5): The number of concurrent requests to make. Default is 5.
+
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
+        """
         endpoint_url = f"https://api.xbrl.us/api/v1{endpoint}?"
 
         # if limit is all
@@ -835,49 +862,115 @@ class XBRL:
             # arbitrary large number
             limit = 999999999
 
-        remaining_limit = limit
         all_data = []
-        offset = len(all_data)
+        remaining_limit = limit
+        offset = 0
+        end_of_data_reached = False
 
         async def execute_remaining_queries():
-            nonlocal all_data, remaining_limit, offset
+            nonlocal all_data, remaining_limit, offset, end_of_data_reached
             self._ensure_access_token()
             headers = {"Authorization": f"Bearer {self.access_token}"}
 
             async with aiohttp.ClientSession() as session:
-                tasks = []
-                while remaining_limit > 0:
-                    current_limit = min(self.account_limit, remaining_limit)
-                    query_params = _build_query_params(
-                        endpoint=endpoint,
-                        fields=fields,
-                        parameters=parameters,
-                        limit=current_limit,
-                        sort=sort,
-                        offset=offset,
-                        unique=unique,
-                    )
+                streamlit_indicator = kwargs.get("streamlit", False)
+                if streamlit_indicator:
+                    from stqdm import stqdm
 
-                    tasks.append(session.get(url=endpoint_url, params=query_params, headers=headers, timeout=timeout))
-                    remaining_limit -= current_limit
-                    offset += current_limit
+                    pbar = stqdm(total=None, desc="Running Query, Please Wait", ncols=80)
+                else:
+                    # create a progress bar
+                    pbar = tqdm(total=None, desc="Running Query, Please Wait", ncols=80, position=0, leave=True)
 
-                with tqdm(total=len(tasks)) as pbar:
-                    for task in asyncio.as_completed(tasks):
-                        response_data = await task
-                        all_data.append(await response_data.json())
-                        pbar.update(1)
+                total_returned = 0
 
+                # Continue until no more data needed or available
+                while remaining_limit > 0 and not end_of_data_reached:
+                    tasks = []
+                    task_limits = []  # Track the limit for each task
+
+                    # Create a batch of requests
+                    for _ in range(batch_size):
+                        if remaining_limit <= 0:
+                            break
+
+                        current_limit = min(self.account_limit, remaining_limit)
+                        query_params = _build_query_params(
+                            endpoint=endpoint,
+                            fields=fields,
+                            parameters=parameters,
+                            limit=current_limit,
+                            sort=sort,
+                            offset=offset,
+                            unique=unique,
+                        )
+
+                        tasks.append(session.get(url=endpoint_url, params=query_params, headers=headers, timeout=timeout))
+                        task_limits.append(current_limit)
+
+                        # Temporarily adjust counters (will be corrected based on actual results)
+                        remaining_limit -= current_limit
+                        offset += current_limit
+
+                    if not tasks:
+                        break
+
+                    # Execute this batch of requests
+                    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                    # Process the results
+                    for i, result in enumerate(results):
+                        expected_limit = task_limits[i]
+
+                        # Handle exceptions
+                        if isinstance(result, Exception):
+                            # Restore the limits since we didn't get data
+                            remaining_limit += expected_limit
+                            offset -= expected_limit
+                            continue
+
+                        # Process successful response
+                        try:
+                            response_json = await result.json()
+
+                            if "data" in response_json and isinstance(response_json["data"], list):
+                                received_data = response_json["data"]
+                                items_received = len(received_data)
+
+                                # Add data to our results
+                                all_data.extend(received_data)
+                                total_returned += items_received
+
+                                # Adjust the counters based on actual results
+                                remaining_limit += expected_limit - items_received
+                                offset -= expected_limit - items_received
+
+                                # Check if we've reached the end of data
+                                if items_received < expected_limit:
+                                    end_of_data_reached = True
+                            else:
+                                # If no data field in response
+                                remaining_limit += expected_limit
+                                offset -= expected_limit
+                                end_of_data_reached = True
+
+                        except Exception:
+                            # Restore the limits if processing failed
+                            remaining_limit += expected_limit
+                            offset -= expected_limit
+
+                        # update the progress bar
+                        pbar.update(items_received)
+
+                pbar.close()
+
+        # Run the async function
         asyncio.run(execute_remaining_queries())
-        data = []
-        for item in all_data:
-            if "data" in item:
-                data.extend(item["data"])
 
         if as_dataframe:
-            return DataFrame.from_dict(data)
+            return DataFrame.from_dict(all_data) if all_data else DataFrame()
         else:
-            return data
+            return all_data
 
     def fact(
         self,
