@@ -294,6 +294,12 @@ def _build_query_params(
     """
     query_params = {}
     fields_copy = fields[:]
+    if fields:
+        fields = [UniversalFieldMap.to_original(item) for item in fields]
+    if parameters:
+        parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+    if sort:
+        sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
 
     if parameters:
         # convert the parameters to a string and add it to the query_params
@@ -1044,11 +1050,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
@@ -1115,11 +1116,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
@@ -1186,11 +1182,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
@@ -1257,11 +1248,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
@@ -1328,11 +1314,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
@@ -1399,11 +1380,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
@@ -1470,11 +1446,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
@@ -1541,11 +1512,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
@@ -1612,11 +1578,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
@@ -1683,11 +1644,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
@@ -1754,11 +1710,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
@@ -1825,11 +1776,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
@@ -1896,11 +1842,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
@@ -1967,11 +1908,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
@@ -2015,16 +1951,29 @@ class XBRL:
     ) -> Union[dict, DataFrame]:
         """
         Args:
-
-            Returns:
-                json | DataFrame: The results of the query.
+            endpoint (str, required): The API endpoint to query.
+                Options are "/report/{report.id}/network/search" or "/report/network/search".
+            fields (ReportNetworkFields, required): The fields to include in the query.
+            parameters (ReportNetworkParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (ReportNetworkSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
+            **kwargs: Additional keyword arguments to be passed to the request.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
         """
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
