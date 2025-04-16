@@ -164,8 +164,15 @@ def _validate_parameters():
             offset = kwargs.get("offset")
             kwargs.get("print_query")
 
+            if fields:
+                fields = [UniversalFieldMap.to_original(item) for item in fields]
+            if parameters:
+                parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+            if sort:
+                sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
             # get the allowed parameters, fields, limit, sort, and offset from the yaml file
-            allowed_limit_fields = endpoint_name.lower().replace("/", " ").split()[0].strip()
+            allowed_limit_fields = endpoint_name.lower().replace("/", " ").strip().split(" ")[0]
             allowed_offset_fields = allowed_limit_fields
 
             # Validate fields
@@ -216,9 +223,9 @@ def _validate_parameters():
             offset_field = None
 
             if allowed_limit_fields:
-                limit_field = next(iter(allowed_limit_fields), None)
+                limit_field = allowed_limit_fields
             if allowed_offset_fields:
-                offset_field = next(iter(allowed_offset_fields), None)
+                offset_field = allowed_offset_fields
 
             return func(
                 fields=fields,
@@ -294,13 +301,6 @@ def _build_query_params(
     """
     query_params = {}
     fields_copy = fields[:]
-    if fields:
-        fields = [UniversalFieldMap.to_original(item) for item in fields]
-    if parameters:
-        parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-    if sort:
-        sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
     if parameters:
         # convert the parameters to a string and add it to the query_params
         query_params.update(
