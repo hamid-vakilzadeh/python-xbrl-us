@@ -1,7 +1,0 @@
-parameters:
-  - report.id
-fields:
-limit:
-  - report
-offset:
-url: /api/v1/report/{report.id}/delete
