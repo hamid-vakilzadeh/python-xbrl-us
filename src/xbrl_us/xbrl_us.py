@@ -15,7 +15,6 @@ import requests
 from pandas import DataFrame
 from retry import retry
 from tqdm import tqdm
-from yaml import safe_load
 
 from .types import AssertionEndpoint
 from .types import AssertionFields
@@ -399,99 +398,6 @@ class XBRL:
         if not (client_id and client_secret and username and password):
             self._get_user()
 
-    @staticmethod
-    def methods():
-        """
-        Get the names of the methods that are allowed to be used for
-            as a ``method`` name. A list of available methods along with
-            their corresponding API endpoints is shown below.
-
-            ===================================  ==================================================
-            Method                               API Endpoint
-            ===================================  ==================================================
-            ``assertion search``                  */api/v1/assertion/search*
-            ``concept name search``               */api/v1/concept/{concept.local-name}/search*
-            ``concept search``                    */api/v1/concept/search*
-            ``cube search``                       */api/v1/cube/search*
-            ``dimension search``                  */api/v1/dimension/search*
-            ``document search``                   */api/v1/document/search*
-            ``dts id concept label``              */api/v1/dts/{dts.id}/concept/{concept.local-name}/label*
-            ``dts id concept name``               */api/v1/dts/{dts.id}/concept/{concept.local-name}*
-            ``dts id concept reference``          */api/v1/dts/{dts.id}/concept/{concept.local-name}/reference*
-            ``dts id concept search``             */api/v1/dts/{dts.id}/concept/search*
-            ``dts id network``                    */api/v1/dts/{dts.id}/network*
-            ``dts id network search``             */api/v1/dts/{dts.id}/network/search*
-            ``dts search``                        */api/v1/dts/search*
-            ``entity id``                         */api/v1/entity/{entity.id}*
-            ``entity id report search``           */api/v1/entity/{entity.id}/report/search*
-            ``entity report search``              */api/v1/entity/report/search*
-            ``entity search``                     */api/v1/entity/search*
-            ``fact id``                           */api/v1/fact/{fact.id}*
-            ``fact search``                       */api/v1/fact/search*
-            ``fact search oim``                   */api/v1/fact/oim/search*
-            ``label dts id search``               */api/v1/label/{dts.id}/search*
-            ``label search``                      */api/v1/label/search*
-            ``network id``                        */api/v1/network/{network.id}*
-            ``network id relationship search``    */api/v1/network/{network.id}/relationship/search*
-            ``network relationship search``       */api/v1/network/relationship/search*
-            ``relationship search``               */api/v1/relationship/search*
-            ``relationship tree search``          */api/v1/relationship/tree/search*
-            ``report fact search``                */api/v1/report/fact/search*
-            ``report id``                         */api/v1/report/{report.id}*
-            ``report id fact search``             */api/v1/report/{report.id}/fact/search*
-            ``report search``                     */api/v1/report/search*
-            ===================================  ==================================================
-
-        """
-        # TODO: add support for report delete, assertion validate,
-        return _methods()
-
-    @staticmethod
-    def acceptable_params(method: str):
-        """
-        Get the names of the attributes (e.g. acceptable ``fields``, ``parameters``, ``sort``, ``limit``, etc.)
-            that are allowed to be used for a given ``method``.
-
-        Args:
-            method (str): The name of the API method to get the acceptable parameters for (e.g. "fact search").
-
-        Returns:
-            A class where the attributes are the acceptable parameters for the given ``method``.
-
-        """
-        file_path = _dir.parent / "methods" / f"{method.lower()}.yml"
-
-        with file_path.open("r") as file:
-            method_features = safe_load(file)
-
-        _attributes = {"method_name": method}
-        for key, _value in method_features.items():
-            _attributes[f"{key}"] = method_features.get(key)
-
-        _attributes["sort"] = [value for value in _attributes["fields"] if "*" not in value]
-
-        # Create the dynamic class using type()
-        _class = type(method, (), _attributes)
-        return _class()
-
-    @staticmethod
-    def define(parameter: str):
-        """
-        Get the definition of any parameter.
-        Args:
-            parameter:
-
-        Returns:
-            dict: The definition of the parameter with the type, description, etc.
-        """
-        # load definitions file
-        file_path = _dir.parent / "methods" / "_definitions.yaml"
-
-        with file_path.open("r") as file:
-            definitions = safe_load(file)
-
-        return definitions.get(parameter)
-
     def _get_token(self, grant_type: Optional[str] = None, refresh_token=None, **kwargs):
         """
         Retrieves an access token from the token URL.
@@ -596,8 +502,7 @@ class XBRL:
         if match:
             self.account_limit = int(match.group(1))
         else:
-            print(f"Error: {response.status_code}")
-            self.account_limit = None
+            raise f"Error: {response.status_code}"
 
     def _set_user(self):
         # Write info file
@@ -621,7 +526,7 @@ class XBRL:
         except Exception as e:
             raise ValueError("Error reading credentials from file:", str(e)) from None
 
-    def _get_meta_endpoints(self, force_refresh=False):
+    def _get_endpoints_info(self, force_refresh=False):
         """
         Get the endpoints from Meta API and cache them to meta/endpoints.yml.
         Additionally caches each endpoint's metadata and generates type definitions.
@@ -1020,15 +925,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/fact/search/oim":
-            method = "fact search oim"
-        elif endpoint == "/fact/{fact.id}":
-            method = "fact id"
-        elif endpoint == "/fact/search":
-            method = "fact search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /fact/search, /fact/{fact.id}, /fact/search/oim.")
-
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -1036,7 +932,7 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-                method=method,
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1049,7 +945,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1100,13 +996,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/report/{report.id}":
-            method = "report id"
-        elif endpoint == "/report/search":
-            method = "report search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /report/search, /report/{report.id}.")
-
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -1114,7 +1003,7 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-                method=method,
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1127,7 +1016,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1178,11 +1067,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/assertion/search":
-            method = "assertion search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /assertion/search.")
-
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -1190,7 +1074,7 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-                method=method,
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1203,7 +1087,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1254,13 +1138,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/concept/{concept.local-name}/search":
-            method = "concept name search"
-        elif endpoint == "/concept/search":
-            method = "concept search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /concept/{concept.local-name}/search, /concept/search.")
-
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -1268,7 +1145,7 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-                method=method,
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1281,7 +1158,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1332,11 +1209,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/cube/search":
-            method = "cube search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /cube/search")
-
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -1344,7 +1216,7 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-                method=method,
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1357,7 +1229,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1408,11 +1280,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/document/search":
-            method = "document search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /document/search")
-
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -1420,7 +1287,7 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-                method=method,
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1433,7 +1300,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1484,19 +1351,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/dts/{dts.id}/concept/search":
-            method = "dts id concept search"
-        elif endpoint == "/dts/{dts-id}/concept/{concept.local-name}":
-            method = "dts id concept name"
-        elif endpoint == "/dts/{dts.id}/concept/{concept.local-name}/label":
-            method = "dts id concept label"
-        elif endpoint == "/dts/{dts.id}/concept/{concept.local-name}/reference":
-            method = "dts id concept reference"
-        else:
-            raise ValueError(
-                "Invalid endpoint. Please use one of the following: /dts/{dts.id}/concept/search, /dts/{dts-id}/concept/{concept.local-name}, /dts/{dts.id}/concept/{concept.local-name}/label, /dts/{dts.id}/concept/{concept.local-name}/reference."
-            )
-
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -1504,7 +1358,7 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-                method=method,
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1517,7 +1371,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1568,13 +1422,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/dts/{dts.id}/network":
-            method = "dts id network"
-        elif endpoint == "/dts/{dts.id}/network/search":
-            method = "dts id network search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /dts/{dts.id}/network, /dts/{dts.id}/network/search")
-
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -1582,7 +1429,7 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-                method=method,
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1595,7 +1442,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1646,11 +1493,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/dts/search":
-            method = "dts search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /dts/search")
-
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -1658,7 +1500,7 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-                method=method,
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1671,7 +1513,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1722,13 +1564,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/entity/{entity.id}/report/search":
-            method = "entity id report search"
-        elif endpoint == "/entity/report/search":
-            method = "entity report search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /entity/{entity.id}/report/search, /entity/report/search")
-
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -1736,7 +1571,7 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-                method=method,
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1749,7 +1584,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1800,13 +1635,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/entity/{entity.id}":
-            method = "entity id"
-        elif endpoint == "/entity/search":
-            method = "entity search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /entity/{entity.id}, /entity/search")
-
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -1814,7 +1642,7 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-                method=method,
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1827,7 +1655,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1878,13 +1706,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/label/search":
-            method = "label search"
-        elif endpoint == "/label/{label.id}/search":
-            raise ValueError("This endpoint is not supported yet.")  # TODO: support this endpoint
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /label/search, /label/{label.id}/search")
-
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -1892,7 +1713,7 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-                method=method,
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1905,7 +1726,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1956,15 +1777,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/network/{network.id}/relationship/search":
-            method = "network id relationship search"
-        elif endpoint == "/network/relationship/search":
-            method = "network relationship search"
-        else:
-            raise ValueError(
-                "Invalid endpoint. Please use one of the following: /network/{network.id}/relationship/search, /network/relationship/search"
-            )
-
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -1972,7 +1784,7 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-                method=method,
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1985,7 +1797,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -2036,11 +1848,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/network/{network.id}":
-            method = "network id"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /network/{network.id}")
-
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -2048,7 +1855,7 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-                method=method,
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -2061,7 +1868,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -2112,13 +1919,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/relationship/search":
-            method = "relationship search"
-        elif endpoint == "/relationship/tree/search":
-            method = "relationship tree search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /relationship/search, /relationship/tree/search")
-
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -2126,7 +1926,7 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-                method=method,
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -2139,7 +1939,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -2190,13 +1990,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/report/{report.id}/fact/search":
-            method = "report id fact search"
-        elif endpoint == "/report/fact/search":
-            method = "report fact search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /report/{report.id}/fact/search, /report/fact/search")
-
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -2204,7 +1997,7 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-                method=method,
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -2217,7 +2010,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -2249,12 +2042,7 @@ class XBRL:
             Returns:
                 json | DataFrame: The results of the query.
         """
-        if endpoint == "/report/network/search":
-            raise ValueError("This endpoint is not supported yet.")  # TODO: support this endpoint
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /report/network/search")
 
-        """
         if parameters:
             parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
         if sort:
@@ -2262,20 +2050,20 @@ class XBRL:
 
         if async_mode:
             return self.aquery(
-            method=method,
-            fields=fields,
-            parameters=parameters,
-            limit=limit,
-            sort=sort,
-            unique=unique,
-            as_dataframe=as_dataframe,
-            print_query=print_query,
-            timeout=timeout,
-            **kwargs,
-        )
+                endpoint=endpoint,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -2286,4 +2074,3 @@ class XBRL:
             timeout=timeout,
             **kwargs,
         )
-        """
