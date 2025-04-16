@@ -235,6 +235,7 @@ def _validate_parameters():
                 offset=offset,
                 limit_field=limit_field,
                 offset_field=offset_field,
+                unique=kwargs.get("unique"),
             )
 
         return wrapper
@@ -282,6 +283,7 @@ def _build_query_params(
     offset: Optional[int] = 0,
     limit_field: Optional[str] = None,
     offset_field: Optional[str] = None,
+    unique: Optional[bool] = False,
 ) -> dict:
     """
     Build the query parameters for the API request in the format required by the API.
@@ -343,7 +345,9 @@ def _build_query_params(
             fields_copy.append(offset_arg)
 
     query_params["fields"] = ",".join(fields_copy)
-
+    # Handle unique
+    if unique:
+        query_params["unique"] = "true"
     return query_params
 
 
@@ -686,9 +690,6 @@ class XBRL:
 
         endpoint_url = f"https://api.xbrl.us/api/v1{endpoint}?"
 
-        if unique:
-            endpoint_url += "unique"
-
         # if limit is all
         if limit == "all":
             # arbitrary large number
@@ -713,6 +714,7 @@ class XBRL:
             parameters=parameters,
             limit=chunk_limit,
             sort=sort,
+            unique=unique,
         )
 
         try:
@@ -771,6 +773,7 @@ class XBRL:
                     limit=current_limit,
                     sort=sort,
                     offset=offset,
+                    unique=unique,
                 )
 
                 response = self._make_request(
@@ -826,8 +829,6 @@ class XBRL:
     ) -> Union[dict, DataFrame]:
         """Asynchronous version of the query method"""
         endpoint_url = f"https://api.xbrl.us/api/v1{endpoint}?"
-        if unique:
-            endpoint_url += "unique"
 
         account_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
 
@@ -837,6 +838,7 @@ class XBRL:
             parameters=parameters,
             limit=account_limit,
             sort=sort,
+            unique=unique,
         )
 
         if print_query:
@@ -862,6 +864,7 @@ class XBRL:
                         limit=current_limit,
                         sort=sort,
                         offset=offset,
+                        unique=unique,
                     )
 
                     tasks.append(session.get(url=endpoint_url, params=query_params, headers=headers, timeout=timeout))
