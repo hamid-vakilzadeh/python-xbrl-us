@@ -135,20 +135,6 @@ def _remove_special_fields(fields):
     return fields
 
 
-def _methods():
-    """
-    Get the names of the attributes that are allowed to be used for
-        the given method.
-    """
-    # location of all method files
-    file_path = _dir.parent / "methods"
-
-    # list all the files in the directory
-    method_files = Path(file_path).glob("*.yml")
-
-    return [file_path.stem for file_path in method_files]
-
-
 def _validate_parameters():
     def decorator(func):
         @wraps(func)
@@ -684,10 +670,11 @@ class XBRL:
         Returns:
             json | DataFrame: The results of the query.
         """
-        method_url = f"https://api.xbrl.us/api/v1{endpoint}?"
+
+        endpoint_url = f"https://api.xbrl.us/api/v1{endpoint}?"
 
         if unique:
-            method_url += "unique"
+            endpoint_url += "unique"
 
         # if limit is all
         if limit == "all":
@@ -721,7 +708,7 @@ class XBRL:
         try:
             response = self._make_request(
                 method="get",
-                url=method_url,
+                url=endpoint_url,
                 params=query_params,
                 timeout=timeout,
             )
@@ -777,7 +764,7 @@ class XBRL:
 
                 response = self._make_request(
                     method="get",
-                    url=method_url,
+                    url=endpoint_url,
                     params=query_params,
                     timeout=timeout,
                 )
@@ -826,9 +813,9 @@ class XBRL:
         **kwargs,
     ) -> Union[dict, DataFrame]:
         """Asynchronous version of the query method"""
-        method_url = f"https://api.xbrl.us/api/v1{endpoint}?"
+        endpoint_url = f"https://api.xbrl.us/api/v1{endpoint}?"
         if unique:
-            method_url += "unique"
+            endpoint_url += "unique"
 
         account_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
 
@@ -865,7 +852,7 @@ class XBRL:
                         offset=offset,
                     )
 
-                    tasks.append(session.get(url=method_url, params=query_params, headers=headers, timeout=timeout))
+                    tasks.append(session.get(url=endpoint_url, params=query_params, headers=headers, timeout=timeout))
                     remaining_limit -= current_limit
                     offset += current_limit
 
@@ -925,11 +912,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
@@ -996,11 +978,6 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
             return self.aquery(
                 endpoint=endpoint,
