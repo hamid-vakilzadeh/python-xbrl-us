@@ -17,7 +17,6 @@ from retry import retry
 from tqdm import tqdm
 from yaml import safe_load
 
-from .types import AcceptableMethods
 from .types import AssertionEndpoint
 from .types import AssertionFields
 from .types import AssertionParameters
@@ -165,21 +164,12 @@ def _validate_parameters():
             Returns:
                 The result of the wrapped function.
             """
-            method_name = kwargs.get("method")
+            endpoint_name = kwargs.get("endpoint", None)
+            if not endpoint_name:
+                raise ValueError("No endpoint name provided. Please provide an endpoint name.")
 
-            if not method_name:
-                raise exceptions.XBRLMissingValueError(param="method", expected_value=_methods())
-            elif method_name not in _methods():
-                raise exceptions.XBRLInvalidValueError(key=method_name, param="method", expected_value=_methods())
-
-            elif not isinstance(method_name, str):
-                raise exceptions.XBRLInvalidTypeError(key=method_name, received_type=type(method_name), expected_type=str)
-
-            # load the yaml file that has allowed parameters for the method
-            file_path = _dir.parent / "methods" / f"{method_name.lower()}.yml"
-
-            with file_path.open("r") as file:
-                allowed_for_query = safe_load(file)
+            if not isinstance(endpoint_name, str):
+                raise TypeError(f"{endpoint_name} is not a string. Please provide a string.")
 
             # get the parameters, fields, limit, sort, and offset from kwargs that the user passed in
             parameters = kwargs.get("parameters")
@@ -190,15 +180,12 @@ def _validate_parameters():
             kwargs.get("print_query")
 
             # get the allowed parameters, fields, limit, sort, and offset from the yaml file
-            allowed_params = allowed_for_query.get("parameters", set())
-            allowed_fields = allowed_for_query.get("fields", set())
-            allowed_limit_fields = allowed_for_query.get("limit", set())
-            allowed_sort_fields = [field for field in allowed_fields if "*" not in field]
+            allowed_limit_fields = endpoint_name.lower().replace("/", " ").split()[0].strip()
             allowed_offset_fields = allowed_limit_fields
 
             # Validate fields
             if not fields:
-                raise exceptions.XBRLMissingValueError(param="fields", expected_value=allowed_fields)
+                raise ValueError("No fields provided. Please provide at least one field.")
 
             # clear the conditions from the previous query
             # this could happen when the limit is greater than account limit or
@@ -206,18 +193,7 @@ def _validate_parameters():
             fields = _remove_special_fields(fields)
             for field in fields:
                 if not isinstance(field, str):
-                    raise exceptions.XBRLInvalidTypeError(key=field, expected_type=str, received_type=type(field))
-
-                if field not in allowed_fields:
-                    raise exceptions.XBRLInvalidValueError(key=field, param="fields", expected_value=allowed_fields, method=method_name)
-
-            # Validate parameters
-            if parameters:
-                for param in parameters:
-                    if param not in allowed_params:
-                        raise exceptions.XBRLInvalidValueError(
-                            key=param, param="parameters", expected_value=allowed_params, method=method_name
-                        )
+                    raise TypeError(f"{field} is not a string. Please provide a string.")
 
             # Validate limit
             if limit:
@@ -237,11 +213,7 @@ def _validate_parameters():
                 if not isinstance(sort, dict):
                     raise ValueError("Sort must be a dictionary")
                 sort = {_remove_special_fields(key): value for key, value in sort.items()}
-                for key, value in sort.items():
-                    if key not in allowed_sort_fields:
-                        raise exceptions.XBRLInvalidValueError(
-                            key=key, param="sort", expected_value=allowed_sort_fields, method=method_name
-                        )
+                for _key, value in sort.items():
                     if value.lower() not in ["asc", "desc"]:
                         raise exceptions.XBRLInvalidValueError(key=value, param="sort", expected_value=["asc", "desc"])
             else:
@@ -253,7 +225,7 @@ def _validate_parameters():
             # Validate offset
             if offset:
                 if not isinstance(offset, int):
-                    raise exceptions.XBRLInvalidTypeError(key=offset, expected_type=int, received_type=type(offset))
+                    raise TypeError(f"{offset} is not an int. Please provide an int.")
 
             limit_field = None
             offset_field = None
@@ -293,6 +265,12 @@ def _type_check_decorator():
             Returns:
                 The result of the wrapped function.
             """
+            if kwargs.get("method"):
+                raise KeyError("`method` is no longer supported. Please use `endpoint` instead.")
+
+            if not kwargs.get("endpoint"):
+                raise ValueError("No endpoint name provided. Please provide an endpoint name.")
+
             parameters = kwargs.get("parameters")
             if parameters and not isinstance(parameters, dict):
                 raise ValueError(f"Parameters must be a dict or Parameters object. " f"Got {type(parameters)} instead.")
@@ -643,46 +621,6 @@ class XBRL:
         except Exception as e:
             raise ValueError("Error reading credentials from file:", str(e)) from None
 
-    def _get_method_url(self, method_name: str, parameters: dict, unique: bool) -> str:
-        """
-        Get the URL for the specified method from the YAML file.
-
-        Args:
-            method_name (str): The name of the method.
-            parameters: The parameters for the method.
-
-        Returns:
-            str: The URL for the method.
-        """
-        file_path = _dir.parent / "methods" / f"{method_name.lower()}.yml"
-
-        # get the url for this method
-        with file_path.open("r") as file:
-            url = safe_load(file)["url"]
-
-        # check if the link requires parameters
-        keys = [key.strip("{}") for key in re.findall(r"{(.*?)}", url)]
-        if len(keys) > 0:
-            if not parameters:
-                raise exceptions.XBRLRequiredValueError(key=keys, method=method_name)
-
-            values = {key: parameters[key] for key in keys if key in parameters}
-
-            # check if all required parameters are present
-            if len(values) != len(keys):
-                missing_keys = [key for key in keys if key not in values]
-                for key in missing_keys:
-                    raise exceptions.XBRLRequiredValueError(key=key, method=method_name)
-
-            # get the required parameters for this method
-            for key, value in values.items():
-                placeholder = "{" + key + "}"
-                url = url.replace(placeholder, str(value))
-        if unique:
-            return f"https://api.xbrl.us{url}?unique"
-
-        return f"https://api.xbrl.us{url}?"
-
     def _get_meta_endpoints(self, force_refresh=False):
         """
         Get the endpoints from Meta API and cache them to meta/endpoints.yml.
@@ -803,7 +741,7 @@ class XBRL:
     @_type_check_decorator()
     def query(
         self,
-        method: AcceptableMethods,
+        endpoint: str,
         fields: Optional[list] = None,
         parameters: Optional[Union[dict]] = None,
         limit: Optional[Union[int, "all"]] = None,
@@ -817,7 +755,7 @@ class XBRL:
         """
 
         Args:
-            method (str): The name of the method to query.
+            endpoint (str): The name of the endpoint to query.
             fields (list): The fields query parameter establishes the details of the data to return for the specific query.
             parameters (Optional[dict | Parameters]): The search parameters for the query.
             limit (Optional[Union[int, "all"]]): A limit restricts the number of results returned by the query.
@@ -841,14 +779,15 @@ class XBRL:
         Returns:
             json | DataFrame: The results of the query.
         """
+        method_url = f"https://api.xbrl.us/api/v1{endpoint}?"
 
-        method_url = self._get_method_url(method_name=method, parameters=parameters, unique=unique)
+        if unique:
+            method_url += "unique"
+
         # if limit is all
         if limit == "all":
             # arbitrary large number
             limit = 999999999
-
-        query_params = _build_query_params(method=method, fields=fields, parameters=parameters, sort=sort, limit=100)
 
         # ensure the limit is not greater than the account limit
         chunk_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
@@ -864,7 +803,7 @@ class XBRL:
 
         # update the limit in the query params with the new limit
         query_params = _build_query_params(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=chunk_limit,
@@ -923,7 +862,7 @@ class XBRL:
             try:
                 current_limit = min(chunk_limit, remaining_limit)
                 query_params = _build_query_params(
-                    method=method,
+                    endpoint=endpoint,
                     fields=fields,
                     parameters=parameters,
                     limit=current_limit,
@@ -970,7 +909,7 @@ class XBRL:
     @_type_check_decorator()
     def aquery(
         self,
-        method: AcceptableMethods,
+        endpoint: str,
         fields: Optional[list] = None,
         parameters: Optional[Union[dict]] = None,
         limit: Optional[Union[int, "all"]] = None,
@@ -982,20 +921,14 @@ class XBRL:
         **kwargs,
     ) -> Union[dict, DataFrame]:
         """Asynchronous version of the query method"""
-        method_url = self._get_method_url(method_name=method, parameters=parameters, unique=unique)
-
-        query_params = _build_query_params(
-            method=method,
-            fields=fields,
-            parameters=parameters,
-            limit=limit,
-            sort=sort,
-        )
+        method_url = f"https://api.xbrl.us/api/v1{endpoint}?"
+        if unique:
+            method_url += "unique"
 
         account_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
 
         query_params = _build_query_params(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=account_limit,
@@ -1019,7 +952,7 @@ class XBRL:
                 while remaining_limit > 0:
                     current_limit = min(self.account_limit, remaining_limit)
                     query_params = _build_query_params(
-                        method=method,
+                        endpoint=endpoint,
                         fields=fields,
                         parameters=parameters,
                         limit=current_limit,
