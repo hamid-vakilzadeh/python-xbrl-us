@@ -651,7 +651,7 @@ class XBRL:
         self,
         endpoint: str,
         fields: Optional[list] = None,
-        parameters: Optional[Union[dict]] = None,
+        parameters: Optional[dict] = None,
         limit: Optional[Union[int, "all"]] = None,
         sort: Optional[dict] = None,
         unique: Optional[bool] = False,
@@ -818,7 +818,7 @@ class XBRL:
         self,
         endpoint: str,
         fields: Optional[list] = None,
-        parameters: Optional[Union[dict]] = None,
+        parameters: Optional[dict] = None,
         limit: Optional[Union[int, "all"]] = None,
         sort: Optional[dict] = None,
         unique: Optional[bool] = False,
@@ -830,19 +830,10 @@ class XBRL:
         """Asynchronous version of the query method"""
         endpoint_url = f"https://api.xbrl.us/api/v1{endpoint}?"
 
-        account_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
-
-        query_params = _build_query_params(
-            endpoint=endpoint,
-            fields=fields,
-            parameters=parameters,
-            limit=account_limit,
-            sort=sort,
-            unique=unique,
-        )
-
-        if print_query:
-            print(query_params)
+        # if limit is all
+        if limit == "all":
+            # arbitrary large number
+            limit = 999999999
 
         remaining_limit = limit
         all_data = []
