@@ -6,6 +6,7 @@ import warnings
 from collections.abc import Iterable
 from functools import wraps
 from pathlib import Path
+from typing import Literal
 from typing import Optional
 from typing import Union
 
@@ -15,9 +16,7 @@ import requests
 from pandas import DataFrame
 from retry import retry
 from tqdm import tqdm
-from yaml import safe_load
 
-from .types import AcceptableMethods
 from .types import AssertionEndpoint
 from .types import AssertionFields
 from .types import AssertionParameters
@@ -89,6 +88,91 @@ from .types import ReportSorts
 from .types import UniversalFieldMap
 from .utils import exceptions
 
+# Create a union type of all endpoint types
+AnyEndpoint = Union[
+    AssertionEndpoint,
+    ConceptEndpoint,
+    CubeEndpoint,
+    DocumentEndpoint,
+    DtsConceptEndpoint,
+    DtsEndpoint,
+    DtsNetworkEndpoint,
+    EntityEndpoint,
+    EntityReportEndpoint,
+    FactEndpoint,
+    LabelEndpoint,
+    NetworkEndpoint,
+    NetworkRelationshipEndpoint,
+    RelationshipEndpoint,
+    ReportEndpoint,
+    ReportFactEndpoint,
+    ReportNetworkEndpoint,
+]
+
+# Create a union type of all parameter types
+AnyParameters = Union[
+    AssertionParameters,
+    ConceptParameters,
+    CubeParameters,
+    DocumentParameters,
+    DtsConceptParameters,
+    DtsParameters,
+    DtsNetworkParameters,
+    EntityParameters,
+    EntityReportParameters,
+    FactParameters,
+    LabelParameters,
+    NetworkParameters,
+    NetworkRelationshipParameters,
+    RelationshipParameters,
+    ReportParameters,
+    ReportFactParameters,
+    ReportNetworkParameters,
+]
+
+# Create a union type of all field types
+AnyFields = Union[
+    AssertionFields,
+    ConceptFields,
+    CubeFields,
+    DocumentFields,
+    DtsConceptFields,
+    DtsFields,
+    DtsNetworkFields,
+    EntityFields,
+    EntityReportFields,
+    FactFields,
+    LabelFields,
+    NetworkFields,
+    NetworkRelationshipFields,
+    RelationshipFields,
+    ReportFields,
+    ReportFactFields,
+    ReportNetworkFields,
+]
+
+# Create a union type of all sort types
+AnySorts = Union[
+    AssertionSorts,
+    ConceptSorts,
+    CubeSorts,
+    DocumentSorts,
+    DtsConceptSorts,
+    DtsSorts,
+    DtsNetworkSorts,
+    EntitySorts,
+    EntityReportSorts,
+    FactSorts,
+    LabelSorts,
+    NetworkSorts,
+    NetworkRelationshipSorts,
+    RelationshipSorts,
+    ReportSorts,
+    ReportFactSorts,
+    ReportNetworkSorts,
+]
+
+
 _dir = Path(__file__).resolve()
 
 # Get the home directory path as a Path object
@@ -125,7 +209,7 @@ except Exception as e:
     logger.warning(f"An exception occurred: {e}")  # Or debug/info/error as appropriate
 
 
-def _remove_special_fields(fields):
+def _remove_special_fields(fields: list) -> list:
     # Define the patterns to be removed
     patterns = [r"(.+)\.(sort\((.+)\))?$", r"(.+)\.(limit\((\d+)\))?$", r"(.+)\.(offset\((\d+)\))?$"]
 
@@ -137,24 +221,10 @@ def _remove_special_fields(fields):
     return fields
 
 
-def _methods():
-    """
-    Get the names of the attributes that are allowed to be used for
-        the given method.
-    """
-    # location of all method files
-    file_path = _dir.parent / "methods"
-
-    # list all the files in the directory
-    method_files = Path(file_path).glob("*.yml")
-
-    return [file_path.stem for file_path in method_files]
-
-
-def _validate_parameters():
-    def decorator(func):
+def _validate_parameters() -> callable:
+    def decorator(func: callable) -> callable:
         @wraps(func)
-        def wrapper(**kwargs):
+        def wrapper(**kwargs) -> dict:
             """
             Validate the parameters passed to the query method including fields, parameters, sort, limit, and offset.
             This is a decorator for the ``_build_query_params`` method in XBRL class.
@@ -163,23 +233,14 @@ def _validate_parameters():
                 **kwargs: Arbitrary keyword arguments.
 
             Returns:
-                The result of the wrapped function.
+                dict: The result of the wrapped function.
             """
-            method_name = kwargs.get("method")
+            endpoint_name = kwargs.get("endpoint", None)
+            if not endpoint_name:
+                raise ValueError("No endpoint name provided. Please provide an endpoint name.")
 
-            if not method_name:
-                raise exceptions.XBRLMissingValueError(param="method", expected_value=_methods())
-            elif method_name not in _methods():
-                raise exceptions.XBRLInvalidValueError(key=method_name, param="method", expected_value=_methods())
-
-            elif not isinstance(method_name, str):
-                raise exceptions.XBRLInvalidTypeError(key=method_name, received_type=type(method_name), expected_type=str)
-
-            # load the yaml file that has allowed parameters for the method
-            file_path = _dir.parent / "methods" / f"{method_name.lower()}.yml"
-
-            with file_path.open("r") as file:
-                allowed_for_query = safe_load(file)
+            if not isinstance(endpoint_name, str):
+                raise TypeError(f"{endpoint_name} is not a string. Please provide a string.")
 
             # get the parameters, fields, limit, sort, and offset from kwargs that the user passed in
             parameters = kwargs.get("parameters")
@@ -189,16 +250,20 @@ def _validate_parameters():
             offset = kwargs.get("offset")
             kwargs.get("print_query")
 
+            if fields:
+                fields = [UniversalFieldMap.to_original(item) for item in fields]
+            if parameters:
+                parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
+            if sort:
+                sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
+
             # get the allowed parameters, fields, limit, sort, and offset from the yaml file
-            allowed_params = allowed_for_query.get("parameters", set())
-            allowed_fields = allowed_for_query.get("fields", set())
-            allowed_limit_fields = allowed_for_query.get("limit", set())
-            allowed_sort_fields = [field for field in allowed_fields if "*" not in field]
+            allowed_limit_fields = endpoint_name.lower().replace("/", " ").strip().split(" ")[0]
             allowed_offset_fields = allowed_limit_fields
 
             # Validate fields
             if not fields:
-                raise exceptions.XBRLMissingValueError(param="fields", expected_value=allowed_fields)
+                raise ValueError("No fields provided. Please provide at least one field.")
 
             # clear the conditions from the previous query
             # this could happen when the limit is greater than account limit or
@@ -206,18 +271,7 @@ def _validate_parameters():
             fields = _remove_special_fields(fields)
             for field in fields:
                 if not isinstance(field, str):
-                    raise exceptions.XBRLInvalidTypeError(key=field, expected_type=str, received_type=type(field))
-
-                if field not in allowed_fields:
-                    raise exceptions.XBRLInvalidValueError(key=field, param="fields", expected_value=allowed_fields, method=method_name)
-
-            # Validate parameters
-            if parameters:
-                for param in parameters:
-                    if param not in allowed_params:
-                        raise exceptions.XBRLInvalidValueError(
-                            key=param, param="parameters", expected_value=allowed_params, method=method_name
-                        )
+                    raise TypeError(f"{field} is not a string. Please provide a string.")
 
             # Validate limit
             if limit:
@@ -237,11 +291,7 @@ def _validate_parameters():
                 if not isinstance(sort, dict):
                     raise ValueError("Sort must be a dictionary")
                 sort = {_remove_special_fields(key): value for key, value in sort.items()}
-                for key, value in sort.items():
-                    if key not in allowed_sort_fields:
-                        raise exceptions.XBRLInvalidValueError(
-                            key=key, param="sort", expected_value=allowed_sort_fields, method=method_name
-                        )
+                for _key, value in sort.items():
                     if value.lower() not in ["asc", "desc"]:
                         raise exceptions.XBRLInvalidValueError(key=value, param="sort", expected_value=["asc", "desc"])
             else:
@@ -253,15 +303,15 @@ def _validate_parameters():
             # Validate offset
             if offset:
                 if not isinstance(offset, int):
-                    raise exceptions.XBRLInvalidTypeError(key=offset, expected_type=int, received_type=type(offset))
+                    raise TypeError(f"{offset} is not an int. Please provide an int.")
 
             limit_field = None
             offset_field = None
 
             if allowed_limit_fields:
-                limit_field = next(iter(allowed_limit_fields), None)
+                limit_field = allowed_limit_fields
             if allowed_offset_fields:
-                offset_field = next(iter(allowed_offset_fields), None)
+                offset_field = allowed_offset_fields
 
             return func(
                 fields=fields,
@@ -271,6 +321,7 @@ def _validate_parameters():
                 offset=offset,
                 limit_field=limit_field,
                 offset_field=offset_field,
+                unique=kwargs.get("unique"),
             )
 
         return wrapper
@@ -278,10 +329,10 @@ def _validate_parameters():
     return decorator
 
 
-def _type_check_decorator():
-    def decorator(func):
+def _type_check_decorator() -> callable:
+    def decorator(func: callable) -> callable:
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> Union[dict, DataFrame]:
             """
             Check if the parameters passed to the query method are in dictionary format.
             This is a decorator for the ``query`` method in XBRL class.
@@ -291,8 +342,14 @@ def _type_check_decorator():
                 **kwargs: Arbitrary keyword arguments.
 
             Returns:
-                The result of the wrapped function.
+                Union[dict, DataFrame]: The result of the wrapped function.
             """
+            if kwargs.get("method"):
+                raise KeyError("`method` is no longer supported. Please use `endpoint` instead.")
+
+            if not kwargs.get("endpoint"):
+                raise ValueError("No endpoint name provided. Please provide an endpoint name.")
+
             parameters = kwargs.get("parameters")
             if parameters and not isinstance(parameters, dict):
                 raise ValueError(f"Parameters must be a dict or Parameters object. " f"Got {type(parameters)} instead.")
@@ -312,26 +369,27 @@ def _build_query_params(
     offset: Optional[int] = 0,
     limit_field: Optional[str] = None,
     offset_field: Optional[str] = None,
+    unique: Optional[bool] = False,
 ) -> dict:
     """
     Build the query parameters for the API request in the format required by the API.
 
     Args:
-        fields (list): The list of fields to include in the query.
-        parameters (dict): The parameters for the query.
-        limit (dict): The limit parameters for the query.
-        sort (dict): The sort parameters for the query.
-        offset (dict): dynamically set if needed
-        limit_field (str): The limit field accepted for the chosen method.
-        offset_field (str): The offset field accepted for the chosen method (which is usually the same as the
-            ``limit_filed``).
+        fields (Optional[list]): The list of fields to include in the query.
+        parameters (Optional[dict]): The parameters for the query.
+        limit (Optional[int]): The limit parameter for the query.
+        sort (Optional[dict]): The sort parameters for the query.
+        offset (Optional[int]): The offset parameter, dynamically set if needed.
+        limit_field (Optional[str]): The limit field accepted for the chosen method.
+        offset_field (Optional[str]): The offset field accepted for the chosen method (which is usually the same as the
+            ``limit_field``).
+        unique (Optional[bool]): Whether to return only unique values.
 
     Returns:
         dict: The query parameters that will be submitted to the API.
     """
     query_params = {}
     fields_copy = fields[:]
-
     if parameters:
         # convert the parameters to a string and add it to the query_params
         query_params.update(
@@ -374,7 +432,9 @@ def _build_query_params(
             fields_copy.append(offset_arg)
 
     query_params["fields"] = ",".join(fields_copy)
-
+    # Handle unique
+    if unique:
+        query_params["unique"] = "true"
     return query_params
 
 
@@ -402,8 +462,8 @@ class XBRL:
         client_secret: Optional[str] = None,
         username: Optional[str] = None,
         password: Optional[str] = None,
-        grant_type: str = "password",
-        store: Optional[str] = "n",
+        grant_type: Optional[Literal["password", "refresh_token"]] = "password",
+        store: Optional[Literal["y", "n"]] = "n",
     ):
         self._url = "https://api.xbrl.us/oauth2/token"
         self.client_id = client_id
@@ -416,111 +476,40 @@ class XBRL:
         self.account_limit = None
         self._access_token_expires_at = 0
         self._refresh_token_expires_at = 0
-        self._ensure_access_token(store=store)
         # If the class was initiated without any arguments, try finding the user info file
         if not (client_id and client_secret and username and password):
             self._get_user()
-
-    @staticmethod
-    def methods():
-        """
-        Get the names of the methods that are allowed to be used for
-            as a ``method`` name. A list of available methods along with
-            their corresponding API endpoints is shown below.
-
-            ===================================  ==================================================
-            Method                               API Endpoint
-            ===================================  ==================================================
-            ``assertion search``                  */api/v1/assertion/search*
-            ``concept name search``               */api/v1/concept/{concept.local-name}/search*
-            ``concept search``                    */api/v1/concept/search*
-            ``cube search``                       */api/v1/cube/search*
-            ``dimension search``                  */api/v1/dimension/search*
-            ``document search``                   */api/v1/document/search*
-            ``dts id concept label``              */api/v1/dts/{dts.id}/concept/{concept.local-name}/label*
-            ``dts id concept name``               */api/v1/dts/{dts.id}/concept/{concept.local-name}*
-            ``dts id concept reference``          */api/v1/dts/{dts.id}/concept/{concept.local-name}/reference*
-            ``dts id concept search``             */api/v1/dts/{dts.id}/concept/search*
-            ``dts id network``                    */api/v1/dts/{dts.id}/network*
-            ``dts id network search``             */api/v1/dts/{dts.id}/network/search*
-            ``dts search``                        */api/v1/dts/search*
-            ``entity id``                         */api/v1/entity/{entity.id}*
-            ``entity id report search``           */api/v1/entity/{entity.id}/report/search*
-            ``entity report search``              */api/v1/entity/report/search*
-            ``entity search``                     */api/v1/entity/search*
-            ``fact id``                           */api/v1/fact/{fact.id}*
-            ``fact search``                       */api/v1/fact/search*
-            ``fact search oim``                   */api/v1/fact/oim/search*
-            ``label dts id search``               */api/v1/label/{dts.id}/search*
-            ``label search``                      */api/v1/label/search*
-            ``network id``                        */api/v1/network/{network.id}*
-            ``network id relationship search``    */api/v1/network/{network.id}/relationship/search*
-            ``network relationship search``       */api/v1/network/relationship/search*
-            ``relationship search``               */api/v1/relationship/search*
-            ``relationship tree search``          */api/v1/relationship/tree/search*
-            ``report fact search``                */api/v1/report/fact/search*
-            ``report id``                         */api/v1/report/{report.id}*
-            ``report id fact search``             */api/v1/report/{report.id}/fact/search*
-            ``report search``                     */api/v1/report/search*
-            ===================================  ==================================================
-
-        """
-        # TODO: add support for report delete, assertion validate,
-        return _methods()
-
-    @staticmethod
-    def acceptable_params(method: str):
-        """
-        Get the names of the attributes (e.g. acceptable ``fields``, ``parameters``, ``sort``, ``limit``, etc.)
-            that are allowed to be used for a given ``method``.
-
-        Args:
-            method (str): The name of the API method to get the acceptable parameters for (e.g. "fact search").
-
-        Returns:
-            A class where the attributes are the acceptable parameters for the given ``method``.
-
-        """
-        file_path = _dir.parent / "methods" / f"{method.lower()}.yml"
-
-        with file_path.open("r") as file:
-            method_features = safe_load(file)
-
-        _attributes = {"method_name": method}
-        for key, _value in method_features.items():
-            _attributes[f"{key}"] = method_features.get(key)
-
-        _attributes["sort"] = [value for value in _attributes["fields"] if "*" not in value]
-
-        # Create the dynamic class using type()
-        _class = type(method, (), _attributes)
-        return _class()
-
-    @staticmethod
-    def define(parameter: str):
-        """
-        Get the definition of any parameter.
-        Args:
-            parameter:
-
-        Returns:
-            dict: The definition of the parameter with the type, description, etc.
-        """
-        # load definitions file
-        file_path = _dir.parent / "methods" / "_definitions.yaml"
-
-        with file_path.open("r") as file:
-            definitions = safe_load(file)
-
-        return definitions.get(parameter)
+        if self.client_id and self.client_secret and self.username and self.password:
+            self._ensure_access_token(store=store)
 
     def _get_token(self, grant_type: Optional[str] = None, refresh_token=None, **kwargs):
         """
-        Retrieves an access token from the token URL.
+        Retrieve an authentication token from the XBRL US API.
+
+        This method handles the OAuth2 token acquisition process, supporting both
+        password grants (using username/password) and refresh token grants. When
+        successful, it updates the instance with new access and refresh tokens
+        and their expiration times.
 
         Args:
-            grant_type (str): The grant type (default: "password").
-            refresh_token (str): The refresh token (default: None).
+            grant_type (str, optional): The OAuth2 grant type to use, either "password"
+                or "refresh_token". If None, uses the instance's grant_type.
+            refresh_token (str, optional): The refresh token to use when grant_type
+                is "refresh_token". Required if using refresh token grant type.
+            **kwargs: Additional keyword arguments.
+                - store (str): Either "y" or "n", determines whether to store credentials.
+                  If not provided and credentials haven't been stored before, will prompt user.
+
+        Raises:
+            ValueError: If token retrieval fails, invalid parameters are provided,
+                or credential storage preference is invalid.
+
+        Note:
+            When successful, this method updates the instance attributes:
+            - access_token
+            - refresh_token
+            - _access_token_expires_at
+            - _refresh_token_expires_at
         """
         grant_type = self.grant_type or grant_type
         payload = {"grant_type": grant_type, "client_id": self.client_id, "client_secret": self.client_secret, "platform": "pc"}
@@ -545,6 +534,8 @@ class XBRL:
             self._refresh_token_expires_at = time.time() + token_info["refresh_token_expires_in"]
             if not user_info_path.exists():
                 store = kwargs.get("store", None)
+                if store not in ["y", "n"]:
+                    raise ValueError("Invalid value for store. Please provide 'y' or 'n'.")
                 if store is None:
                     store = input("Do you want to store your credentials for future use on this computer? (y/n): ")
                 if store.lower() == "y":
@@ -553,12 +544,38 @@ class XBRL:
             raise ValueError(f"Unable to retrieve token: {response.json()}. Please check your credentials.")
 
     def _is_access_token_expired(self):
+        """
+        Check if the current access token has expired.
+
+        Returns:
+            bool: True if the access token has expired, False otherwise.
+        """
         return time.time() >= self._access_token_expires_at
 
     def _is_refresh_token_expired(self):
+        """
+        Check if the current refresh token has expired.
+
+        Returns:
+            bool: True if the refresh token has expired, False otherwise.
+        """
         return time.time() >= self._refresh_token_expires_at
 
     def _ensure_access_token(self, **kwargs):
+        """
+        Ensure a valid access token is available for API requests.
+
+        If the access token is missing or expired, this method will attempt to get a new one
+        using the refresh token if available and valid, otherwise it will use the stored
+        credentials to request a new token.
+
+        Args:
+            **kwargs: Additional keyword arguments to pass to the _get_token method.
+                Commonly used for the 'store' parameter.
+
+        Note:
+            This method will also verify the account limit is set.
+        """
         if not self.access_token or self._is_access_token_expired():
             if self.refresh_token and not self._is_refresh_token_expired():
                 self._get_token(grant_type="password", refresh_token=self.refresh_token, **kwargs)
@@ -570,21 +587,41 @@ class XBRL:
     @retry(exceptions=_query_exceptions, tries=3, delay=2, backoff=2, logger=None)
     def _make_request(self, method, url, **kwargs) -> requests.Response:
         """
-        Makes an HTTP request with the provided method, URL, and additional arguments.
+        Make an HTTP request to the XBRL US API with automatic token handling and error management.
+
+        This method handles authentication token management and provides detailed error handling.
+        It will automatically retry on connection errors using exponential backoff.
 
         Args:
-            method (str): The HTTP method for the request.
-            url (str): The URL to send the request to.
-            **kwargs: Additional keyword arguments to be passed to the requests' library.
+            method (str): The HTTP method for the request (GET, POST, PUT, DELETE, etc.).
+            url (str): The full URL endpoint to send the request to.
+            **kwargs: Additional keyword arguments passed to the requests library.
+                Common parameters include:
+                - params: Dictionary of URL parameters to append to the URL.
+                - data: Dictionary or bytes to send in the request body.
+                - json: JSON data to send in the request body.
+                - headers: Dictionary of HTTP headers.
+                - timeout: Request timeout in seconds.
+                - print_query: If True, prints the query details to stdout.
 
         Returns:
-            requests.Response: The response object.
+            requests.Response: The successful response object.
+
+        Raises:
+            ValueError: If the API returns an error response or the request fails.
         """
         self._ensure_access_token()
 
         headers = kwargs.get("headers", {})
         headers.update({"Authorization": f"Bearer {self.access_token}"})
         kwargs["headers"] = headers
+        if kwargs.get("print_query"):
+            print(f"Query Endpoint:{url}")
+            print(f"Query Parameters: {kwargs.get('params')}")
+
+        # Remove the print_query argument from kwargs
+        kwargs.pop("print_query", None)
+
         response = requests.request(method, url, **kwargs)
         if response.status_code == 200:
             if "error" not in response.json():
@@ -598,15 +635,26 @@ class XBRL:
                     ) from None
 
         elif response.status_code == 503:
-            raise f"Error {response.status_code}: {response.text}"
+            raise ValueError(f"Error {response.status_code}: {response.text}")
         elif response.status_code == 404:
             raise ValueError(f"Error {response.status_code}: {response.json()['error_description']}") from None
         else:
             raise ValueError(f"Error {response.status_code}: {response.text}") from None
 
-    def _get_account_limit(
-        self,
-    ):
+    def _get_account_limit(self):
+        """
+        Determine the user's account API request limit by making a test request.
+
+        This method works by purposely requesting a large limit (5001) which typically
+        exceeds normal account limits. The API responds with an error message containing
+        the actual user limit, which this method extracts and stores.
+
+        Returns:
+            None: Updates the instance's account_limit attribute.
+
+        Raises:
+            ValueError: If the limit could not be extracted from the response.
+        """
         # Query the API with a limit of more than 5000.
         params = "fields=fact.value,fact.limit(5001)"
         url = "https://api.xbrl.us/api/v1/fact/search"
@@ -618,10 +666,22 @@ class XBRL:
         if match:
             self.account_limit = int(match.group(1))
         else:
-            print(f"Error: {response.status_code}")
-            self.account_limit = None
+            raise ValueError(f"Error determining account limit: {response.status_code}")
 
     def _set_user(self):
+        """
+        Store the current user's credentials in a local file for future use.
+
+        This method creates a file in the user's home directory containing the
+        authentication credentials (username, password, client_id, client_secret).
+
+        Note:
+            This stores credentials in plain text, which may have security implications.
+            Use with caution on shared systems.
+
+        Returns:
+            None
+        """
         # Write info file
         with user_info_path.open("w") as file:
             file.write("\n".join([self.username, self.password, self.client_id, self.client_secret]))
@@ -629,6 +689,20 @@ class XBRL:
         print("Remember me enabled.")
 
     def _get_user(self):
+        """
+        Load user credentials from a previously stored credentials file.
+
+        This method attempts to read authentication credentials from a file in the
+        user's home directory. When successful, it sets the instance attributes
+        for username, password, client_id, and client_secret.
+
+        Returns:
+            None: Updates instance attributes with stored credentials.
+
+        Raises:
+            FileNotFoundError: If the credentials file does not exist.
+            ValueError: If there's an error reading or parsing the credentials file.
+        """
         try:
             with user_info_path.open("r") as file:
                 lines = file.readlines()
@@ -643,57 +717,17 @@ class XBRL:
         except Exception as e:
             raise ValueError("Error reading credentials from file:", str(e)) from None
 
-    def _get_method_url(self, method_name: str, parameters: dict, unique: bool) -> str:
-        """
-        Get the URL for the specified method from the YAML file.
-
-        Args:
-            method_name (str): The name of the method.
-            parameters: The parameters for the method.
-
-        Returns:
-            str: The URL for the method.
-        """
-        file_path = _dir.parent / "methods" / f"{method_name.lower()}.yml"
-
-        # get the url for this method
-        with file_path.open("r") as file:
-            url = safe_load(file)["url"]
-
-        # check if the link requires parameters
-        keys = [key.strip("{}") for key in re.findall(r"{(.*?)}", url)]
-        if len(keys) > 0:
-            if not parameters:
-                raise exceptions.XBRLRequiredValueError(key=keys, method=method_name)
-
-            values = {key: parameters[key] for key in keys if key in parameters}
-
-            # check if all required parameters are present
-            if len(values) != len(keys):
-                missing_keys = [key for key in keys if key not in values]
-                for key in missing_keys:
-                    raise exceptions.XBRLRequiredValueError(key=key, method=method_name)
-
-            # get the required parameters for this method
-            for key, value in values.items():
-                placeholder = "{" + key + "}"
-                url = url.replace(placeholder, str(value))
-        if unique:
-            return f"https://api.xbrl.us{url}?unique"
-
-        return f"https://api.xbrl.us{url}?"
-
-    def _get_meta_endpoints(self, force_refresh=False):
+    def _get_endpoints_info(self, force_refresh=False):
         """
         Get the endpoints from Meta API and cache them to meta/endpoints.yml.
         Additionally caches each endpoint's metadata and generates type definitions.
         Only fetches from API if cache is older than 24h or force_refresh=True.
 
         Args:
-            force_refresh (bool): If True, force a refresh of the cache regardless of age
+            force_refresh (bool, optional): If True, force a refresh of the cache regardless of age. Default is False.
 
         Returns:
-            dict: The endpoints metadata
+            dict: The endpoints metadata.
         """
         from datetime import datetime
         from datetime import timedelta
@@ -803,52 +837,54 @@ class XBRL:
     @_type_check_decorator()
     def query(
         self,
-        method: AcceptableMethods,
-        fields: Optional[list] = None,
-        parameters: Optional[Union[dict]] = None,
+        endpoint: AnyEndpoint,
+        fields: Optional[AnyFields] = None,
+        parameters: Optional[AnyParameters] = None,
         limit: Optional[Union[int, "all"]] = None,
-        sort: Optional[dict] = None,
+        sort: Optional[AnySorts] = None,
         unique: Optional[bool] = False,
         as_dataframe: bool = False,
         print_query: Optional[bool] = False,
         timeout: Optional[int] = None,
+        async_mode: Optional[bool] = False,
         **kwargs,
     ) -> Union[dict, DataFrame]:
         """
+        Query the XBRL US API for data.
 
         Args:
-            method (str): The name of the method to query.
-            fields (list): The fields query parameter establishes the details of the data to return for the specific query.
-            parameters (Optional[dict | Parameters]): The search parameters for the query.
+            endpoint (AnyEndpoint): The name of the endpoint to query.
+            fields (Optional[AnyFields]): The fields query parameter establishes the details of the data to return for the specific query.
+            parameters (Optional[AnyParameters]): The search parameters for the query.
             limit (Optional[Union[int, "all"]]): A limit restricts the number of results returned by the query.
                 For example, in a *"fact search"* ``limit=10`` would return 10 observations.
                 You can also use ``limit="all"`` to return all results (which is not recommended unless
                 you know what you are doing!). The default is *None* which returns one response with
-                upto your account limit. For example, if your account limit is 5000, then the default
+                up to your account limit. For example, if your account limit is 5000, then the default
                 will return the smallest of 5000 or the number of results.
-            sort (Optional[dict]): Any returned value can be sorted in ascending or descending order,
-                using *ASC* or *DESC* (i.e. ``{"report.document-type": "DESC"}``.
+            sort (Optional[AnySorts]): Any returned value can be sorted in ascending or descending order,
+                using *ASC* or *DESC* (i.e. ``{"report.document-type": "DESC"}``).
                 Multiple sort criteria can be defined and the sort sequence is determined by
                 the order of the items in the dictionary.
-            unique (Optional[bool]=False): If *True* returns only unique values. Default is *False*.
-            as_dataframe (Optional[bool]=False): If *True* returns the results as a *DataFrame* else returns the data
-                as *json*. The default is *False* which returns the results in *json* format
-            print_query (bool=False): Whether to print the query text.
-            timeout (int=5): The number of seconds to wait for a response from the server. Defaults to 5 seconds.
+            unique (Optional[bool]): If *True* returns only unique values. Default is *False*.
+            as_dataframe (bool): If *True* returns the results as a *DataFrame* else returns the data
+                as *json*. The default is *False* which returns the results in *json* format.
+            print_query (Optional[bool]): Whether to print the query text. Default is False.
+            timeout (Optional[int]): The number of seconds to wait for a response from the server.
                 If *None* will wait indefinitely.
-
+            async_mode (Optional[bool]): If *True* runs the query in async mode. Default is *False*.
+            **kwargs: Additional keyword arguments to pass to the request.
 
         Returns:
-            json | DataFrame: The results of the query.
+            Union[dict, DataFrame]: The results of the query.
         """
 
-        method_url = self._get_method_url(method_name=method, parameters=parameters, unique=unique)
+        endpoint_url = f"https://api.xbrl.us/api/v1{endpoint}?"
+
         # if limit is all
         if limit == "all":
             # arbitrary large number
             limit = 999999999
-
-        query_params = _build_query_params(method=method, fields=fields, parameters=parameters, sort=sort, limit=100)
 
         # ensure the limit is not greater than the account limit
         chunk_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
@@ -864,22 +900,21 @@ class XBRL:
 
         # update the limit in the query params with the new limit
         query_params = _build_query_params(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=chunk_limit,
             sort=sort,
+            unique=unique,
         )
-
-        if print_query:
-            print(f"\n{query_params}")
 
         try:
             response = self._make_request(
                 method="get",
-                url=method_url,
+                url=endpoint_url,
                 params=query_params,
                 timeout=timeout,
+                print_query=print_query,
             )
         except Exception as e:
             raise e
@@ -923,19 +958,21 @@ class XBRL:
             try:
                 current_limit = min(chunk_limit, remaining_limit)
                 query_params = _build_query_params(
-                    method=method,
+                    endpoint=endpoint,
                     fields=fields,
                     parameters=parameters,
                     limit=current_limit,
                     sort=sort,
                     offset=offset,
+                    unique=unique,
                 )
 
                 response = self._make_request(
                     method="get",
-                    url=method_url,
+                    url=endpoint_url,
                     params=query_params,
                     timeout=timeout,
+                    print_query=print_query,
                 )
 
                 response_data = response.json()
@@ -968,85 +1005,164 @@ class XBRL:
             return all_data
 
     @_type_check_decorator()
-    def aquery(
+    def _aquery(
         self,
-        method: AcceptableMethods,
-        fields: Optional[list] = None,
-        parameters: Optional[Union[dict]] = None,
+        endpoint: AnyEndpoint,
+        fields: Optional[AnyFields] = None,
+        parameters: Optional[AnyParameters] = None,
         limit: Optional[Union[int, "all"]] = None,
-        sort: Optional[dict] = None,
+        sort: Optional[AnySorts] = None,
         unique: Optional[bool] = False,
         as_dataframe: bool = False,
         print_query: Optional[bool] = False,
         timeout: Optional[int] = None,
+        batch_size: Optional[int] = 5,
         **kwargs,
     ) -> Union[dict, DataFrame]:
-        """Asynchronous version of the query method"""
-        method_url = self._get_method_url(method_name=method, parameters=parameters, unique=unique)
+        """Asynchronous version of the query method.
 
-        query_params = _build_query_params(
-            method=method,
-            fields=fields,
-            parameters=parameters,
-            limit=limit,
-            sort=sort,
-        )
+        Args:
+            endpoint (AnyEndpoint): The name of the endpoint to query.
+            fields (Optional[AnyFields]): The fields query parameter establishes the details of the data to return for the specific query.
+            parameters (Optional[AnyParameters]): The search parameters for the query.
+            limit (Optional[Union[int, "all"]]): A limit restricts the number of results returned by the query.
+                For example, in a *"fact search"* ``limit=10`` would return 10 observations.
+                You can also use ``limit="all"`` to return all results (which is not recommended unless
+                you know what you are doing!). The default is *None* which returns one response with
+                up to your account limit. For example, if your account limit is 5000, then the default
+                will return the smallest of 5000 or the number of results.
+            sort (Optional[AnySorts]): Any returned value can be sorted in ascending or descending order,
+                using *ASC* or *DESC* (i.e. ``{"report.document-type": "DESC"}``).
+                Multiple sort criteria can be defined and the sort sequence is determined by
+                the order of the items in the dictionary.
+            unique (Optional[bool]): If *True* returns only unique values. Default is *False*.
+            as_dataframe (bool): If *True* returns the results as a *DataFrame* else returns the data
+                as *json*. The default is *False* which returns the results in *json* format.
+            print_query (Optional[bool]): Whether to print the query text. Default is False.
+            timeout (Optional[int]): The number of seconds to wait for a response from the server.
+                If *None* will wait indefinitely.
+            batch_size (Optional[int]): The number of concurrent requests to make. Default is 5.
+            **kwargs: Additional keyword arguments to pass to the request.
 
-        account_limit = min(limit, self.account_limit) if limit is not None else self.account_limit
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
+        """
+        endpoint_url = f"https://api.xbrl.us/api/v1{endpoint}?"
 
-        query_params = _build_query_params(
-            method=method,
-            fields=fields,
-            parameters=parameters,
-            limit=account_limit,
-            sort=sort,
-        )
+        # if limit is all
+        if limit == "all":
+            # arbitrary large number
+            limit = 999999999
 
-        if print_query:
-            print(query_params)
-
-        remaining_limit = limit
         all_data = []
-        offset = len(all_data)
+        remaining_limit = limit if limit is not None else self.account_limit
+        offset = 0
+        end_of_data_reached = False
 
         async def execute_remaining_queries():
-            nonlocal all_data, remaining_limit, offset
+            nonlocal all_data, remaining_limit, offset, end_of_data_reached
             self._ensure_access_token()
             headers = {"Authorization": f"Bearer {self.access_token}"}
 
             async with aiohttp.ClientSession() as session:
-                tasks = []
-                while remaining_limit > 0:
-                    current_limit = min(self.account_limit, remaining_limit)
-                    query_params = _build_query_params(
-                        method=method,
-                        fields=fields,
-                        parameters=parameters,
-                        limit=current_limit,
-                        sort=sort,
-                        offset=offset,
-                    )
+                streamlit_indicator = kwargs.get("streamlit", False)
+                if streamlit_indicator:
+                    from stqdm import stqdm
 
-                    tasks.append(session.get(url=method_url, params=query_params, headers=headers, timeout=timeout))
-                    remaining_limit -= current_limit
-                    offset += current_limit
+                    pbar = stqdm(total=None, desc="Running Query, Please Wait", ncols=80)
+                else:
+                    # create a progress bar
+                    pbar = tqdm(total=None, desc="Running Query, Please Wait", ncols=80, position=0, leave=True)
 
-                with tqdm(total=len(tasks)) as pbar:
-                    for task in asyncio.as_completed(tasks):
-                        response_data = await task
-                        all_data.append(await response_data.json())
-                        pbar.update(1)
+                total_returned = 0
 
+                # Continue until no more data needed or available
+                while remaining_limit > 0 and not end_of_data_reached:
+                    tasks = []
+                    task_limits = []  # Track the limit for each task
+
+                    # Create a batch of requests
+                    for _ in range(batch_size):
+                        if remaining_limit <= 0:
+                            break
+
+                        current_limit = min(self.account_limit, remaining_limit)
+                        query_params = _build_query_params(
+                            endpoint=endpoint,
+                            fields=fields,
+                            parameters=parameters,
+                            limit=current_limit,
+                            sort=sort,
+                            offset=offset,
+                            unique=unique,
+                        )
+
+                        tasks.append(session.get(url=endpoint_url, params=query_params, headers=headers, timeout=timeout))
+                        task_limits.append(current_limit)
+
+                        # Temporarily adjust counters (will be corrected based on actual results)
+                        remaining_limit -= current_limit
+                        offset += current_limit
+
+                    if not tasks:
+                        break
+
+                    # Execute this batch of requests
+                    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                    # Process the results
+                    for i, result in enumerate(results):
+                        expected_limit = task_limits[i]
+
+                        # Handle exceptions
+                        if isinstance(result, Exception):
+                            # Restore the limits since we didn't get data
+                            remaining_limit += expected_limit
+                            offset -= expected_limit
+                            continue
+
+                        # Process successful response
+                        try:
+                            response_json = await result.json()
+
+                            if "data" in response_json and isinstance(response_json["data"], list):
+                                received_data = response_json["data"]
+                                items_received = len(received_data)
+
+                                # Add data to our results
+                                all_data.extend(received_data)
+                                total_returned += items_received
+
+                                # Adjust the counters based on actual results
+                                remaining_limit += expected_limit - items_received
+                                offset -= expected_limit - items_received
+
+                                # Check if we've reached the end of data
+                                if items_received < expected_limit:
+                                    end_of_data_reached = True
+                            else:
+                                # If no data field in response
+                                remaining_limit += expected_limit
+                                offset -= expected_limit
+                                end_of_data_reached = True
+
+                        except Exception:
+                            # Restore the limits if processing failed
+                            remaining_limit += expected_limit
+                            offset -= expected_limit
+
+                        # update the progress bar
+                        pbar.update(items_received)
+
+                pbar.close()
+
+        # Run the async function
         asyncio.run(execute_remaining_queries())
-        data = []
-        for item in all_data:
-            if "data" in item:
-                data.extend(item["data"])
 
         if as_dataframe:
-            return DataFrame.from_dict(data)
+            return DataFrame.from_dict(all_data) if all_data else DataFrame()
         else:
-            return data
+            return all_data
 
     def fact(
         self,
@@ -1087,23 +1203,9 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/fact/search/oim":
-            method = "fact search oim"
-        elif endpoint == "/fact/{fact.id}":
-            method = "fact id"
-        elif endpoint == "/fact/search":
-            method = "fact search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /fact/search, /fact/{fact.id}, /fact/search/oim.")
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-                method=method,
+            return self._aquery(
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1116,7 +1218,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1167,21 +1269,9 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/report/{report.id}":
-            method = "report id"
-        elif endpoint == "/report/search":
-            method = "report search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /report/search, /report/{report.id}.")
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-                method=method,
+            return self._aquery(
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1194,7 +1284,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1245,19 +1335,9 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/assertion/search":
-            method = "assertion search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /assertion/search.")
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-                method=method,
+            return self._aquery(
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1270,7 +1350,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1321,21 +1401,9 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/concept/{concept.local-name}/search":
-            method = "concept name search"
-        elif endpoint == "/concept/search":
-            method = "concept search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /concept/{concept.local-name}/search, /concept/search.")
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-                method=method,
+            return self._aquery(
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1348,7 +1416,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1399,19 +1467,9 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/cube/search":
-            method = "cube search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /cube/search")
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-                method=method,
+            return self._aquery(
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1424,7 +1482,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1475,19 +1533,9 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/document/search":
-            method = "document search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /document/search")
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-                method=method,
+            return self._aquery(
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1500,7 +1548,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1551,27 +1599,9 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/dts/{dts.id}/concept/search":
-            method = "dts id concept search"
-        elif endpoint == "/dts/{dts-id}/concept/{concept.local-name}":
-            method = "dts id concept name"
-        elif endpoint == "/dts/{dts.id}/concept/{concept.local-name}/label":
-            method = "dts id concept label"
-        elif endpoint == "/dts/{dts.id}/concept/{concept.local-name}/reference":
-            method = "dts id concept reference"
-        else:
-            raise ValueError(
-                "Invalid endpoint. Please use one of the following: /dts/{dts.id}/concept/search, /dts/{dts-id}/concept/{concept.local-name}, /dts/{dts.id}/concept/{concept.local-name}/label, /dts/{dts.id}/concept/{concept.local-name}/reference."
-            )
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-                method=method,
+            return self._aquery(
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1584,7 +1614,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1635,21 +1665,9 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/dts/{dts.id}/network":
-            method = "dts id network"
-        elif endpoint == "/dts/{dts.id}/network/search":
-            method = "dts id network search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /dts/{dts.id}/network, /dts/{dts.id}/network/search")
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-                method=method,
+            return self._aquery(
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1662,7 +1680,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1713,19 +1731,9 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/dts/search":
-            method = "dts search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /dts/search")
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-                method=method,
+            return self._aquery(
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1738,7 +1746,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1789,21 +1797,9 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/entity/{entity.id}/report/search":
-            method = "entity id report search"
-        elif endpoint == "/entity/report/search":
-            method = "entity report search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /entity/{entity.id}/report/search, /entity/report/search")
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-                method=method,
+            return self._aquery(
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1816,7 +1812,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1867,21 +1863,9 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/entity/{entity.id}":
-            method = "entity id"
-        elif endpoint == "/entity/search":
-            method = "entity search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /entity/{entity.id}, /entity/search")
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-                method=method,
+            return self._aquery(
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1894,7 +1878,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -1945,21 +1929,9 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/label/search":
-            method = "label search"
-        elif endpoint == "/label/{label.id}/search":
-            raise ValueError("This endpoint is not supported yet.")  # TODO: support this endpoint
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /label/search, /label/{label.id}/search")
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-                method=method,
+            return self._aquery(
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -1972,7 +1944,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -2023,23 +1995,9 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/network/{network.id}/relationship/search":
-            method = "network id relationship search"
-        elif endpoint == "/network/relationship/search":
-            method = "network relationship search"
-        else:
-            raise ValueError(
-                "Invalid endpoint. Please use one of the following: /network/{network.id}/relationship/search, /network/relationship/search"
-            )
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-                method=method,
+            return self._aquery(
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -2052,7 +2010,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -2103,19 +2061,9 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/network/{network.id}":
-            method = "network id"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /network/{network.id}")
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-                method=method,
+            return self._aquery(
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -2128,7 +2076,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -2179,21 +2127,9 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/relationship/search":
-            method = "relationship search"
-        elif endpoint == "/relationship/tree/search":
-            method = "relationship tree search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /relationship/search, /relationship/tree/search")
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-                method=method,
+            return self._aquery(
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -2206,7 +2142,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -2257,21 +2193,9 @@ class XBRL:
         Returns:
             Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/report/{report.id}/fact/search":
-            method = "report id fact search"
-        elif endpoint == "/report/fact/search":
-            method = "report fact search"
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /report/{report.id}/fact/search, /report/fact/search")
-
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-                method=method,
+            return self._aquery(
+                endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
                 limit=limit,
@@ -2284,7 +2208,7 @@ class XBRL:
             )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -2312,37 +2236,45 @@ class XBRL:
     ) -> Union[dict, DataFrame]:
         """
         Args:
-
-            Returns:
-                json | DataFrame: The results of the query.
+            endpoint (str, required): The API endpoint to query.
+                Options are "/report/{report.id}/network/search" or "/report/network/search".
+            fields (ReportNetworkFields, required): The fields to include in the query.
+            parameters (ReportNetworkParameters, optional): The search parameters for the query.
+                Default is None.
+            limit (Union[int, "all"], optional): The maximum number of results to return.
+                If None, the account limit is used. Default is None.
+            sort (ReportNetworkSorts, optional): The sort parameters for the query.
+                Example: {"report_document_type": "desc"}. Default is None.
+            unique (bool, optional): If True, returns only unique values.
+                Default is False.
+            as_dataframe (bool, optional): If True, returns the results as a DataFrame.
+                Default is False, which returns the results as JSON.
+            print_query (bool, optional): If True, prints the query text.
+                Default is False.
+            timeout (int, optional): The number of seconds to wait for a response from the server.
+                Default is 100 seconds. If None, waits indefinitely until kicked off by the server.
+            async_mode (bool, optional): If True, uses the asynchronous query method.
+                This can reduce the time taken for large queries. Use with caution. Default is False.
+            **kwargs: Additional keyword arguments to be passed to the request.
+        Returns:
+            Union[dict, DataFrame]: The results of the query.
         """
-        if endpoint == "/report/network/search":
-            raise ValueError("This endpoint is not supported yet.")  # TODO: support this endpoint
-        else:
-            raise ValueError("Invalid endpoint. Please use one of the following: /report/network/search")
-
-        """
-        if parameters:
-            parameters = {UniversalFieldMap.to_original(key): value for key, value in parameters.items()} if parameters else {}
-        if sort:
-            sort = {UniversalFieldMap.to_original(key): value for key, value in sort.items()} if sort else {}
-
         if async_mode:
-            return self.aquery(
-            method=method,
-            fields=fields,
-            parameters=parameters,
-            limit=limit,
-            sort=sort,
-            unique=unique,
-            as_dataframe=as_dataframe,
-            print_query=print_query,
-            timeout=timeout,
-            **kwargs,
-        )
+            return self._aquery(
+                endpoint=endpoint,
+                fields=fields,
+                parameters=parameters,
+                limit=limit,
+                sort=sort,
+                unique=unique,
+                as_dataframe=as_dataframe,
+                print_query=print_query,
+                timeout=timeout,
+                **kwargs,
+            )
 
         return self.query(
-            method=method,
+            endpoint=endpoint,
             fields=fields,
             parameters=parameters,
             limit=limit,
@@ -2353,4 +2285,3 @@ class XBRL:
             timeout=timeout,
             **kwargs,
         )
-        """
