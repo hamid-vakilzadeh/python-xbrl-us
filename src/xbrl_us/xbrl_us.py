@@ -635,7 +635,7 @@ class XBRL:
                     ) from None
 
         elif response.status_code == 503:
-            raise f"Error {response.status_code}: {response.text}"
+            raise ValueError(f"Error {response.status_code}: {response.text}")
         elif response.status_code == 404:
             raise ValueError(f"Error {response.status_code}: {response.json()['error_description']}") from None
         else:
