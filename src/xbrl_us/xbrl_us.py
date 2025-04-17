@@ -6,6 +6,7 @@ import warnings
 from collections.abc import Iterable
 from functools import wraps
 from pathlib import Path
+from typing import Literal
 from typing import Optional
 from typing import Union
 
@@ -86,6 +87,91 @@ from .types import ReportParameters
 from .types import ReportSorts
 from .types import UniversalFieldMap
 from .utils import exceptions
+
+# Create a union type of all endpoint types
+AnyEndpoint = Union[
+    AssertionEndpoint,
+    ConceptEndpoint,
+    CubeEndpoint,
+    DocumentEndpoint,
+    DtsConceptEndpoint,
+    DtsEndpoint,
+    DtsNetworkEndpoint,
+    EntityEndpoint,
+    EntityReportEndpoint,
+    FactEndpoint,
+    LabelEndpoint,
+    NetworkEndpoint,
+    NetworkRelationshipEndpoint,
+    RelationshipEndpoint,
+    ReportEndpoint,
+    ReportFactEndpoint,
+    ReportNetworkEndpoint,
+]
+
+# Create a union type of all parameter types
+AnyParameters = Union[
+    AssertionParameters,
+    ConceptParameters,
+    CubeParameters,
+    DocumentParameters,
+    DtsConceptParameters,
+    DtsParameters,
+    DtsNetworkParameters,
+    EntityParameters,
+    EntityReportParameters,
+    FactParameters,
+    LabelParameters,
+    NetworkParameters,
+    NetworkRelationshipParameters,
+    RelationshipParameters,
+    ReportParameters,
+    ReportFactParameters,
+    ReportNetworkParameters,
+]
+
+# Create a union type of all field types
+AnyFields = Union[
+    AssertionFields,
+    ConceptFields,
+    CubeFields,
+    DocumentFields,
+    DtsConceptFields,
+    DtsFields,
+    DtsNetworkFields,
+    EntityFields,
+    EntityReportFields,
+    FactFields,
+    LabelFields,
+    NetworkFields,
+    NetworkRelationshipFields,
+    RelationshipFields,
+    ReportFields,
+    ReportFactFields,
+    ReportNetworkFields,
+]
+
+# Create a union type of all sort types
+AnySorts = Union[
+    AssertionSorts,
+    ConceptSorts,
+    CubeSorts,
+    DocumentSorts,
+    DtsConceptSorts,
+    DtsSorts,
+    DtsNetworkSorts,
+    EntitySorts,
+    EntityReportSorts,
+    FactSorts,
+    LabelSorts,
+    NetworkSorts,
+    NetworkRelationshipSorts,
+    RelationshipSorts,
+    ReportSorts,
+    ReportFactSorts,
+    ReportNetworkSorts,
+]
+
 
 _dir = Path(__file__).resolve()
 
@@ -375,8 +461,8 @@ class XBRL:
         client_secret: Optional[str] = None,
         username: Optional[str] = None,
         password: Optional[str] = None,
-        grant_type: str = "password",
-        store: Optional[str] = "n",
+        grant_type: Optional[Literal["password", "refresh_token"]] = "password",
+        store: Optional[Literal["y", "n"]] = "n",
     ):
         self._url = "https://api.xbrl.us/oauth2/token"
         self.client_id = client_id
@@ -389,10 +475,11 @@ class XBRL:
         self.account_limit = None
         self._access_token_expires_at = 0
         self._refresh_token_expires_at = 0
-        self._ensure_access_token(store=store)
         # If the class was initiated without any arguments, try finding the user info file
         if not (client_id and client_secret and username and password):
             self._get_user()
+        if self.client_id and self.client_secret and self.username and self.password:
+            self._ensure_access_token(store=store)
 
     def _get_token(self, grant_type: Optional[str] = None, refresh_token=None, **kwargs):
         """
@@ -425,6 +512,8 @@ class XBRL:
             self._refresh_token_expires_at = time.time() + token_info["refresh_token_expires_in"]
             if not user_info_path.exists():
                 store = kwargs.get("store", None)
+                if store not in ["y", "n"]:
+                    raise ValueError("Invalid value for store. Please provide 'y' or 'n'.")
                 if store is None:
                     store = input("Do you want to store your credentials for future use on this computer? (y/n): ")
                 if store.lower() == "y":
@@ -649,30 +738,31 @@ class XBRL:
     @_type_check_decorator()
     def query(
         self,
-        endpoint: str,
-        fields: Optional[list] = None,
-        parameters: Optional[dict] = None,
+        endpoint: AnyEndpoint,
+        fields: Optional[AnyFields] = None,
+        parameters: Optional[AnyParameters] = None,
         limit: Optional[Union[int, "all"]] = None,
-        sort: Optional[dict] = None,
+        sort: Optional[AnySorts] = None,
         unique: Optional[bool] = False,
         as_dataframe: bool = False,
         print_query: Optional[bool] = False,
         timeout: Optional[int] = None,
+        async_mode: Optional[bool] = False,
         **kwargs,
     ) -> Union[dict, DataFrame]:
         """
 
         Args:
-            endpoint (str): The name of the endpoint to query.
-            fields (list): The fields query parameter establishes the details of the data to return for the specific query.
-            parameters (Optional[dict | Parameters]): The search parameters for the query.
+            endpoint (AnyEndpoint): The name of the endpoint to query.
+            fields (AnyFields): The fields query parameter establishes the details of the data to return for the specific query.
+            parameters (Optional[AnyParameters]): The search parameters for the query.
             limit (Optional[Union[int, "all"]]): A limit restricts the number of results returned by the query.
                 For example, in a *"fact search"* ``limit=10`` would return 10 observations.
                 You can also use ``limit="all"`` to return all results (which is not recommended unless
                 you know what you are doing!). The default is *None* which returns one response with
                 upto your account limit. For example, if your account limit is 5000, then the default
                 will return the smallest of 5000 or the number of results.
-            sort (Optional[dict]): Any returned value can be sorted in ascending or descending order,
+            sort (Optional[AnySorts]): Any returned value can be sorted in ascending or descending order,
                 using *ASC* or *DESC* (i.e. ``{"report.document-type": "DESC"}``.
                 Multiple sort criteria can be defined and the sort sequence is determined by
                 the order of the items in the dictionary.
@@ -682,6 +772,7 @@ class XBRL:
             print_query (bool=False): Whether to print the query text.
             timeout (int=5): The number of seconds to wait for a response from the server. Defaults to 5 seconds.
                 If *None* will wait indefinitely.
+            async_mode (bool=False): If *True* runs the query in async mode. Default is *False*.
 
 
         Returns:
@@ -814,13 +905,13 @@ class XBRL:
             return all_data
 
     @_type_check_decorator()
-    def aquery(
+    def _aquery(
         self,
-        endpoint: str,
-        fields: Optional[list] = None,
-        parameters: Optional[dict] = None,
+        endpoint: AnyEndpoint,
+        fields: Optional[AnyFields] = None,
+        parameters: Optional[AnyParameters] = None,
         limit: Optional[Union[int, "all"]] = None,
-        sort: Optional[dict] = None,
+        sort: Optional[AnySorts] = None,
         unique: Optional[bool] = False,
         as_dataframe: bool = False,
         print_query: Optional[bool] = False,
@@ -831,16 +922,16 @@ class XBRL:
         """Asynchronous version of the query method
 
         Args:
-            endpoint (str): The name of the endpoint to query.
-            fields (list): The fields query parameter establishes the details of the data to return for the specific query.
-            parameters (Optional[dict]): The search parameters for the query.
+            endpoint (AnyEndpoint): The name of the endpoint to query.
+            fields (AnyFields): The fields query parameter establishes the details of the data to return for the specific query.
+            parameters (Optional[AnyParameters]): The search parameters for the query.
             limit (Optional[Union[int, "all"]]): A limit restricts the number of results returned by the query.
                 For example, in a *"fact search"* ``limit=10`` would return 10 observations.
                 You can also use ``limit="all"`` to return all results (which is not recommended unless
                 you know what you are doing!). The default is *None* which returns one response with
                 upto your account limit. For example, if your account limit is 5000, then the default
                 will return the smallest of 5000 or the number of results.
-            sort (Optional[dict]): Any returned value can be sorted in ascending or descending order,
+            sort (Optional[AnySorts]): Any returned value can be sorted in ascending or descending order,
                 using *ASC* or *DESC* (i.e. ``{"report.document-type": "DESC"}``.
                 Multiple sort criteria can be defined and the sort sequence is determined by
                 the order of the items in the dictionary.
@@ -863,7 +954,7 @@ class XBRL:
             limit = 999999999
 
         all_data = []
-        remaining_limit = limit
+        remaining_limit = limit if limit is not None else self.account_limit
         offset = 0
         end_of_data_reached = False
 
@@ -1012,7 +1103,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
@@ -1078,7 +1169,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
@@ -1144,7 +1235,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
@@ -1210,7 +1301,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
@@ -1276,7 +1367,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
@@ -1342,7 +1433,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
@@ -1408,7 +1499,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
@@ -1474,7 +1565,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
@@ -1540,7 +1631,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
@@ -1606,7 +1697,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
@@ -1672,7 +1763,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
@@ -1738,7 +1829,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
@@ -1804,7 +1895,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
@@ -1870,7 +1961,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
@@ -1936,7 +2027,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
@@ -2002,7 +2093,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
@@ -2068,7 +2159,7 @@ class XBRL:
             Union[dict, DataFrame]: The results of the query.
         """
         if async_mode:
-            return self.aquery(
+            return self._aquery(
                 endpoint=endpoint,
                 fields=fields,
                 parameters=parameters,
