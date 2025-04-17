@@ -209,7 +209,7 @@ except Exception as e:
     logger.warning(f"An exception occurred: {e}")  # Or debug/info/error as appropriate
 
 
-def _remove_special_fields(fields):
+def _remove_special_fields(fields: list) -> list:
     # Define the patterns to be removed
     patterns = [r"(.+)\.(sort\((.+)\))?$", r"(.+)\.(limit\((\d+)\))?$", r"(.+)\.(offset\((\d+)\))?$"]
 
@@ -221,10 +221,10 @@ def _remove_special_fields(fields):
     return fields
 
 
-def _validate_parameters():
-    def decorator(func):
+def _validate_parameters() -> callable:
+    def decorator(func: callable) -> callable:
         @wraps(func)
-        def wrapper(**kwargs):
+        def wrapper(**kwargs) -> dict:
             """
             Validate the parameters passed to the query method including fields, parameters, sort, limit, and offset.
             This is a decorator for the ``_build_query_params`` method in XBRL class.
@@ -233,7 +233,7 @@ def _validate_parameters():
                 **kwargs: Arbitrary keyword arguments.
 
             Returns:
-                The result of the wrapped function.
+                dict: The result of the wrapped function.
             """
             endpoint_name = kwargs.get("endpoint", None)
             if not endpoint_name:
@@ -329,10 +329,10 @@ def _validate_parameters():
     return decorator
 
 
-def _type_check_decorator():
-    def decorator(func):
+def _type_check_decorator() -> callable:
+    def decorator(func: callable) -> callable:
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> Union[dict, DataFrame]:
             """
             Check if the parameters passed to the query method are in dictionary format.
             This is a decorator for the ``query`` method in XBRL class.
@@ -342,7 +342,7 @@ def _type_check_decorator():
                 **kwargs: Arbitrary keyword arguments.
 
             Returns:
-                The result of the wrapped function.
+                Union[dict, DataFrame]: The result of the wrapped function.
             """
             if kwargs.get("method"):
                 raise KeyError("`method` is no longer supported. Please use `endpoint` instead.")
@@ -375,14 +375,15 @@ def _build_query_params(
     Build the query parameters for the API request in the format required by the API.
 
     Args:
-        fields (list): The list of fields to include in the query.
-        parameters (dict): The parameters for the query.
-        limit (dict): The limit parameters for the query.
-        sort (dict): The sort parameters for the query.
-        offset (dict): dynamically set if needed
-        limit_field (str): The limit field accepted for the chosen method.
-        offset_field (str): The offset field accepted for the chosen method (which is usually the same as the
-            ``limit_filed``).
+        fields (Optional[list]): The list of fields to include in the query.
+        parameters (Optional[dict]): The parameters for the query.
+        limit (Optional[int]): The limit parameter for the query.
+        sort (Optional[dict]): The sort parameters for the query.
+        offset (Optional[int]): The offset parameter, dynamically set if needed.
+        limit_field (Optional[str]): The limit field accepted for the chosen method.
+        offset_field (Optional[str]): The offset field accepted for the chosen method (which is usually the same as the
+            ``limit_field``).
+        unique (Optional[bool]): Whether to return only unique values.
 
     Returns:
         dict: The query parameters that will be submitted to the API.
@@ -723,10 +724,10 @@ class XBRL:
         Only fetches from API if cache is older than 24h or force_refresh=True.
 
         Args:
-            force_refresh (bool): If True, force a refresh of the cache regardless of age
+            force_refresh (bool, optional): If True, force a refresh of the cache regardless of age. Default is False.
 
         Returns:
-            dict: The endpoints metadata
+            dict: The endpoints metadata.
         """
         from datetime import datetime
         from datetime import timedelta
@@ -849,32 +850,33 @@ class XBRL:
         **kwargs,
     ) -> Union[dict, DataFrame]:
         """
+        Query the XBRL US API for data.
 
         Args:
             endpoint (AnyEndpoint): The name of the endpoint to query.
-            fields (AnyFields): The fields query parameter establishes the details of the data to return for the specific query.
+            fields (Optional[AnyFields]): The fields query parameter establishes the details of the data to return for the specific query.
             parameters (Optional[AnyParameters]): The search parameters for the query.
             limit (Optional[Union[int, "all"]]): A limit restricts the number of results returned by the query.
                 For example, in a *"fact search"* ``limit=10`` would return 10 observations.
                 You can also use ``limit="all"`` to return all results (which is not recommended unless
                 you know what you are doing!). The default is *None* which returns one response with
-                upto your account limit. For example, if your account limit is 5000, then the default
+                up to your account limit. For example, if your account limit is 5000, then the default
                 will return the smallest of 5000 or the number of results.
             sort (Optional[AnySorts]): Any returned value can be sorted in ascending or descending order,
-                using *ASC* or *DESC* (i.e. ``{"report.document-type": "DESC"}``.
+                using *ASC* or *DESC* (i.e. ``{"report.document-type": "DESC"}``).
                 Multiple sort criteria can be defined and the sort sequence is determined by
                 the order of the items in the dictionary.
-            unique (Optional[bool]=False): If *True* returns only unique values. Default is *False*.
-            as_dataframe (Optional[bool]=False): If *True* returns the results as a *DataFrame* else returns the data
-                as *json*. The default is *False* which returns the results in *json* format
-            print_query (bool=False): Whether to print the query text.
-            timeout (int=5): The number of seconds to wait for a response from the server. Defaults to 5 seconds.
+            unique (Optional[bool]): If *True* returns only unique values. Default is *False*.
+            as_dataframe (bool): If *True* returns the results as a *DataFrame* else returns the data
+                as *json*. The default is *False* which returns the results in *json* format.
+            print_query (Optional[bool]): Whether to print the query text. Default is False.
+            timeout (Optional[int]): The number of seconds to wait for a response from the server.
                 If *None* will wait indefinitely.
-            async_mode (bool=False): If *True* runs the query in async mode. Default is *False*.
-
+            async_mode (Optional[bool]): If *True* runs the query in async mode. Default is *False*.
+            **kwargs: Additional keyword arguments to pass to the request.
 
         Returns:
-            json | DataFrame: The results of the query.
+            Union[dict, DataFrame]: The results of the query.
         """
 
         endpoint_url = f"https://api.xbrl.us/api/v1{endpoint}?"
@@ -1017,29 +1019,30 @@ class XBRL:
         batch_size: Optional[int] = 5,
         **kwargs,
     ) -> Union[dict, DataFrame]:
-        """Asynchronous version of the query method
+        """Asynchronous version of the query method.
 
         Args:
             endpoint (AnyEndpoint): The name of the endpoint to query.
-            fields (AnyFields): The fields query parameter establishes the details of the data to return for the specific query.
+            fields (Optional[AnyFields]): The fields query parameter establishes the details of the data to return for the specific query.
             parameters (Optional[AnyParameters]): The search parameters for the query.
             limit (Optional[Union[int, "all"]]): A limit restricts the number of results returned by the query.
                 For example, in a *"fact search"* ``limit=10`` would return 10 observations.
                 You can also use ``limit="all"`` to return all results (which is not recommended unless
                 you know what you are doing!). The default is *None* which returns one response with
-                upto your account limit. For example, if your account limit is 5000, then the default
+                up to your account limit. For example, if your account limit is 5000, then the default
                 will return the smallest of 5000 or the number of results.
             sort (Optional[AnySorts]): Any returned value can be sorted in ascending or descending order,
-                using *ASC* or *DESC* (i.e. ``{"report.document-type": "DESC"}``.
+                using *ASC* or *DESC* (i.e. ``{"report.document-type": "DESC"}``).
                 Multiple sort criteria can be defined and the sort sequence is determined by
                 the order of the items in the dictionary.
-            unique (Optional[bool]=False): If *True* returns only unique values. Default is *False*.
-            as_dataframe (Optional[bool]=False): If *True* returns the results as a *DataFrame* else returns the data
-                as *json*. The default is *False* which returns the results in *json* format
-            print_query (bool=False): Whether to print the query text.
-            timeout (int=5): The number of seconds to wait for a response from the server. Defaults to 5 seconds.
+            unique (Optional[bool]): If *True* returns only unique values. Default is *False*.
+            as_dataframe (bool): If *True* returns the results as a *DataFrame* else returns the data
+                as *json*. The default is *False* which returns the results in *json* format.
+            print_query (Optional[bool]): Whether to print the query text. Default is False.
+            timeout (Optional[int]): The number of seconds to wait for a response from the server.
                 If *None* will wait indefinitely.
-            batch_size (int=5): The number of concurrent requests to make. Default is 5.
+            batch_size (Optional[int]): The number of concurrent requests to make. Default is 5.
+            **kwargs: Additional keyword arguments to pass to the request.
 
         Returns:
             Union[dict, DataFrame]: The results of the query.
