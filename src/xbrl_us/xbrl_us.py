@@ -483,11 +483,32 @@ class XBRL:
 
     def _get_token(self, grant_type: Optional[str] = None, refresh_token=None, **kwargs):
         """
-        Retrieves an access token from the token URL.
+        Retrieve an authentication token from the XBRL US API.
+
+        This method handles the OAuth2 token acquisition process, supporting both
+        password grants (using username/password) and refresh token grants. When
+        successful, it updates the instance with new access and refresh tokens
+        and their expiration times.
 
         Args:
-            grant_type (str): The grant type (default: "password").
-            refresh_token (str): The refresh token (default: None).
+            grant_type (str, optional): The OAuth2 grant type to use, either "password"
+                or "refresh_token". If None, uses the instance's grant_type.
+            refresh_token (str, optional): The refresh token to use when grant_type
+                is "refresh_token". Required if using refresh token grant type.
+            **kwargs: Additional keyword arguments.
+                - store (str): Either "y" or "n", determines whether to store credentials.
+                  If not provided and credentials haven't been stored before, will prompt user.
+
+        Raises:
+            ValueError: If token retrieval fails, invalid parameters are provided,
+                or credential storage preference is invalid.
+
+        Note:
+            When successful, this method updates the instance attributes:
+            - access_token
+            - refresh_token
+            - _access_token_expires_at
+            - _refresh_token_expires_at
         """
         grant_type = self.grant_type or grant_type
         payload = {"grant_type": grant_type, "client_id": self.client_id, "client_secret": self.client_secret, "platform": "pc"}
@@ -522,12 +543,38 @@ class XBRL:
             raise ValueError(f"Unable to retrieve token: {response.json()}. Please check your credentials.")
 
     def _is_access_token_expired(self):
+        """
+        Check if the current access token has expired.
+
+        Returns:
+            bool: True if the access token has expired, False otherwise.
+        """
         return time.time() >= self._access_token_expires_at
 
     def _is_refresh_token_expired(self):
+        """
+        Check if the current refresh token has expired.
+
+        Returns:
+            bool: True if the refresh token has expired, False otherwise.
+        """
         return time.time() >= self._refresh_token_expires_at
 
     def _ensure_access_token(self, **kwargs):
+        """
+        Ensure a valid access token is available for API requests.
+
+        If the access token is missing or expired, this method will attempt to get a new one
+        using the refresh token if available and valid, otherwise it will use the stored
+        credentials to request a new token.
+
+        Args:
+            **kwargs: Additional keyword arguments to pass to the _get_token method.
+                Commonly used for the 'store' parameter.
+
+        Note:
+            This method will also verify the account limit is set.
+        """
         if not self.access_token or self._is_access_token_expired():
             if self.refresh_token and not self._is_refresh_token_expired():
                 self._get_token(grant_type="password", refresh_token=self.refresh_token, **kwargs)
@@ -539,15 +586,28 @@ class XBRL:
     @retry(exceptions=_query_exceptions, tries=3, delay=2, backoff=2, logger=None)
     def _make_request(self, method, url, **kwargs) -> requests.Response:
         """
-        Makes an HTTP request with the provided method, URL, and additional arguments.
+        Make an HTTP request to the XBRL US API with automatic token handling and error management.
+
+        This method handles authentication token management and provides detailed error handling.
+        It will automatically retry on connection errors using exponential backoff.
 
         Args:
-            method (str): The HTTP method for the request.
-            url (str): The URL to send the request to.
-            **kwargs: Additional keyword arguments to be passed to the requests' library.
+            method (str): The HTTP method for the request (GET, POST, PUT, DELETE, etc.).
+            url (str): The full URL endpoint to send the request to.
+            **kwargs: Additional keyword arguments passed to the requests library.
+                Common parameters include:
+                - params: Dictionary of URL parameters to append to the URL.
+                - data: Dictionary or bytes to send in the request body.
+                - json: JSON data to send in the request body.
+                - headers: Dictionary of HTTP headers.
+                - timeout: Request timeout in seconds.
+                - print_query: If True, prints the query details to stdout.
 
         Returns:
-            requests.Response: The response object.
+            requests.Response: The successful response object.
+
+        Raises:
+            ValueError: If the API returns an error response or the request fails.
         """
         self._ensure_access_token()
 
@@ -580,9 +640,20 @@ class XBRL:
         else:
             raise ValueError(f"Error {response.status_code}: {response.text}") from None
 
-    def _get_account_limit(
-        self,
-    ):
+    def _get_account_limit(self):
+        """
+        Determine the user's account API request limit by making a test request.
+
+        This method works by purposely requesting a large limit (5001) which typically
+        exceeds normal account limits. The API responds with an error message containing
+        the actual user limit, which this method extracts and stores.
+
+        Returns:
+            None: Updates the instance's account_limit attribute.
+
+        Raises:
+            ValueError: If the limit could not be extracted from the response.
+        """
         # Query the API with a limit of more than 5000.
         params = "fields=fact.value,fact.limit(5001)"
         url = "https://api.xbrl.us/api/v1/fact/search"
@@ -594,9 +665,22 @@ class XBRL:
         if match:
             self.account_limit = int(match.group(1))
         else:
-            raise f"Error: {response.status_code}"
+            raise ValueError(f"Error determining account limit: {response.status_code}")
 
     def _set_user(self):
+        """
+        Store the current user's credentials in a local file for future use.
+
+        This method creates a file in the user's home directory containing the
+        authentication credentials (username, password, client_id, client_secret).
+
+        Note:
+            This stores credentials in plain text, which may have security implications.
+            Use with caution on shared systems.
+
+        Returns:
+            None
+        """
         # Write info file
         with user_info_path.open("w") as file:
             file.write("\n".join([self.username, self.password, self.client_id, self.client_secret]))
@@ -604,6 +688,20 @@ class XBRL:
         print("Remember me enabled.")
 
     def _get_user(self):
+        """
+        Load user credentials from a previously stored credentials file.
+
+        This method attempts to read authentication credentials from a file in the
+        user's home directory. When successful, it sets the instance attributes
+        for username, password, client_id, and client_secret.
+
+        Returns:
+            None: Updates instance attributes with stored credentials.
+
+        Raises:
+            FileNotFoundError: If the credentials file does not exist.
+            ValueError: If there's an error reading or parsing the credentials file.
+        """
         try:
             with user_info_path.open("r") as file:
                 lines = file.readlines()
