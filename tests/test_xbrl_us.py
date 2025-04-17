@@ -6,10 +6,10 @@ from xbrl_us import XBRL
 
 
 @patch("xbrl_us.xbrl_us.XBRL._ensure_access_token")
-@patch("xbrl_us.xbrl_us.XBRL._get_meta_endpoints")
-def test_methods(mock_get_meta_endpoints, mock_ensure_token):
+@patch("xbrl_us.xbrl_us.XBRL._get_endpoints_info")
+def test_methods(mock_get_endpoints_info, mock_ensure_token):
     # Set up our mocks
-    mock_get_meta_endpoints.return_value = {}
+    mock_get_endpoints_info.return_value = {}
     mock_ensure_token.return_value = None
 
     # Create an instance with mock values using env vars
