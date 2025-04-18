@@ -8,6 +8,7 @@ from typing_extensions import NotRequired
 PERIOD_FISCAL_PERIOD = Literal["Y", "Q1", "Q2", "Q3", "Q4", "3QCUM", "H1", "H2"]
 
 # Define allowed values for method
+"""
 AcceptableMethods = Literal[
     "assertion search",  # /assertion/search
     "concept name search",  # /concept/{concept.local-name}/search
@@ -41,6 +42,7 @@ AcceptableMethods = Literal[
     "report id fact search",  # /report/{report.id}/fact/search
     "report search",  # /report/search
 ]
+"""
 """All fields with type information for the fact endpoint."""
 
 FACT_SORT = TypedDict(

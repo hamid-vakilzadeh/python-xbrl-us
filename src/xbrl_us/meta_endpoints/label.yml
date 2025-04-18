@@ -1,0 +1,76 @@
+endpoints:
+  '1': /label/search
+  '2': /label/{label.id}/search
+fields:
+  concept.id:
+    searchable: 'true'
+    type: int
+    database_field: element_id
+    definition: 'A unique identification id of the concept that can be searched on.
+      This is a faster way to retrieve the details of a fact, however it is namespace
+      specific and will only search for the use of a concept for a specific schema. '
+    format: integer
+  concept.is-abstract:
+    searchable: 'true'
+    type: boolean
+    database_field: abstract
+    definition: Identifies if the concept is an abstract concept. If a primary concept
+      (Not an axis or dimension) is an abstract it cannot have a value associated
+      with it.
+  concept.local-name:
+    searchable: 'true'
+    type: varchar
+    database_field: local_name
+    definition: The concept name in the base schema of a taxonomy excluding the namespace,
+      such as Assets or Liabilities. Use this to search across multiple taxonomies
+      where the local name is known to be consistent over time.
+    format: concept
+  concept.namespace:
+    searchable: 'false'
+    type: varchar
+    database_field: namespace
+    format: uri
+  dts.entry-point:
+    searchable: 'true'
+    type: varchar
+    database_field: document_uri
+    definition: The url entry point of a discoverable taxonomy set. This is also referred
+      to as the entry point for a taxonomy. A taxonomy can have multiple entry points
+      and the resulting set of taxonomies of using an entry point is called a dts.
+    format: uri
+  dts.id:
+    searchable: 'true'
+    type: int
+    database_field: dts_id
+    definition: The dts identifier for a given group of taxonomies. XBRL facts and
+      linkbases are typically associated with a given report that is associated with
+      a dts.
+    format: integer
+  label.id:
+    searchable: 'false'
+    type: varchar
+    database_field: resource_id
+    definition: Unique ID of the label.
+  label.lang:
+    searchable: 'false'
+    type: varchar
+    database_field: xml_lang
+    definition: The ISO language code used to express the label, such as en-us.
+  label.role:
+    searchable: 'true'
+    type: varchar
+    database_field: uri.uri
+    definition: The label role used to identify the label type i.e. http://www.xbrl.org/2003/role/label,
+      http://www.xbrl.org/2003/role/documentation
+    format: uri
+  label.role-short:
+    searchable: 'false'
+    type: varchar
+    database_field: substring(uri.uri,'[a-zA-Z0-9]*$')
+    definition: The suffix of the label role used to identify the label type i.e.
+      label
+  label.text:
+    searchable: 'true'
+    type: varchar
+    database_field: label
+    definition: The text of the label. i.e Assets, Current

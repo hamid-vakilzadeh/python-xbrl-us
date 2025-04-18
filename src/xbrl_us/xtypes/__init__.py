@@ -67,7 +67,6 @@ from .endpoints import ReportNetworkSorts
 from .endpoints import ReportParameters
 from .endpoints import ReportSorts
 from .endpoints import UniversalFieldMap
-from .types import AcceptableMethods
 
 __all__ = [
     "AssertionEndpoint",
@@ -139,5 +138,4 @@ __all__ = [
     "ReportParameters",
     "ReportSorts",
     "UniversalFieldMap",
-    "AcceptableMethods",
 ]

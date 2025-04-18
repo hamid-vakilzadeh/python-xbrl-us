@@ -1,0 +1,71 @@
+endpoints:
+  '1': /dts/search
+examples:
+  '1': https://api.xbrl.us/api/v1/dts/search?dts.taxonomy=US%20GAAP&fields=dts.*
+fields:
+  dts.entity-name:
+    searchable: 'true'
+    type: varchar
+    database_field: entity_name
+    definition: The name of the entity that the DTS is applicable to. If the DTS is
+      non company specific this value is null.
+  dts.entry-point:
+    searchable: 'true'
+    type: varchar
+    database_field: document_uri
+    definition: The url entry point of a discoverable taxonomy set. This is also referred
+      to as the entry point for a taxonomy. A taxonomy can have multiple entry points
+      and the resulting set of taxonomies of using an entry point is called a dts.
+    format: uri
+  dts.hash:
+    searchable: 'true'
+    type: text
+    database_field: dts_hash
+    definition: The DTS identifier for a given group of taxonomies as a hex hash.
+      XBRL facts and linkbases are typically associated with a given report that is
+      associated with a DTS.
+    format: hex_hash
+  dts.id:
+    searchable: 'true'
+    type: int
+    database_field: dts_id
+    definition: The dts identifier for a given group of taxonomies. XBRL facts and
+      linkbases are typically associated with a given report that is associated with
+      a dts.
+    format: integer
+  dts.taxonomy:
+    searchable: 'true'
+    type: varchar
+    database_field: name
+    definition: The taxonomy group that the taxonomy belongs to such as 'US GAAP'
+      or 'IFRS'.
+  dts.taxonomy-name:
+    searchable: 'true'
+    type: varchar
+    database_field: dts_name
+    definition: The specific taxonomy name such as 'US GAAP 2019' or 'IFRS 2019'.
+  dts.version:
+    searchable: 'true'
+    type: varchar
+    database_field: version
+    definition: The specific taxonomy version name, such as `2019` for US GAAP.
+    format: integer
+  report.accession:
+    searchable: 'true'
+    type: text
+    database_field: source_report_identifier
+    definition: The identifier used by the SEC to identify a report.
+    format: accession
+  report.hash:
+    searchable: 'true'
+    type: text
+    database_field: report_hash
+    definition: A hash of all the filings information, facts, footnotes, etc.  Unique
+      to each filing.
+    format: hex_hash
+  report.id:
+    searchable: 'true'
+    type: int
+    database_field: report_id
+    definition: The identifier used to identify a report.
+    format: integer
