@@ -16,7 +16,7 @@ project = "xbrl-us"
 year = "2023"
 author = "hamid-vakilzadeh"
 copyright = f"{year}, {author}"
-version = release = "0.1.0"
+version = release = "1.0.0"
 pygments_style = "emacs"
 highlight_language = "python"
 templates_path = ["."]
