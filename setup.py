@@ -61,7 +61,7 @@ setup(
     keywords=[
         # eg: "xbrl-us", "xbrl", "sec",
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     install_requires=[
         "requests>=2.25.1",
         "pandas>= 1.3.0, < 3",
