@@ -2,6 +2,16 @@
 Changelog
 =========
 
+1.0.0 (2025-04-18)
+~~~~~~~~~~~~~~~~~~~
+
+* **API Terminology Alignment**: Renamed parameter ``method`` to ``endpoint`` in ``xbrl.query`` to better align with XBRL US API terminology
+* **Enhanced Streamlit Interface**:
+   - Updated interface to work with the new ``endpoint`` parameter
+   - Added support for many additional XBRL endpoints
+   - Added field definitions display for each endpoint directly in the interface
+* **Enhanced Async Mode**: Improved asynchronous request handling in app.py for better performance with large queries
+
 0.1.0 (2025-04-14)
 ~~~~~~~~~~~~~~~~~~~
 
