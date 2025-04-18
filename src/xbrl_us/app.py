@@ -223,7 +223,7 @@ if __name__ == "__main__":
             for field, values in all_fields.items():
                 with st.expander(
                     label=f"**{field.upper()}**",
-                    expanded=True,
+                    expanded=False,
                 ):
                     for item in values:
                         field_name = list(item.keys())[0]
