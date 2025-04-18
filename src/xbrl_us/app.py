@@ -102,25 +102,6 @@ def show_login():
         st.experimental_rerun()
 
 
-def text_input_for_strings(key):
-    return st.text_area(
-        label=f"Input **{key}**:",
-        value="",
-        key=f"{key}",
-        label_visibility="collapsed",
-    )
-
-
-def boolean_input_for_booleans(key):
-    st.radio(
-        label=f"Input **{key}**:",
-        options=("true", "false"),
-        horizontal=True,
-        key=f"{key}",
-        label_visibility="collapsed",
-    )
-
-
 def restart_everything():
     st.session_state.clear()
     st.session_state.update({"returning_user": False})
@@ -347,10 +328,21 @@ if __name__ == "__main__":
                     type = param[1]["type"]
 
                     if type == "boolean":
-                        boolean_input_for_booleans(param[0])
+                        st.radio(
+                            label=f"Input **{param[0]}**:",
+                            options=("true", "false"),
+                            horizontal=True,
+                            key=f"{param[0]}",
+                            label_visibility="collapsed",
+                        )
 
                     else:
-                        text_input_for_strings(param[0])
+                        st.text_area(
+                            label=f"Input **{param[0]}**:",
+                            value="",
+                            key=f"{param[0]}",
+                            label_visibility="collapsed",
+                        )
                     st.divider()
 
                 if len(st.session_state.parameters) > 0:
