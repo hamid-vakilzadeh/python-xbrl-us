@@ -1,0 +1,177 @@
+endpoints:
+  '1': /concept/{concept.local-name}/search
+  '2': /concept/search
+examples:
+  '1': https://api.xbrl.us/api/v1/concept/Assets/search?dts.id=256759&fields=concept.*
+  '2': https://api.xbrl.us/api/v1/concept/Assets/search?dts.id=256759&fields=concept.*,label.text
+  '3': https://api.xbrl.us/api/v1/concept/Assets/search?concept.namespace=http://xbrl.us/us-gaap/2009-01-31&fields=concept.balance-type,concept.datatype,concept.id,concept.is-abstract,concept.is-monetary,concept.is-nillable,concept.is-numeric,concept.local-name,concept.namespace,concept.period-type,concept.substitution
+  '4': https://api.xbrl.us/api/v1/concept/search?concept.local-name=Assets&fields=concept.is-monetary,concept.datatype,concept.balance-type,concept.namespace.sort(ASC),concept.period-type
+fields:
+  concept.balance-type:
+    searchable: 'true'
+    type: text
+    database_field: CASE WHEN element.balance_id = 1 THEN 'debit' ELSE CASE WHEN element.balance_id
+      = 2 THEN 'credit' END END
+    definition: The balance type of a concept. This can be either debit, credit or
+      not defined.
+  concept.datatype:
+    searchable: 'false'
+    type: varchar
+    database_field: local_name
+    definition: The datatype of the concept such as monetary or string.
+  concept.id:
+    searchable: 'true'
+    type: int
+    database_field: element_id
+    definition: 'A unique identification id of the concept that can be searched on.
+      This is a faster way to retrieve the details of a fact, however it is namespace
+      specific and will only search for the use of a concept for a specific schema. '
+    format: integer
+  concept.is-abstract:
+    searchable: 'true'
+    type: boolean
+    database_field: abstract
+    definition: Identifies if the concept is an abstract concept. If a primary concept
+      (Not an axis or dimension) is an abstract it cannot have a value associated
+      with it.
+  concept.is-monetary:
+    searchable: 'true'
+    type: boolean
+    database_field: is_monetary
+    definition: Identifies if the concept is a monetary value. If yes the value is
+      shown as true. A monetary value is distinguished from a numeric concept in that
+      it has a currency associated with it.
+  concept.is-nillable:
+    searchable: 'false'
+    type: boolean
+    database_field: nillable
+    definition: Identifies if the concept can have a nill value.
+  concept.is-numeric:
+    searchable: 'false'
+    type: boolean
+    database_field: is_numeric
+    definition: Identifies if the concept is a numeric value. If yes the value is
+      shown as true.
+  concept.local-name:
+    searchable: 'true'
+    type: varchar
+    database_field: local_name
+    definition: The concept name in the base schema of a taxonomy excluding the namespace,
+      such as Assets or Liabilities. Use this to search across multiple taxonomies
+      where the local name is known to be consistent over time.
+    format: concept
+  concept.namespace:
+    searchable: 'false'
+    type: varchar
+    database_field: namespace
+    format: uri
+  concept.period-type:
+    searchable: 'false'
+    type: text
+    database_field: CASE WHEN element.period_type_id = 1 THEN 'instant' ELSE CASE
+      WHEN element.period_type_id = 2 THEN 'duration' END END
+    definition: The period type of the concept. This can be either duration or instant.
+    format: integer
+  concept.substitution:
+    searchable: 'false'
+    type: varchar
+    database_field: local_name
+    definition: The substitution group of the concept.
+  dts.entry-point:
+    searchable: 'true'
+    type: varchar
+    database_field: document_uri
+    definition: The url entry point of a discoverable taxonomy set. This is also referred
+      to as the entry point for a taxonomy. A taxonomy can have multiple entry points
+      and the resulting set of taxonomies of using an entry point is called a dts.
+    format: uri
+  dts.hash:
+    searchable: 'true'
+    type: text
+    database_field: dts_hash
+    definition: The DTS identifier for a given group of taxonomies as a hex hash.
+      XBRL facts and linkbases are typically associated with a given report that is
+      associated with a DTS.
+    format: hex_hash
+  dts.id:
+    searchable: 'true'
+    type: int
+    database_field: dts_id
+    definition: The dts identifier for a given group of taxonomies. XBRL facts and
+      linkbases are typically associated with a given report that is associated with
+      a dts.
+    format: integer
+  dts.target-namespace:
+    searchable: 'true'
+    type: varchar
+    database_field: target_namespace
+    definition: The target namespace of a discoverable taxonomy set. (DTS).
+    format: uri
+  label.id:
+    searchable: 'false'
+    type: varchar
+    database_field: resource_id
+    definition: Unique ID of the label.
+  label.lang:
+    searchable: 'false'
+    type: varchar
+    database_field: xml_lang
+    definition: The ISO language code used to express the label, such as en-us.
+  label.role:
+    searchable: 'true'
+    type: varchar
+    database_field: uri.uri
+    definition: The label role used to identify the label type i.e. http://www.xbrl.org/2003/role/label,
+      http://www.xbrl.org/2003/role/documentation
+    format: uri
+  label.role-short:
+    searchable: 'false'
+    type: varchar
+    database_field: substring(uri.uri,'[a-zA-Z0-9]*$')
+    definition: The suffix of the label role used to identify the label type i.e.
+      label
+  label.text:
+    searchable: 'true'
+    type: varchar
+    database_field: label
+    definition: The text of the label. i.e Assets, Current
+  parts.local-name:
+    searchable: 'false'
+    type: varchar
+    database_field: local_name
+  parts.namespace:
+    searchable: 'false'
+    type: varchar
+    database_field: namespace
+  parts.order:
+    searchable: 'false'
+    type: int
+    database_field: ref_order
+  parts.part-value:
+    searchable: 'false'
+    type: varchar
+    database_field: value
+  reference.id:
+    searchable: 'true'
+    type: int
+    database_field: resource_id
+    definition: Unique ID of the reference.
+    format: integer
+  reference.role:
+    searchable: 'true'
+    type: varchar
+    database_field: uri
+    definition: The reference role used to identify the reference type i.e. http://fasb.org/us-gaap/role/ref/legacyRef
+    format: uri
+  reference.role-definition:
+    searchable: 'false'
+    type: varchar
+    database_field: CASE WHEN (custom_role_type.definition is null) THEN 'Presentation
+      Reference' ELSE definition END
+    definition: The reference definition used to identify the reference role i.e.
+      Legacy reference
+  reference.role-short:
+    searchable: 'false'
+    type: varchar
+    database_field: substring(uri.uri,'[a-zA-Z0-9]*$')
+    definition: The reference role used to identify the reference type i.e. legacyRef
