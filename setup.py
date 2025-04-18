@@ -72,11 +72,13 @@ setup(
         "stqdm>=0.0.5",
         "aiohttp>=3.8.4, < 4",
         "nest-asyncio==1.5.6",
+        "pyarrow>=10.0.0,<13.0.0",
+        "numpy>=1.21.0, < 2",
     ],
     extras_require={
-        # eg:
-        #   "rst": ["docutils>=0.11"],
-        #   ":python_version=="2.6"": ["argparse"],
+        # Optional dependencies
+        "arrow": ["pyarrow>=10.0.0,<13.0.0"],
+        "complete": ["pyarrow>=10.0.0,<13.0.0"],
     },
     entry_points={
         "console_scripts": [
