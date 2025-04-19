@@ -2,6 +2,13 @@
 Changelog
 =========
 
+1.0.1 (2025-04-18)
+~~~~~~~~~~~~~~~~~~~
+
+* **Enhanced Security for Credentials**:
+   - Improved encryption for locally stored credentials
+   - Added clearer user feedback for credential storage operations
+
 1.0.0 (2025-04-18)
 ~~~~~~~~~~~~~~~~~~~
 
