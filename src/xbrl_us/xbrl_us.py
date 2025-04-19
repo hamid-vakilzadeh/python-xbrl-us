@@ -670,52 +670,69 @@ class XBRL:
 
     def _set_user(self):
         """
-        Store the current user's credentials in a local file for future use.
+        Store the current user's encrypted credentials in a local file for future use.
 
         This method creates a file in the user's home directory containing the
-        authentication credentials (username, password, client_id, client_secret).
+        encrypted authentication credentials (username, password, client_id, client_secret).
 
         Note:
-            This stores credentials in plain text, which may have security implications.
-            Use with caution on shared systems.
+            This stores credentials in an encrypted format, but still use with caution.
 
         Returns:
             None
         """
-        # Write info file
-        with user_info_path.open("w") as file:
-            file.write("\n".join([self.username, self.password, self.client_id, self.client_secret]))
+        # Import here to avoid circular imports
+        from .utils.crypto import encrypt_text
 
-        print("Remember me enabled.")
+        # Encrypt each credential before storing
+        encrypted_username = encrypt_text(self.username)
+        encrypted_password = encrypt_text(self.password)
+        encrypted_client_id = encrypt_text(self.client_id)
+        encrypted_client_secret = encrypt_text(self.client_secret)
+
+        # Write encrypted info to file
+        with user_info_path.open("w") as file:
+            file.write("\n".join([encrypted_username, encrypted_password, encrypted_client_id, encrypted_client_secret]))
+
+        print("Remember me enabled. Credentials stored with encryption.")
 
     def _get_user(self):
         """
-        Load user credentials from a previously stored credentials file.
+        Load user encrypted credentials from a previously stored credentials file.
 
-        This method attempts to read authentication credentials from a file in the
-        user's home directory. When successful, it sets the instance attributes
+        This method attempts to read and decrypt authentication credentials from a file
+        in the user's home directory. When successful, it sets the instance attributes
         for username, password, client_id, and client_secret.
 
         Returns:
-            None: Updates instance attributes with stored credentials.
+            None: Updates instance attributes with decrypted credentials.
 
         Raises:
             FileNotFoundError: If the credentials file does not exist.
-            ValueError: If there's an error reading or parsing the credentials file.
+            ValueError: If there's an error reading, parsing, or decrypting the credentials file.
         """
         try:
+            # Import here to avoid circular imports
+            from .utils.crypto import decrypt_text
+
             with user_info_path.open("r") as file:
                 lines = file.readlines()
 
-            self.username = lines[0].strip()  # set username
-            self.password = lines[1].strip()  # set password
-            self.client_id = lines[2].strip()  # set client id
-            self.client_secret = lines[3].strip()  # set client secret
+            # Decrypt each credential
+            try:
+                self.username = decrypt_text(lines[0].strip())  # set username
+                self.password = decrypt_text(lines[1].strip())  # set password
+                self.client_id = decrypt_text(lines[2].strip())  # set client id
+                self.client_secret = decrypt_text(lines[3].strip())  # set client secret
+            except Exception as e:
+                raise ValueError(
+                    f"Error decrypting credentials: {e!s}. This could happen if the file was created on a different machine."
+                ) from e
 
         except FileNotFoundError:
             raise FileNotFoundError("Credentials file not found. Please initialize the client with your credentials.") from None
         except Exception as e:
-            raise ValueError("Error reading credentials from file:", str(e)) from None
+            raise ValueError(f"Error reading credentials from file: {e!s}") from None
 
     def _get_endpoints_info(self, force_refresh=False):
         """

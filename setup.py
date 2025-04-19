@@ -63,15 +63,16 @@ setup(
     ],
     python_requires=">=3.9",
     install_requires=[
-        "requests>=2.25.1",
+        "requests>=2.25.1 , < 3",
         "pandas>= 1.3.0, < 3",
-        "PyYAML>=5.3",
-        "streamlit>=1.44.1",
-        "retry>=0.9.2",
-        "tqdm>=4.61.2",
-        "stqdm>=0.0.5",
+        "PyYAML>=5.3 , < 7",
+        "streamlit>=1.44.1 , < 2",
+        "retry>=0.9.2 , < 1",
+        "tqdm>=4.61.2 , < 5",
+        "stqdm>=0.0.5 , < 1",
         "aiohttp>=3.8.4, < 4",
-        "nest-asyncio==1.5.6",
+        "nest-asyncio>=1.5.6, < 2",
+        "cryptography>=44.0.2, < 45",
     ],
     extras_require={
         # Optional dependencies
