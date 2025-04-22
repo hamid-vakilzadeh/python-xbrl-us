@@ -99,7 +99,7 @@ def show_login():
     if verify_api:
         # try the credentials before creating xbrl object
         try_credentials(user_name=username, pass_word=password, client_id=client_id, client_secret=client_secret, store=remember_me)
-        st.experimental_rerun()
+        st.rerun()
 
 
 def restart_everything():
@@ -207,7 +207,7 @@ if __name__ == "__main__":
                     expanded=False,
                 ):
                     for item in values:
-                        field_name = list(item.keys())[0]
+                        field_name = next(iter(item.keys()))
                         field_info = item[field_name]
                         st.markdown(f"#### {field_name}:")
                         col1, col2, col3 = st.columns(3, border=False, gap="small", vertical_alignment="center")
