@@ -128,8 +128,11 @@ if __name__ == "__main__":
     sidebar = st.sidebar
     if user_info_path.exists():
         if "returning_user" not in st.session_state:
-            st.session_state.returning_user = True
-            st.session_state.xbrl = XBRL()
+            try:
+                st.session_state.xbrl = XBRL()
+                st.session_state.returning_user = True
+            except Exception:
+                st.session_state.returning_user = False
 
     if "returning_user" not in st.session_state or not st.session_state.returning_user:
         st.error("Please enter your credentials to begin.")
@@ -327,7 +330,7 @@ if __name__ == "__main__":
                     st.markdown(param[1]["definition"])
                     type = param[1]["type"]
 
-                    if type == "boolean":
+                    if type == "true/false":
                         st.radio(
                             label=f"Input **{param[0]}**:",
                             options=("true", "false"),
