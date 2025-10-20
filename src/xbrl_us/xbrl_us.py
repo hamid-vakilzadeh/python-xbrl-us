@@ -463,7 +463,7 @@ class XBRL:
         username: Optional[str] = None,
         password: Optional[str] = None,
         grant_type: Optional[Literal["password", "refresh_token"]] = "password",
-        platform: Optional[str] = "pc",
+        platform: Optional[str] = "xbrl-us-api-cl",
         store: Optional[Literal["y", "n"]] = "n",
     ):
         self._url = "https://api.xbrl.us/oauth2/token"
