@@ -149,7 +149,7 @@ Create an Instance of XBRL Class
 
 Next, you need to create an instance of the ``XBRL`` class,
 providing your authentication credentials
-(client ID, client secret, username, and password) as parameters:
+(client ID, client secret, username, password, and platform (optionally)) as parameters:
 
 .. code-block:: python
 
@@ -157,12 +157,15 @@ providing your authentication credentials
     client_id='Your client id',
     client_secret='Your client secret',
     username='Your username',
-    password='Your password'
+    password='Your password',
+    platform='app-name'
     )
 
 Make sure to replace ``Your client id``,
 ``Your client secret``, ``Your username``, and
 ``Your password`` with your actual credentials.
+``platform`` is an optional parameter that
+specifies the platform you are using to access the API.
 
 Query the XBRL API
 ------------------

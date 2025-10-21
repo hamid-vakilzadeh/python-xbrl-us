@@ -463,6 +463,7 @@ class XBRL:
         username: Optional[str] = None,
         password: Optional[str] = None,
         grant_type: Optional[Literal["password", "refresh_token"]] = "password",
+        platform: Optional[str] = "xbrl-us-api-cl",
         store: Optional[Literal["y", "n"]] = "n",
     ):
         self._url = "https://api.xbrl.us/oauth2/token"
@@ -473,6 +474,7 @@ class XBRL:
         self.grant_type = grant_type
         self.access_token = None
         self.refresh_token = None
+        self.platform = platform[:30]
         self.account_limit = None
         self._access_token_expires_at = 0
         self._refresh_token_expires_at = 0
@@ -512,7 +514,7 @@ class XBRL:
             - _refresh_token_expires_at
         """
         grant_type = self.grant_type or grant_type
-        payload = {"grant_type": grant_type, "client_id": self.client_id, "client_secret": self.client_secret, "platform": "pc"}
+        payload = {"grant_type": grant_type, "client_id": self.client_id, "client_secret": self.client_secret, "platform": self.platform}
 
         if grant_type == "password":
             payload.update(
